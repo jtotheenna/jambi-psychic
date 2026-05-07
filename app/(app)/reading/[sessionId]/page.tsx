@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect, notFound } from "next/navigation"
 import ReadingRoom from "./ReadingRoom"
+import SavedReading from "./SavedReading"
 
 export default async function ReadingPage({
   params,
@@ -19,12 +20,26 @@ export default async function ReadingPage({
   })
 
   if (!reading) notFound()
-
   if (reading.status === "pending") redirect("/dashboard")
 
   const transcript = reading.transcript ? JSON.parse(reading.transcript) : []
   const cardsDrawn = reading.cardsDrawn ? JSON.parse(reading.cardsDrawn) : []
 
+  // Completed readings → clean saved view, no avatar, no voice
+  if (reading.status === "complete") {
+    return (
+      <SavedReading
+        transcript={transcript}
+        cardsDrawn={cardsDrawn}
+        spread={reading.spread}
+        question={reading.question}
+        completedAt={reading.completedAt}
+        userName={reading.user.name}
+      />
+    )
+  }
+
+  // Active readings → full interactive room
   return (
     <ReadingRoom
       sessionId={sessionId}
@@ -33,7 +48,7 @@ export default async function ReadingPage({
       initialCardsDrawn={cardsDrawn}
       exchangesUsed={reading.exchangesUsed}
       exchangesTotal={reading.exchangesTotal}
-      isComplete={reading.status === "complete"}
+      isComplete={false}
       spread={reading.spread}
     />
   )

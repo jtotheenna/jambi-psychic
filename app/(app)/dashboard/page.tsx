@@ -4,6 +4,10 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import PayButton from "./PayButton"
 
+const TAROT_LINK = process.env.STRIPE_TAROT_LINK!
+const PALM_LINK  = process.env.STRIPE_PALM_LINK!
+const MOON_LINK  = process.env.STRIPE_MOON_LINK!
+
 export default async function DashboardPage() {
   const session = await auth()
   if (!session?.user) redirect("/login")
@@ -45,7 +49,7 @@ export default async function DashboardPage() {
           >
             GALILEO
           </h1>
-          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.25em", color: "#4a3870", marginTop: 2 }}>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.25em", color: "#a5b4fc", marginTop: 2 }}>
             {user.name ? `WELCOME BACK, ${user.name.toUpperCase()}` : "YOUR READINGS"}
           </div>
         </div>
@@ -89,7 +93,7 @@ export default async function DashboardPage() {
           >
             READING IN PROGRESS
           </div>
-          <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 16, color: "#7a8ba8", fontStyle: "italic", marginBottom: 16 }}>
+          <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 18, color: "#c8d4e8", fontStyle: "italic", marginBottom: 16 }}>
             {activeSession.question
               ? `"${activeSession.question.substring(0, 80)}${activeSession.question.length > 80 ? "..." : ""}"`
               : "Your reading is open."}
@@ -111,9 +115,21 @@ export default async function DashboardPage() {
             >
               RETURN TO READING
             </Link>
-            <span style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#4a3870", letterSpacing: "0.1em" }}>
+            <span style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#7a8ba8", letterSpacing: "0.1em" }}>
               {activeSession.exchangesTotal - activeSession.exchangesUsed} VISIONS REMAINING
             </span>
+            <form action={async () => {
+              "use server"
+              await prisma.readingSession.update({
+                where: { id: activeSession.id },
+                data: { status: "complete", completedAt: new Date() },
+              })
+              redirect("/dashboard")
+            }}>
+              <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.12em", color: "#4a3870", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                abandon
+              </button>
+            </form>
           </div>
         </div>
       )}
@@ -142,7 +158,23 @@ export default async function DashboardPage() {
           <p style={{ fontFamily: "'Cinzel', serif", fontSize: 11, color: "#4a3870", letterSpacing: "0.15em", marginBottom: 24 }}>
             $10 · 10 EXCHANGES · REMEMBERED FOREVER
           </p>
-          <PayButton />
+          <a
+            href={`${TAROT_LINK}?client_reference_id=${user.id}--tarot`}
+            style={{
+              display: "inline-block",
+              padding: "16px 48px",
+              borderRadius: 8,
+              border: "1px solid rgba(201,168,76,0.5)",
+              background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)",
+              color: "#c9a84c",
+              fontFamily: "'Cinzel', serif",
+              fontSize: 13,
+              letterSpacing: "0.2em",
+              textDecoration: "none",
+            }}
+          >
+            BEGIN · $10
+          </a>
           {process.env.NODE_ENV !== "production" && (
             <form
               action={async () => {
@@ -177,6 +209,42 @@ export default async function DashboardPage() {
         </div>
       )}
 
+      {/* Moon reading */}
+      <div style={{ marginBottom: 20, padding: 24, borderRadius: 12, border: "1px solid rgba(165,180,252,0.2)", background: "rgba(10,5,32,0.5)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#a5b4fc", marginBottom: 8 }}>
+            ☽ MOON READING
+          </div>
+          <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
+            Galileo reads from the live moon phase and Sun Bear's Medicine Wheel.
+          </p>
+          <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
+            $5 · 5 EXCHANGES · SPOKEN ALOUD
+          </p>
+        </div>
+        <a href={`${MOON_LINK}?client_reference_id=${user.id}--moon`} style={{ padding: "10px 28px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(165,180,252,0.08)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+          BEGIN · $5
+        </a>
+      </div>
+
+      {/* Palm reading */}
+      <div style={{ marginBottom: 32, padding: 24, borderRadius: 12, border: "1px solid rgba(201,168,76,0.2)", background: "rgba(10,5,32,0.5)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#c9a84c", marginBottom: 8 }}>
+            ✋ PALM READING
+          </div>
+          <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
+            Upload a photo of your hand. Galileo reads the lines and answers your questions.
+          </p>
+          <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
+            $5 · 5 EXCHANGES · SPOKEN ALOUD
+          </p>
+        </div>
+        <a href={`${PALM_LINK}?client_reference_id=${user.id}--palm`} style={{ padding: "10px 28px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.4)", background: "rgba(201,168,76,0.08)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+          BEGIN · $5
+        </a>
+      </div>
+
       {/* Past readings */}
       {completedSessions.length > 0 && (
         <div>
@@ -185,7 +253,7 @@ export default async function DashboardPage() {
               fontFamily: "'Cinzel', serif",
               fontSize: 10,
               letterSpacing: "0.25em",
-              color: "#4a3870",
+              color: "#7a8ba8",
               marginBottom: 20,
             }}
           >
@@ -217,18 +285,18 @@ export default async function DashboardPage() {
                   }}
                 >
                   <div>
-                    <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 16, color: "#8878a8", fontStyle: "italic", marginBottom: 4 }}>
+                    <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 18, color: "#ddd8f0", fontStyle: "italic", marginBottom: 4 }}>
                       {s.question
                         ? `"${s.question.substring(0, 70)}${s.question.length > 70 ? "..." : ""}"`
                         : "A reading with Galileo"}
                     </div>
-                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#4a3870", letterSpacing: "0.12em" }}>
+                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#7a8ba8", letterSpacing: "0.12em", marginTop: 6 }}>
                       {date}
                       {s.spread ? ` · ${s.spread}` : ""}
                     </div>
                   </div>
                   {cards.length > 0 && (
-                    <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 13, color: "#4a3870", fontStyle: "italic" }}>
+                    <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#7a8ba8", fontStyle: "italic", textAlign: "right" }}>
                       {cards.slice(0, 3).join(", ")}{cards.length > 3 ? "..." : ""}
                     </div>
                   )}

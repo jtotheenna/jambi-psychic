@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -36,6 +36,7 @@ model ReadingSession {
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   purchaseId     String?   @unique
   purchase       Purchase? @relation(fields: [purchaseId], references: [id])
+  type           String    @default("tarot")
   status         String    @default("pending")
   exchangesUsed  Int       @default(0)
   exchangesTotal Int       @default(10)

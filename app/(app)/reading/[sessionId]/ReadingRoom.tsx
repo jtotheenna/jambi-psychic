@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
-import GalileoAvatar from "@/components/GalileoAvatar"
+import GalileoPanel from "@/components/GalileoPanel"
 import GemProgress from "@/components/GemProgress"
+import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import TarotCard from "@/components/TarotCard"
 import ChatBubble from "@/components/ChatBubble"
 import { TAROT_DECK } from "@/lib/tarot"
@@ -85,10 +86,25 @@ export default function ReadingRoom({
   const [spread, setSpread] = useState(initialSpread)
   const [isListening, setIsListening] = useState(false)
   const [voiceSupported, setVoiceSupported] = useState(false)
+  const [voiceMode, setVoiceMode] = useState(false)
+  const [interimTranscript, setInterimTranscript] = useState("")
+
+  const voice = useGalileoVoice()
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const recognitionRef = useRef<InstanceType<NonNullable<typeof SpeechRecognition>> | null>(null)
+  const voiceModeRef = useRef(false)
+  const loadingRef = useRef(false)
+
+  // Sync voice hook mode to local voiceMode
+  useEffect(() => {
+    const isConversational = voice.mode === "conversational"
+    setVoiceMode(isConversational)
+    voiceModeRef.current = isConversational
+  }, [voice.mode])
+
+  useEffect(() => { loadingRef.current = loading }, [loading])
 
   useEffect(() => {
     setVoiceSupported(!!SpeechRecognition)
@@ -100,17 +116,27 @@ export default function ReadingRoom({
     }
   }, [messages])
 
-  // If this is a fresh reading with no transcript yet, show closed box with begin button
-  // If returning to a reading in progress, show messages
+  const isVoiceMode = voiceMode
+
+  // Keep hook in sync with local state
+  useEffect(() => { voice.setAvatarState(avatarState) }, [avatarState]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (hasStarted) voice.open() }, [hasStarted]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function speakText(text: string, hasCards = false) {
-    playGalileoSpeak()
-    if (hasCards) {
-      setTimeout(() => playCardReveal(0), 800)
-      setTimeout(() => playCardReveal(1), 1400)
-      setTimeout(() => playCardReveal(2), 2000)
+    if (voice.mode === "text") {
+      setAvatarState("idle")
+      return
+    }
+    if (voice.mode === "aloud") {
+      playGalileoSpeak()
+      if (hasCards) {
+        setTimeout(() => playCardReveal(0), 800)
+        setTimeout(() => playCardReveal(1), 1400)
+        setTimeout(() => playCardReveal(2), 2000)
+      }
     }
     setAvatarState("speaking")
+
     const audio = await fetchTTS(text)
     if (audio) {
       await playAudio(audio)
@@ -118,54 +144,155 @@ export default function ReadingRoom({
       await new Promise((r) => setTimeout(r, Math.min(text.length * 40, 4000)))
     }
     setAvatarState("idle")
+    if (voiceModeRef.current) setTimeout(() => startAutoListening(), 400)
+  }
+
+  function handleAvatarSpeakEnd() {
+    setAvatarState("idle")
+    if (voiceModeRef.current) setTimeout(() => startAutoListening(), 400)
   }
 
   async function handleBeginReading() {
     setHasStarted(true)
-    setAvatarState("idle") // triggers box open + static sequence
+    setAvatarState("idle")
     playBoxOpen()
+
+    // Wait for box open animation then auto-generate greeting
+    setTimeout(async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/reading/${sessionId}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: "__OPENING__" }),
+        })
+        const data = await res.json()
+        if (res.ok && data.response) {
+          setMessages([{ role: "galileo", content: data.response }])
+          setLoading(false)
+          await speakText(data.response)
+        } else {
+          setLoading(false)
+        }
+      } catch {
+        setLoading(false)
+      }
+    }, 3400) // after TV static clears
   }
 
-  function startListening() {
-    if (!SpeechRecognition || isListening || loading) return
+  // ── Conversational voice mode ──────────────────────────────────────────────
+
+  function startAutoListening() {
+    if (!SpeechRecognition || !voiceModeRef.current || loadingRef.current) return
+
+    recognitionRef.current?.stop()
+
     const recognition = new SpeechRecognition()
     recognition.lang = "en-US"
-    recognition.continuous = false
-    recognition.interimResults = false
+    recognition.continuous = true
+    recognition.interimResults = true
 
-    recognition.onstart = () => setIsListening(true)
+    let finalText = ""
+    let silenceTimer: ReturnType<typeof setTimeout> | null = null
+
+    recognition.onstart = () => {
+      setIsListening(true)
+      setInterimTranscript("")
+      finalText = ""
+    }
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      const transcript = event.results[0][0].transcript
-      setInput((prev) => prev ? `${prev} ${transcript}` : transcript)
+      let interim = ""
+      finalText = ""
+      for (let i = 0; i < event.results.length; i++) {
+        if (event.results[i].isFinal) finalText += event.results[i][0].transcript + " "
+        else interim += event.results[i][0].transcript
+      }
+      setInterimTranscript(finalText + interim)
+
+      // Reset silence countdown whenever speech comes in
+      if (silenceTimer) clearTimeout(silenceTimer)
+      if (event.results[event.results.length - 1].isFinal) {
+        silenceTimer = setTimeout(() => recognition.stop(), 1400)
+      }
+    }
+
+    recognition.onspeechend = () => {
+      if (silenceTimer) clearTimeout(silenceTimer)
+      silenceTimer = setTimeout(() => recognition.stop(), 900)
     }
 
     recognition.onend = () => {
       setIsListening(false)
-      recognitionRef.current = null
+      setInterimTranscript("")
+      const text = finalText.trim()
+      if (text && voiceModeRef.current && !loadingRef.current) {
+        sendMessageText(text)
+      } else if (voiceModeRef.current && !loadingRef.current) {
+        // Nothing heard — keep listening
+        setTimeout(() => startAutoListening(), 600)
+      }
     }
 
-    recognition.onerror = () => {
+    recognition.onerror = (event: Event & { error?: string }) => {
       setIsListening(false)
-      recognitionRef.current = null
+      if (voiceModeRef.current && event.error !== "aborted" && event.error !== "no-speech") {
+        setTimeout(() => startAutoListening(), 1000)
+      } else if (voiceModeRef.current && event.error === "no-speech") {
+        setTimeout(() => startAutoListening(), 400)
+      }
     }
 
     recognitionRef.current = recognition
     recognition.start()
   }
 
-  function stopListening() {
-    recognitionRef.current?.stop()
+  function toggleVoiceMode() {
+    if (voiceMode) {
+      // Turn off
+      voiceModeRef.current = false
+      setVoiceMode(false)
+      recognitionRef.current?.stop()
+      setIsListening(false)
+      setInterimTranscript("")
+    } else {
+      // Turn on
+      setVoiceMode(true)
+      voiceModeRef.current = true
+      if (!loading && hasStarted) setTimeout(() => startAutoListening(), 300)
+    }
   }
 
-  async function sendMessage() {
-    if (!input.trim() || loading || isComplete) return
+  // ── Text mode mic (hold to speak) ─────────────────────────────────────────
 
-    const userMessage = input.trim()
+  function startListening() {
+    if (!SpeechRecognition || isListening || loading || voiceMode) return
+    const recognition = new SpeechRecognition()
+    recognition.lang = "en-US"
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.onstart = () => setIsListening(true)
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript
+      setInput((prev) => prev ? `${prev} ${transcript}` : transcript)
+    }
+    recognition.onend = () => { setIsListening(false); recognitionRef.current = null }
+    recognition.onerror = () => { setIsListening(false); recognitionRef.current = null }
+    recognitionRef.current = recognition
+    recognition.start()
+  }
+
+  function stopListening() { recognitionRef.current?.stop() }
+
+  // ── Send message (shared by text + voice) ─────────────────────────────────
+
+  async function sendMessageText(text: string) {
+    if (!text.trim() || loadingRef.current || isComplete) return
+
     setInput("")
     setLoading(true)
 
-    const newMessages: Message[] = [...messages, { role: "user", content: userMessage }]
+    const newMessages: Message[] = [...messages, { role: "user", content: text }]
     setMessages(newMessages)
     setAvatarState("thinking")
 
@@ -173,52 +300,47 @@ export default function ReadingRoom({
       const res = await fetch(`/api/reading/${sessionId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({ message: text, voiceMode: voiceModeRef.current }),
       })
 
       const data = await res.json()
 
       if (!res.ok) {
-        setMessages([...newMessages, {
-          role: "galileo",
-          content: data.error || "Something stirred in the void. Please try again.",
-        }])
+        setMessages([...newMessages, { role: "galileo", content: data.error || "Something stirred in the void. Please try again." }])
         setAvatarState("idle")
         setLoading(false)
+        if (voiceModeRef.current) setTimeout(() => startAutoListening(), 600)
         return
       }
 
-      const updatedMessages: Message[] = [...newMessages]
       const galileoMessage: Message = {
         role: "galileo",
         content: data.response,
         cards: data.cards?.length > 0 ? data.cards : undefined,
       }
-      updatedMessages.push(galileoMessage)
-      setMessages(updatedMessages)
+      setMessages([...newMessages, galileoMessage])
 
       if (data.cards?.length > 0) {
-        const newCardNames = data.cards.map((c: { name: string }) => c.name)
-        setCardsDrawn((prev) => [...prev, ...newCardNames])
+        setCardsDrawn((prev) => [...prev, ...data.cards.map((c: { name: string }) => c.name)])
       }
 
       setExchangesUsed(data.exchangesUsed)
       setIsComplete(data.isComplete)
-
       if (data.isComplete) playSessionEnd()
 
-      // Speak Galileo's response
       await speakText(data.response, data.cards?.length > 0)
     } catch {
-      setMessages([...newMessages, {
-        role: "galileo",
-        content: "The stars went dark for a moment. Please try again.",
-      }])
+      setMessages([...newMessages, { role: "galileo", content: "The stars went dark for a moment. Please try again." }])
       setAvatarState("idle")
+      if (voiceModeRef.current) setTimeout(() => startAutoListening(), 600)
     }
 
     setLoading(false)
-    inputRef.current?.focus()
+    if (!voiceModeRef.current) inputRef.current?.focus()
+  }
+
+  async function sendMessage() {
+    await sendMessageText(input.trim())
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -292,9 +414,17 @@ export default function ReadingRoom({
       >
         {/* Galileo + Cards row */}
         <div style={{ display: "flex", gap: 24, alignItems: "flex-start", justifyContent: "center", flexWrap: "wrap" }}>
-          {/* Avatar */}
+          {/* Avatar + mode selector */}
           <div style={{ flexShrink: 0 }}>
-            <GalileoAvatar state={hasStarted ? avatarState : "closed"} />
+            <GalileoPanel
+              avatarState={hasStarted ? avatarState : "closed"}
+              hasStarted={hasStarted}
+              mode={voice.mode}
+              setMode={voice.setMode}
+              isListening={isListening}
+              interimTranscript={interimTranscript}
+              voiceSupported={voiceSupported}
+            />
           </div>
 
           {/* Cards drawn */}
@@ -348,7 +478,7 @@ export default function ReadingRoom({
                 marginBottom: 24,
               }}
             >
-              The box awaits. Galileo is inside, patient as ever.
+              He is waiting.
             </p>
             <button
               onClick={handleBeginReading}
@@ -442,95 +572,78 @@ export default function ReadingRoom({
               flexDirection: "column",
               gap: 10,
               padding: "16px",
-              background: "rgba(10,5,32,0.6)",
+              background: voiceMode ? "rgba(79,70,229,0.08)" : "rgba(10,5,32,0.6)",
               borderRadius: 12,
-              border: "1px solid rgba(42,26,85,0.6)",
+              border: `1px solid ${voiceMode ? "rgba(165,180,252,0.35)" : "rgba(42,26,85,0.6)"}`,
               backdropFilter: "blur(8px)",
+              transition: "all 0.4s ease",
             }}
           >
+            <>
             <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={loading || isListening}
-                placeholder={isListening ? "Listening..." : "Speak freely. Galileo is listening..."}
-                rows={2}
-                style={{
-                  flex: 1,
-                  background: "transparent",
-                  border: "none",
-                  outline: "none",
-                  resize: "none",
-                  color: isListening ? "#a5b4fc" : "#ddd8f0",
-                  fontFamily: "'EB Garamond', serif",
-                  fontSize: 17,
-                  lineHeight: 1.6,
-                  fontStyle: isListening ? "italic" : "normal",
-                  transition: "color 0.2s ease",
-                }}
-              />
-              {/* Mic button */}
-              {voiceSupported && (
-                <button
-                  onMouseDown={startListening}
-                  onMouseUp={stopListening}
-                  onTouchStart={startListening}
-                  onTouchEnd={stopListening}
-                  disabled={loading}
-                  title="Hold to speak"
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={loading || isListening}
+                  placeholder={isListening ? "Listening..." : "Speak freely. Galileo is listening..."}
+                  rows={2}
                   style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: "50%",
-                    border: `1px solid ${isListening ? "rgba(165,180,252,0.8)" : "rgba(42,26,85,0.8)"}`,
-                    background: isListening
-                      ? "radial-gradient(circle, rgba(79,70,229,0.4) 0%, rgba(26,13,63,0.8) 100%)"
-                      : "rgba(26,13,63,0.6)",
-                    color: isListening ? "#a5b4fc" : "#4a3870",
-                    fontSize: 16,
-                    cursor: loading ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    boxShadow: isListening ? "0 0 16px rgba(165,180,252,0.4)" : "none",
-                    transition: "all 0.2s ease",
-                    animation: isListening ? "glowPulse 1.5s ease-in-out infinite" : "none",
+                    flex: 1,
+                    background: "transparent",
+                    border: "none",
+                    outline: "none",
+                    resize: "none",
+                    color: isListening ? "#a5b4fc" : "#ddd8f0",
+                    fontFamily: "'EB Garamond', serif",
+                    fontSize: 17,
+                    lineHeight: 1.6,
+                    fontStyle: isListening ? "italic" : "normal",
+                    transition: "color 0.2s ease",
+                  }}
+                />
+                {/* Hold-to-speak mic (text mode only) */}
+                {voiceSupported && (
+                  <button
+                    onMouseDown={startListening}
+                    onMouseUp={stopListening}
+                    onTouchStart={startListening}
+                    onTouchEnd={stopListening}
+                    disabled={loading}
+                    title="Hold to speak"
+                    style={{
+                      width: 40, height: 40, borderRadius: "50%",
+                      border: `1px solid ${isListening ? "rgba(165,180,252,0.8)" : "rgba(42,26,85,0.8)"}`,
+                      background: isListening ? "radial-gradient(circle, rgba(79,70,229,0.4) 0%, rgba(26,13,63,0.8) 100%)" : "rgba(26,13,63,0.6)",
+                      color: isListening ? "#a5b4fc" : "#4a3870",
+                      fontSize: 16, cursor: loading ? "not-allowed" : "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                      boxShadow: isListening ? "0 0 16px rgba(165,180,252,0.4)" : "none",
+                      transition: "all 0.2s ease",
+                    }}
+                  >🎙</button>
+                )}
+                <button
+                  onClick={sendMessage}
+                  disabled={loading || !input.trim()}
+                  style={{
+                    padding: "10px 20px", borderRadius: 8,
+                    border: "1px solid rgba(201,168,76,0.4)",
+                    background: loading || !input.trim() ? "rgba(42,26,85,0.3)" : "linear-gradient(135deg, rgba(201,168,76,0.15) 0%, rgba(79,70,229,0.15) 100%)",
+                    color: loading || !input.trim() ? "#4a3870" : "#c9a84c",
+                    fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.15em",
+                    cursor: loading || !input.trim() ? "not-allowed" : "pointer",
+                    transition: "all 0.2s ease", whiteSpace: "nowrap", height: 40,
                   }}
                 >
-                  🎙
+                  {loading ? "☽" : "SEND ✦"}
                 </button>
-              )}
-              <button
-                onClick={sendMessage}
-                disabled={loading || !input.trim()}
-                style={{
-                  padding: "10px 20px",
-                  borderRadius: 8,
-                  border: "1px solid rgba(201,168,76,0.4)",
-                  background: loading || !input.trim()
-                    ? "rgba(42,26,85,0.3)"
-                    : "linear-gradient(135deg, rgba(201,168,76,0.15) 0%, rgba(79,70,229,0.15) 100%)",
-                  color: loading || !input.trim() ? "#4a3870" : "#c9a84c",
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: 11,
-                  letterSpacing: "0.15em",
-                  cursor: loading || !input.trim() ? "not-allowed" : "pointer",
-                  transition: "all 0.2s ease",
-                  whiteSpace: "nowrap",
-                  height: 40,
-                }}
-              >
-                {loading ? "☽" : "SEND ✦"}
-              </button>
-            </div>
-            {voiceSupported && (
+              </div>
               <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.12em", color: "#2a1a55", textAlign: "center" }}>
                 {isListening ? "RELEASE TO STOP" : "HOLD 🎙 TO SPEAK · OR TYPE · ENTER TO SEND"}
               </div>
-            )}
+            </>
           </div>
         )}
 

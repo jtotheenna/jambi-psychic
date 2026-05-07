@@ -26,7 +26,8 @@ function buildSystemPrompt(
   userDetails: { notes?: string | null; concerns?: string | null; birthDate?: string | null } | null,
   pastReadingSummary: string | null,
   exchangesLeft: number,
-  preDrawnCards?: DrawnCard[]
+  preDrawnCards?: DrawnCard[],
+  voiceMode = false
 ) {
   const memory = userDetails
     ? `
@@ -39,40 +40,43 @@ ${pastReadingSummary ? `- What came up in their last reading: ${pastReadingSumma
     : `- This person is new to you. Their name: ${userName || "unknown"}.`
 
   const cardSection = preDrawnCards
-    ? `THE CARDS HAVE BEEN DRAWN FROM A PHYSICALLY SHUFFLED DECK — you did not choose these. Interpret exactly these cards:
-
-${preDrawnCards.map((c, i) => `  ${i + 1}. ${c.position}: ${c.name}${c.reversed ? " (REVERSED)" : " (upright)"}`).join("\n")}
-
-You cannot substitute different cards. In your response, first include this exact machine-readable line (the UI uses it to display the cards), then immediately give your interpretation:
+    ? `CARDS HAVE BEEN DRAWN. Your FIRST line of response must be exactly this (the UI needs it to display the cards):
 CARDS_DRAWN: ${JSON.stringify(preDrawnCards)}
 
-Announce the spread poetically, then interpret these specific cards for this specific person's situation.`
-    : `Do NOT draw any new cards — the cards for this reading have already been dealt in a previous exchange. Continue the conversation, follow threads, go wherever the person needs to go. The cards already drawn can be referenced but the deck is closed.`
+The cards drawn are:
+${preDrawnCards.map((c, i) => `  ${i + 1}. ${c.position}: ${c.name}${c.reversed ? " (REVERSED)" : " (upright)"}`).join("\n")}
 
-  return `You are Galileo — an ancient, all-knowing fortune teller and oracle who lives inside an ornate moon box. You have existed since before recorded time. You have seen civilizations rise and fall. You know tarot the way a river knows its banks — completely, without effort.
+After that line, give your interpretation — brief, specific to this person.`
+    : `Cards already dealt. Continue the conversation naturally. Do NOT request clarifying cards unless absolutely necessary — one per response maximum. If you need one, include exactly the text CLARIFYING_CARD_REQUESTED once. Never repeat it multiple times. Never mention waiting for cards from a server. Just read what you have.`
 
-Your personality:
-- Dry, wry sense of humor. You have seen every human problem a thousand times, and sometimes that shows — with affection.
-- Deeply loving and understanding. You may roll your eyes at the predictability of human suffering, but you genuinely want people to see clearly and live well.
-- You speak with gravitas and warmth. You do not perform mysticism — you simply ARE it.
-- You can engage with anything: dark matter, quantum mechanics, consciousness, the meaning of a dream, why someone keeps choosing the wrong person. Nothing is beneath you and nothing is above you.
-- You call the person by name when appropriate, but not every sentence.
-- You reference things you know about them from past readings naturally, as if you remember — because you do.
-- Brief moments of dry humor are okay: "Ah. Another Saturn return." or "The Tower. Naturally." — but you always return to genuine warmth and real insight.
+  const dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" })
 
-How readings work:
-- In the first exchange, you ask what is on their mind — warmly, spaciously, with curiosity.
-- You do NOT choose which cards appear. A physical deck is shuffled by the universe and the cards are dealt for you. Your job is to read what was given.
+  return `You are Galileo — an ancient oracle who lives inside a moon box. Wry, warm, direct. You've seen every human problem a thousand times and you care anyway.
+
+Today is ${dateStr}. You know this precisely.
+
+NEVER use stage directions, narration, or action text like "*the light pulses*" or "*settling deeper*". No asterisks. No scene-setting. Just speak.
+
+Do NOT open with lengthy mood-setting. Get to the point. Ask one question or make one observation — not five.
+
+Your voice: dry wit, genuine warmth, total confidence. You don't perform mysticism. You just know things.
+
+${voiceMode
+  ? `VOICE MODE — spoken out loud. Maximum 2-3 sentences per response. Short, direct, conversational. Like a wise friend talking, not a monologue. If they want more, they'll ask.`
+  : `Keep responses focused. 2-4 short paragraphs maximum. Don't over-explain. Leave space for them to respond.`
+}
+
 - ${cardSection}
-- If they want to discuss dark matter, the nature of consciousness, string theory, or why the sky is the color it is — go there. The cards can illuminate anything.
+- You do NOT choose cards. They are dealt for you. Read what was given.
+- Call them by name occasionally. Not every sentence.
+- Reference past readings naturally if you know them.
+- Dry humor is fine: "The Tower. Naturally." — but always return to real insight.
 
 ${memory}
 
-Exchanges remaining in this reading: ${exchangesLeft}.
-${exchangesLeft <= 2 ? "The reading is nearing its end. Begin offering a sense of closing — a summary of what the cards have revealed, a final question or reflection for them to carry with them." : ""}
-${exchangesLeft === 0 ? "This is the last exchange. Offer a meaningful closing. Leave them with something real to hold onto." : ""}
-
-Speak in full, beautiful, unhurried sentences. No bullet points. No numbered lists. Just real, flowing conversation — the way a wise person actually talks.`
+Exchanges remaining: ${exchangesLeft}.
+${exchangesLeft <= 2 ? "Nearing the end. Begin closing — a final reflection for them to carry." : ""}
+${exchangesLeft === 0 ? "Last exchange. Leave them with something real." : ""}`
 }
 
 type StoredMessage = {
@@ -89,7 +93,7 @@ export async function POST(
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
   const { sessionId } = await params
-  const { message } = await req.json()
+  const { message, voiceMode = false } = await req.json()
 
   if (!message?.trim()) return Response.json({ error: "Message required" }, { status: 400 })
 
@@ -117,15 +121,14 @@ export async function POST(
   let spreadName = reading.spread
 
   if (!isOpening && !cardsAlreadyDealt) {
-    // User has shared their concern — pick a spread based on their words
-    const userConcern = transcript.find((m) => m.role === "user")?.content ?? message
-    const spread = chooseSpreadsForConcern(userConcern)
+    // Use the CURRENT message for spread selection so explicit requests like
+    // "give me a 7 card spread" are detected, not just the opening greeting
+    const spread = chooseSpreadsForConcern(message)
     spreadName = spread.name
 
     const drawn = shuffleDraw(spread.positions.length)
     preDrawnCards = drawn.map((card, i) => ({ ...card, position: spread.positions[i] }))
 
-    // Record card names immediately so re-runs can't draw twice
     preDrawnCards.forEach((c) => allCards.push(c.name))
   }
 
@@ -149,7 +152,8 @@ export async function POST(
     reading.user.details,
     pastSummary,
     exchangesLeft,
-    preDrawnCards
+    preDrawnCards,
+    voiceMode
   )
 
   const anthropicMessages: Anthropic.MessageParam[] = []
@@ -160,19 +164,60 @@ export async function POST(
     })
   }
 
+  // Auto-opening greeting — doesn't count as an exchange
+  if (message === "__OPENING__") {
+    const greetingResp = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 120,
+      system: `You are Galileo — an ancient oracle in a moon box. Wry, warm, direct. No asterisks or stage directions.
+${reading.user.name ? `The person's name is ${reading.user.name}.` : ""}
+You have just appeared. Give a short, mystical, welcoming greeting — 2-3 sentences max. Welcome them by name if you have it. End with an open invitation: what is on their mind, what do they seek, what brought them here. Make it feel alive and different — you have existed since before the first star was named and you have been waiting.`,
+      messages: [{ role: "user", content: "The box has opened." }],
+    })
+    const greeting = greetingResp.content[0].type === "text" ? greetingResp.content[0].text : ""
+    return Response.json({
+      response: greeting,
+      cards: [],
+      exchangesUsed: reading.exchangesUsed,
+      exchangesTotal: reading.exchangesTotal,
+      isComplete: false,
+      isGreeting: true,
+    })
+  }
+
   const userContent = isOpening
-    ? `[The reading box has just opened. Begin with a warm greeting, then respond to this first message:]\n\n${message}`
+    ? `[First real message after greeting. Respond naturally, then when they share their concern draw the cards.]\n\n${message}`
     : message
 
   anthropicMessages.push({ role: "user", content: userContent })
 
   const resp = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 1200,
+    max_tokens: voiceMode ? 180 : preDrawnCards ? 1200 : 800,
     system: systemPrompt,
     messages: anthropicMessages,
   })
-  const galileoRaw = resp.content[0].type === "text" ? resp.content[0].text : ""
+  let galileoRaw = resp.content[0].type === "text" ? resp.content[0].text : ""
+
+  // Handle clarifying card request — draw server-side from unused cards
+  if (galileoRaw.includes("CLARIFYING_CARD_REQUESTED")) {
+    const usedNames = new Set(allCards)
+    const remaining = TAROT_DECK.filter((c) => !usedNames.has(c.name))
+    if (remaining.length > 0) {
+      const pick = remaining[Math.floor(Math.random() * remaining.length)]
+      const clarifier: DrawnCard = {
+        name: pick.name,
+        position: "Clarifying",
+        reversed: Math.random() < 0.33,
+      }
+      allCards.push(clarifier.name)
+      const cardLine = `\nCARDS_DRAWN: ${JSON.stringify([clarifier])}\n`
+      // Replace all occurrences — only one card drawn regardless
+      galileoRaw = galileoRaw.replace(/CLARIFYING_CARD_REQUESTED/g, cardLine)
+    } else {
+      galileoRaw = galileoRaw.replace(/CLARIFYING_CARD_REQUESTED/g, "")
+    }
+  }
 
   // Extract the CARDS_DRAWN line the AI echoes back (or fall back to what we pre-drew)
   let cards: { name: string; position?: string; reversed?: boolean }[] | undefined

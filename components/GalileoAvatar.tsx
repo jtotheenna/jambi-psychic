@@ -398,7 +398,32 @@ export default function GalileoAvatar({ state }: Props) {
           {/* TV Static overlay */}
           <TVStatic opacity={staticOpacity} />
 
-          {/* Galileo's face */}
+          {/* Real Galileo image — fills the box, fades in after static */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/galileo.jpg"
+            alt="Galileo"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              objectPosition: "center top",
+              opacity: faceVisible ? 1 : 0,
+              transition: "opacity 1.5s ease",
+              zIndex: 1,
+              filter: internalState === "speaking"
+                ? "brightness(1.15) drop-shadow(0 0 12px rgba(201,168,76,0.6))"
+                : internalState === "thinking"
+                ? "brightness(0.85) drop-shadow(0 0 8px rgba(165,180,252,0.5))"
+                : "brightness(1)",
+              animation: internalState === "speaking" ? "breathe 2s ease-in-out infinite" : "none",
+            }}
+          />
+
+          {/* CSS face fallback (hidden once image loads) */}
           <GalileoFace visible={faceVisible} speaking={internalState === "speaking"} />
 
           {/* Thinking dots */}

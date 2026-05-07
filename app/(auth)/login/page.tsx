@@ -4,6 +4,63 @@ import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
+
+const DECK = [
+  { src: "/cards/the-moon.jpg",    angle: -52, tx: -140, delay: 0 },
+  { src: "/cards/the-star.jpg",    angle: -26, tx: -70,  delay: 0.1 },
+  { src: "/cards/the-world.jpg",   angle: 0,   tx: 0,    delay: 0.2 },
+  { src: "/cards/judgement.jpg",   angle: 26,  tx: 70,   delay: 0.3 },
+  { src: "/cards/the-sun.jpg",     angle: 52,  tx: 140,  delay: 0.4 },
+]
+
+function ShufflingDeck() {
+  return (
+    <>
+      <style>{`
+        @keyframes fanOut {
+          0%, 5%   { transform: rotate(0deg) translateX(0px) translateY(0px); opacity: 0.3; }
+          25%, 70% { transform: rotate(var(--angle)) translateX(var(--tx)) translateY(-30px); opacity: 0.85; }
+          90%, 100% { transform: rotate(0deg) translateX(0px) translateY(0px); opacity: 0.3; }
+        }
+        @keyframes cardShimmer {
+          0%, 100% { box-shadow: 0 8px 32px rgba(0,0,0,0.8), 0 0 0 1px rgba(201,168,76,0.2); }
+          50%       { box-shadow: 0 8px 32px rgba(0,0,0,0.8), 0 0 20px rgba(201,168,76,0.3), 0 0 0 1px rgba(201,168,76,0.4); }
+        }
+      `}</style>
+      <div style={{
+        position: "fixed", inset: 0, display: "flex",
+        alignItems: "center", justifyContent: "center",
+        pointerEvents: "none", zIndex: 0,
+      }}>
+        {DECK.map((card, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              width: 110,
+              height: 184,
+              borderRadius: 10,
+              overflow: "hidden",
+              // @ts-expect-error css vars
+              "--angle": `${card.angle}deg`,
+              "--tx": `${card.tx}px`,
+              animation: `fanOut 8s ease-in-out ${card.delay}s infinite, cardShimmer 4s ease-in-out ${card.delay * 2}s infinite`,
+              transformOrigin: "bottom center",
+              willChange: "transform",
+            }}
+          >
+            <Image src={card.src} alt="" fill style={{ objectFit: "cover" }} sizes="110px" />
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "linear-gradient(to bottom, transparent 60%, rgba(4,2,14,0.5) 100%)",
+            }} />
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
 
 export default function LoginPage() {
   const router = useRouter()
@@ -32,8 +89,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ position: "relative" }}>
+      <ShufflingDeck />
+      <div className="w-full max-w-md" style={{ position: "relative", zIndex: 1 }}>
         <div className="text-center mb-10">
           <div
             style={{

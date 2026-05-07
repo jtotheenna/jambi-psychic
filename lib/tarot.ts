@@ -138,6 +138,18 @@ export const SPREADS: SpreadType[] = [
     positions: ["Your conscious desire", "Your hidden fear", "The obstacle", "The resource you already have", "The lesson", "The invitation"],
     bestFor: ["complex situations", "recurring patterns", "deep healing", "spiritual guidance"],
   },
+  {
+    name: "The Seven Stars",
+    description: "Seven cards for a full reading",
+    positions: ["The past", "The present", "Hidden influences", "What you bring", "What stands in the way", "What is possible", "The outcome"],
+    bestFor: ["seven card", "7 card", "full reading", "deep dive"],
+  },
+  {
+    name: "The Celtic Cross",
+    description: "Ten cards — the complete picture",
+    positions: ["The situation", "What crosses you", "The root", "The recent past", "What crowns you", "What's coming", "Your position", "Outside forces", "Hopes and fears", "The outcome"],
+    bestFor: ["ten card", "10 card", "celtic cross", "complete reading", "everything"],
+  },
 ]
 
 export function drawCards(count: number): TarotCard[] {
@@ -147,20 +159,29 @@ export function drawCards(count: number): TarotCard[] {
 
 export function chooseSpreadsForConcern(concern: string): SpreadType {
   const lower = concern.toLowerCase()
+
+  // Explicit card count requests always win
+  if (/\b(10|ten)\s*card/.test(lower) || lower.includes("celtic cross")) return SPREADS[7]
+  if (/\b(7|seven)\s*card/.test(lower)) return SPREADS[6]
+  if (/\b(6|six)\s*card/.test(lower)) return SPREADS[5]
+  if (/\b(5|five)\s*card/.test(lower)) return SPREADS[3]
+  if (/\b(4|four)\s*card/.test(lower)) return SPREADS[2]
+  if (/\b(3|three)\s*card/.test(lower)) return SPREADS[1]
+  if (/\b(1|one)\s*card/.test(lower) || lower.includes("single card") || lower.includes("one card")) return SPREADS[0]
+
+  // Topic-based selection
   if (lower.includes("love") || lower.includes("relationship") || lower.includes("partner") || lower.includes("heart") || lower.includes("dating") || lower.includes("marriage")) {
     return SPREADS[2] // Heart's Truth
   }
   if (lower.includes("decision") || lower.includes("choose") || lower.includes("stuck") || lower.includes("path") || lower.includes("should i") || lower.includes("career") || lower.includes("job") || lower.includes("move")) {
     return SPREADS[3] // Crossroads
   }
-  if (lower.includes("myself") || lower.includes("who am i") || lower.includes("understand") || lower.includes("confused about myself") || lower.includes("identity") || lower.includes("purpose")) {
+  if (lower.includes("myself") || lower.includes("who am i") || lower.includes("understand") || lower.includes("identity") || lower.includes("purpose")) {
     return SPREADS[4] // Mirror
   }
   if (lower.includes("pattern") || lower.includes("keep") || lower.includes("always") || lower.includes("trauma") || lower.includes("heal") || lower.includes("shadow")) {
     return SPREADS[5] // Shadow and Light
   }
-  if (lower.length < 30) {
-    return SPREADS[0] // Single Card for short questions
-  }
-  return SPREADS[1] // Past Present Future as default
+  if (lower.length < 30) return SPREADS[0]
+  return SPREADS[1]
 }
