@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String         @id @default(cuid())
+  email            String         @unique
+  name             String?
+  passwordHash     String?
+  stripeCustomerId String?        @unique
+  createdAt        DateTime       @default(now())
+
+  details          UserDetails?
+  sessions         ReadingSession[]
+  purchases        Purchase[]
+}
+
+model UserDetails {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  birthDate String?
+  notes     String?
+  concerns  String?
+  updatedAt DateTime @updatedAt
+}
+
+model ReadingSession {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchaseId     String?   @unique
+  purchase       Purchase? @relation(fields: [purchaseId], references: [id])
+  status         String    @default("pending")
+  exchangesUsed  Int       @default(0)
+  exchangesTotal Int       @default(10)
+  transcript     String?
+  cardsDrawn     String?
+  spread         String?
+  question       String?
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
+}
+
+model Purchase {
+  id                    String          @id @default(cuid())
+  userId                String
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amountCents           Int
+  stripePaymentIntentId String?         @unique
+  status                String          @default("pending")
+  session               ReadingSession?
+  createdAt             DateTime        @default(now())
+}

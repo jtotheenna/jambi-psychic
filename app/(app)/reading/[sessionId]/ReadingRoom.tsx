@@ -1,0 +1,593 @@
+"use client"
+
+import { useEffect, useRef, useState, useCallback } from "react"
+import GalileoAvatar from "@/components/GalileoAvatar"
+import GemProgress from "@/components/GemProgress"
+import TarotCard from "@/components/TarotCard"
+import ChatBubble from "@/components/ChatBubble"
+import { TAROT_DECK } from "@/lib/tarot"
+import { playBoxOpen, playCardReveal, playGalileoSpeak, playSessionEnd } from "@/lib/sounds"
+
+// Browser Speech Recognition (voice input)
+const SpeechRecognition =
+  typeof window !== "undefined"
+    ? (window.SpeechRecognition || window.webkitSpeechRecognition || null)
+    : null
+
+type Message = {
+  role: "user" | "galileo"
+  content: string
+  cards?: { name: string; position?: string; reversed?: boolean }[]
+}
+
+type Props = {
+  sessionId: string
+  userName: string | null
+  initialTranscript: Message[]
+  initialCardsDrawn: string[]
+  exchangesUsed: number
+  exchangesTotal: number
+  isComplete: boolean
+  spread: string | null
+}
+
+type AvatarState = "idle" | "thinking" | "speaking" | "closed"
+
+function playAudio(src: string): Promise<void> {
+  return new Promise((resolve) => {
+    const audio = new Audio(src)
+    const done = () => { URL.revokeObjectURL(src); resolve() }
+    audio.onended = done
+    audio.onerror = done
+    audio.play().catch(done)
+  })
+}
+
+async function fetchTTS(text: string): Promise<string | null> {
+  try {
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    })
+    if (!res.ok || res.status === 204) return null
+    const blob = await res.blob()
+    return URL.createObjectURL(blob)
+  } catch {
+    return null
+  }
+}
+
+function findCardData(name: string) {
+  return TAROT_DECK.find((c) => c.name === name)
+}
+
+export default function ReadingRoom({
+  sessionId,
+  userName,
+  initialTranscript,
+  initialCardsDrawn,
+  exchangesUsed: initialExchangesUsed,
+  exchangesTotal,
+  isComplete: initialIsComplete,
+  spread: initialSpread,
+}: Props) {
+  const [messages, setMessages] = useState<Message[]>(initialTranscript)
+  const [cardsDrawn, setCardsDrawn] = useState<string[]>(initialCardsDrawn)
+  const [exchangesUsed, setExchangesUsed] = useState(initialExchangesUsed)
+  const [isComplete, setIsComplete] = useState(initialIsComplete)
+  const [input, setInput] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [avatarState, setAvatarState] = useState<AvatarState>(
+    initialTranscript.length > 0 ? "idle" : "closed"
+  )
+  const [hasStarted, setHasStarted] = useState(initialTranscript.length > 0)
+  const [spread, setSpread] = useState(initialSpread)
+  const [isListening, setIsListening] = useState(false)
+  const [voiceSupported, setVoiceSupported] = useState(false)
+
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const recognitionRef = useRef<InstanceType<NonNullable<typeof SpeechRecognition>> | null>(null)
+
+  useEffect(() => {
+    setVoiceSupported(!!SpeechRecognition)
+  }, [])
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages])
+
+  // If this is a fresh reading with no transcript yet, show closed box with begin button
+  // If returning to a reading in progress, show messages
+
+  async function speakText(text: string, hasCards = false) {
+    playGalileoSpeak()
+    if (hasCards) {
+      setTimeout(() => playCardReveal(0), 800)
+      setTimeout(() => playCardReveal(1), 1400)
+      setTimeout(() => playCardReveal(2), 2000)
+    }
+    setAvatarState("speaking")
+    const audio = await fetchTTS(text)
+    if (audio) {
+      await playAudio(audio)
+    } else {
+      await new Promise((r) => setTimeout(r, Math.min(text.length * 40, 4000)))
+    }
+    setAvatarState("idle")
+  }
+
+  async function handleBeginReading() {
+    setHasStarted(true)
+    setAvatarState("idle") // triggers box open + static sequence
+    playBoxOpen()
+  }
+
+  function startListening() {
+    if (!SpeechRecognition || isListening || loading) return
+    const recognition = new SpeechRecognition()
+    recognition.lang = "en-US"
+    recognition.continuous = false
+    recognition.interimResults = false
+
+    recognition.onstart = () => setIsListening(true)
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript
+      setInput((prev) => prev ? `${prev} ${transcript}` : transcript)
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+      recognitionRef.current = null
+    }
+
+    recognition.onerror = () => {
+      setIsListening(false)
+      recognitionRef.current = null
+    }
+
+    recognitionRef.current = recognition
+    recognition.start()
+  }
+
+  function stopListening() {
+    recognitionRef.current?.stop()
+  }
+
+  async function sendMessage() {
+    if (!input.trim() || loading || isComplete) return
+
+    const userMessage = input.trim()
+    setInput("")
+    setLoading(true)
+
+    const newMessages: Message[] = [...messages, { role: "user", content: userMessage }]
+    setMessages(newMessages)
+    setAvatarState("thinking")
+
+    try {
+      const res = await fetch(`/api/reading/${sessionId}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMessage }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setMessages([...newMessages, {
+          role: "galileo",
+          content: data.error || "Something stirred in the void. Please try again.",
+        }])
+        setAvatarState("idle")
+        setLoading(false)
+        return
+      }
+
+      const updatedMessages: Message[] = [...newMessages]
+      const galileoMessage: Message = {
+        role: "galileo",
+        content: data.response,
+        cards: data.cards?.length > 0 ? data.cards : undefined,
+      }
+      updatedMessages.push(galileoMessage)
+      setMessages(updatedMessages)
+
+      if (data.cards?.length > 0) {
+        const newCardNames = data.cards.map((c: { name: string }) => c.name)
+        setCardsDrawn((prev) => [...prev, ...newCardNames])
+      }
+
+      setExchangesUsed(data.exchangesUsed)
+      setIsComplete(data.isComplete)
+
+      if (data.isComplete) playSessionEnd()
+
+      // Speak Galileo's response
+      await speakText(data.response, data.cards?.length > 0)
+    } catch {
+      setMessages([...newMessages, {
+        role: "galileo",
+        content: "The stars went dark for a moment. Please try again.",
+      }])
+      setAvatarState("idle")
+    }
+
+    setLoading(false)
+    inputRef.current?.focus()
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
+  // Get unique cards for the card display (from all drawn this session)
+  const drawnCardData = cardsDrawn
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .map((name) => findCardData(name))
+    .filter(Boolean)
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        padding: "0",
+        position: "relative",
+        zIndex: 1,
+      }}
+    >
+      {/* Top bar */}
+      <div
+        style={{
+          padding: "16px 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid rgba(42,26,85,0.5)",
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        <a
+          href="/dashboard"
+          style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: 10,
+            letterSpacing: "0.2em",
+            color: "#7a8ba8",
+            textDecoration: "none",
+          }}
+        >
+          ← RETURN
+        </a>
+
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#4a3870" }}>
+          {spread ? spread.toUpperCase() : "READING"}
+          {userName ? ` — ${userName.toUpperCase()}` : ""}
+        </div>
+
+        <GemProgress total={exchangesTotal} used={exchangesUsed} />
+      </div>
+
+      {/* Main content */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          maxWidth: 900,
+          width: "100%",
+          margin: "0 auto",
+          padding: "24px 16px",
+          gap: 24,
+        }}
+      >
+        {/* Galileo + Cards row */}
+        <div style={{ display: "flex", gap: 24, alignItems: "flex-start", justifyContent: "center", flexWrap: "wrap" }}>
+          {/* Avatar */}
+          <div style={{ flexShrink: 0 }}>
+            <GalileoAvatar state={hasStarted ? avatarState : "closed"} />
+          </div>
+
+          {/* Cards drawn */}
+          {drawnCardData.length > 0 && (
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div
+                style={{
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: 9,
+                  letterSpacing: "0.2em",
+                  color: "#7a8ba8",
+                  marginBottom: 12,
+                  textAlign: "center",
+                }}
+              >
+                THE CARDS
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
+                {messages
+                  .filter((m) => m.role === "galileo" && m.cards && m.cards.length > 0)
+                  .flatMap((m, mi) =>
+                    (m.cards || []).map((card, ci) => {
+                      const cardData = findCardData(card.name)
+                      if (!cardData) return null
+                      return (
+                        <TarotCard
+                          key={`${mi}-${ci}`}
+                          card={cardData}
+                          position={card.position}
+                          revealDelay={(mi * 3 + ci) * 300}
+                          isReversed={card.reversed}
+                        />
+                      )
+                    })
+                  )
+                  .filter(Boolean)}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Begin button (fresh reading) */}
+        {!hasStarted && (
+          <div style={{ textAlign: "center", marginTop: 8 }}>
+            <p
+              style={{
+                fontFamily: "'EB Garamond', serif",
+                fontSize: 18,
+                color: "#7a8ba8",
+                fontStyle: "italic",
+                marginBottom: 24,
+              }}
+            >
+              The box awaits. Galileo is inside, patient as ever.
+            </p>
+            <button
+              onClick={handleBeginReading}
+              style={{
+                padding: "16px 48px",
+                borderRadius: 8,
+                border: "1px solid rgba(201,168,76,0.5)",
+                background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)",
+                color: "#c9a84c",
+                fontFamily: "'Cinzel', serif",
+                fontSize: 13,
+                letterSpacing: "0.2em",
+                cursor: "pointer",
+              }}
+            >
+              OPEN THE BOX
+            </button>
+          </div>
+        )}
+
+        {/* Chat messages */}
+        {hasStarted && (
+          <div
+            ref={scrollRef}
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: 20,
+              maxHeight: "45vh",
+              paddingRight: 4,
+            }}
+          >
+            {messages.map((msg, i) => (
+              <ChatBubble key={i} message={msg} isLatest={i === messages.length - 1} />
+            ))}
+            {loading && avatarState === "thinking" && (
+              <div style={{ display: "flex", gap: 8, padding: "0 4px" }}>
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    background: "radial-gradient(circle, #1a0d3f, #0a0520)",
+                    border: "1px solid rgba(165,180,252,0.4)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 14,
+                    flexShrink: 0,
+                  }}
+                >
+                  ☽
+                </div>
+                <div
+                  style={{
+                    padding: "14px 18px",
+                    borderRadius: "4px 16px 16px 16px",
+                    background: "linear-gradient(135deg, rgba(26,13,63,0.9) 0%, rgba(10,5,32,0.9) 100%)",
+                    border: "1px solid rgba(165,180,252,0.2)",
+                    display: "flex",
+                    gap: 6,
+                    alignItems: "center",
+                  }}
+                >
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: "50%",
+                        background: "#a5b4fc",
+                        animation: "moonPulse 1.2s ease-in-out infinite",
+                        animationDelay: `${i * 0.3}s`,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Input area */}
+        {hasStarted && !isComplete && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              padding: "16px",
+              background: "rgba(10,5,32,0.6)",
+              borderRadius: 12,
+              border: "1px solid rgba(42,26,85,0.6)",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={loading || isListening}
+                placeholder={isListening ? "Listening..." : "Speak freely. Galileo is listening..."}
+                rows={2}
+                style={{
+                  flex: 1,
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  resize: "none",
+                  color: isListening ? "#a5b4fc" : "#ddd8f0",
+                  fontFamily: "'EB Garamond', serif",
+                  fontSize: 17,
+                  lineHeight: 1.6,
+                  fontStyle: isListening ? "italic" : "normal",
+                  transition: "color 0.2s ease",
+                }}
+              />
+              {/* Mic button */}
+              {voiceSupported && (
+                <button
+                  onMouseDown={startListening}
+                  onMouseUp={stopListening}
+                  onTouchStart={startListening}
+                  onTouchEnd={stopListening}
+                  disabled={loading}
+                  title="Hold to speak"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: "50%",
+                    border: `1px solid ${isListening ? "rgba(165,180,252,0.8)" : "rgba(42,26,85,0.8)"}`,
+                    background: isListening
+                      ? "radial-gradient(circle, rgba(79,70,229,0.4) 0%, rgba(26,13,63,0.8) 100%)"
+                      : "rgba(26,13,63,0.6)",
+                    color: isListening ? "#a5b4fc" : "#4a3870",
+                    fontSize: 16,
+                    cursor: loading ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    boxShadow: isListening ? "0 0 16px rgba(165,180,252,0.4)" : "none",
+                    transition: "all 0.2s ease",
+                    animation: isListening ? "glowPulse 1.5s ease-in-out infinite" : "none",
+                  }}
+                >
+                  🎙
+                </button>
+              )}
+              <button
+                onClick={sendMessage}
+                disabled={loading || !input.trim()}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: 8,
+                  border: "1px solid rgba(201,168,76,0.4)",
+                  background: loading || !input.trim()
+                    ? "rgba(42,26,85,0.3)"
+                    : "linear-gradient(135deg, rgba(201,168,76,0.15) 0%, rgba(79,70,229,0.15) 100%)",
+                  color: loading || !input.trim() ? "#4a3870" : "#c9a84c",
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: 11,
+                  letterSpacing: "0.15em",
+                  cursor: loading || !input.trim() ? "not-allowed" : "pointer",
+                  transition: "all 0.2s ease",
+                  whiteSpace: "nowrap",
+                  height: 40,
+                }}
+              >
+                {loading ? "☽" : "SEND ✦"}
+              </button>
+            </div>
+            {voiceSupported && (
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.12em", color: "#2a1a55", textAlign: "center" }}>
+                {isListening ? "RELEASE TO STOP" : "HOLD 🎙 TO SPEAK · OR TYPE · ENTER TO SEND"}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Reading complete */}
+        {isComplete && (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "32px",
+              borderRadius: 12,
+              border: "1px solid rgba(201,168,76,0.2)",
+              background: "rgba(10,5,32,0.6)",
+            }}
+          >
+            <div style={{ fontSize: 28, marginBottom: 12 }}>☽</div>
+            <div
+              style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: 13,
+                letterSpacing: "0.2em",
+                color: "#c9a84c",
+                marginBottom: 12,
+              }}
+            >
+              THE READING IS COMPLETE
+            </div>
+            <p
+              style={{
+                fontFamily: "'EB Garamond', serif",
+                fontSize: 16,
+                color: "#7a8ba8",
+                fontStyle: "italic",
+                marginBottom: 24,
+              }}
+            >
+              All ten visions have been spent. The cards will remember what was said.
+            </p>
+            <a
+              href="/dashboard"
+              style={{
+                padding: "12px 32px",
+                borderRadius: 8,
+                border: "1px solid rgba(201,168,76,0.4)",
+                background: "rgba(201,168,76,0.08)",
+                color: "#c9a84c",
+                fontFamily: "'Cinzel', serif",
+                fontSize: 11,
+                letterSpacing: "0.2em",
+                textDecoration: "none",
+                display: "inline-block",
+              }}
+            >
+              RETURN TO YOUR READINGS
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
