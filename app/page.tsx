@@ -93,11 +93,11 @@ export default function LandingPage() {
         </div>
 
         {/* Hook line */}
-        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(20px, 4.5vw, 28px)", lineHeight: 1.75, color: "#ddd8f0", fontStyle: "italic", maxWidth: 560, margin: "0 auto 16px" }}>
-          Ask your question. He reads the cards, the moon, or the lines of your hand — then speaks your answer in his own ancient voice.
+        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(22px, 5vw, 32px)", lineHeight: 1.7, color: "#ddd8f0", fontStyle: "italic", maxWidth: 540, margin: "0 auto 18px" }}>
+          Bring him what you're carrying. He has been waiting.
         </p>
-        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(15px, 3vw, 17px)", color: "#8878a8", lineHeight: 1.7, maxWidth: 440, margin: "0 auto 44px" }}>
-          Tarot · Palm · Moon · Cartomancy — starting at $5.
+        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(15px, 3vw, 17px)", color: "#8878a8", lineHeight: 1.75, maxWidth: 460, margin: "0 auto 44px" }}>
+          Ask your question. He reads the cards, the sky, or the lines of your hand — and speaks his answer aloud, in his own voice, about you.
         </p>
 
         {/* Primary CTA */}
