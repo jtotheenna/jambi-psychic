@@ -92,7 +92,7 @@ export default async function DashboardPage() {
               </p>
             )}
             <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              {activeTarot ? `${activeTarot.exchangesTotal - activeTarot.exchangesUsed} VISIONS REMAINING` : "$10 · 7 VISIONS · SPOKEN ALOUD"}
+              {activeTarot ? `${activeTarot.exchangesTotal - activeTarot.exchangesUsed} QUESTIONS REMAINING` : "$10 · 7 QUESTIONS · SPOKEN ALOUD"}
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
@@ -154,7 +154,7 @@ export default async function DashboardPage() {
               {activePalm ? "Your palm reading is open." : "Upload a photo of your hand. Galileo reads your lines, your mounts, your soul — several paragraphs, spoken aloud."}
             </p>
             <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              {activePalm ? `${activePalm.exchangesTotal - activePalm.exchangesUsed} VISIONS REMAINING` : "$5 · FULL HAND READING · SPOKEN ALOUD"}
+              {activePalm ? `${activePalm.exchangesTotal - activePalm.exchangesUsed} QUESTIONS REMAINING` : "$5 · FULL HAND READING · SPOKEN ALOUD"}
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
@@ -185,7 +185,7 @@ export default async function DashboardPage() {
               {activeCartomancy ? "Your cartomancy reading is open." : "The old language of playing cards. Direct, sharp, and strangely accurate. Galileo reads a full 52-card deck, spoken aloud."}
             </p>
             <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              {activeCartomancy ? `${activeCartomancy.exchangesTotal - activeCartomancy.exchangesUsed} VISIONS REMAINING` : "$10 · 5 VISIONS · SPOKEN ALOUD"}
+              {activeCartomancy ? `${activeCartomancy.exchangesTotal - activeCartomancy.exchangesUsed} QUESTIONS REMAINING` : "$10 · 5 QUESTIONS · SPOKEN ALOUD"}
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>

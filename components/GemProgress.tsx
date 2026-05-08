@@ -55,7 +55,7 @@ export default function GemProgress({ total, used }: Props) {
           transition: "color 0.3s ease",
         }}
       >
-        {remaining} {remaining === 1 ? "VISION" : "VISIONS"} REMAINING
+        {remaining} {remaining === 1 ? "QUESTION" : "QUESTIONS"} REMAINING
       </div>
     </div>
   )

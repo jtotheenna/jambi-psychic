@@ -7,7 +7,7 @@ import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { getStoredLanguage } from "@/lib/language"
 import LanguageSelector from "@/components/LanguageSelector"
 import GemProgress from "@/components/GemProgress"
-import { playBoxOpen, playCardReveal, playGalileoSpeak, playSessionEnd } from "@/lib/sounds"
+import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
 
 type CardDrawn = { name: string; suit: string; rank: string }
 type Message = { role: "user" | "galileo"; content: string; cards?: CardDrawn[] }
@@ -87,13 +87,9 @@ export default function CartomancyPage() {
     setIsComplete(data.isComplete)
     if (data.isComplete) playSessionEnd()
     setMessages(prev => [...prev, { role: "galileo", content: data.response, cards: data.cards }])
-    if (data.cards?.length > 0) {
-      data.cards.forEach((_: unknown, i: number) => setTimeout(() => playCardReveal(i), i * 300))
-    }
     voice.setLoading(false)
     setLoading(false)
     if (voice.mode !== "text") {
-      if (voice.mode === "aloud") playGalileoSpeak()
       await voice.speak(data.response)
       if (voice.mode === "conversational" && !data.isComplete) {
         voice.startListening(t => sendMessage(t))
