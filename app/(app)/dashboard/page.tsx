@@ -120,35 +120,79 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── MOON ── */}
-      <div style={{ marginBottom: 20, padding: 24, borderRadius: 12, border: `1px solid ${activeMoon ? "rgba(165,180,252,0.4)" : "rgba(165,180,252,0.2)"}`, background: "rgba(10,5,32,0.5)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-        <div>
-          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#a5b4fc", marginBottom: 8 }}>☽ MOON READING</div>
-          <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
-            {activeMoon ? "Your moon reading is open." : "Tonight's live moon phase and Sun Bear's Medicine Wheel. A full reading, spoken aloud."}
-          </p>
-          <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-            {activeMoon ? `${activeMoon.exchangesTotal - activeMoon.exchangesUsed} QUESTIONS REMAINING` : "$5 · FULL READING + 2 QUESTIONS · SPOKEN ALOUD"}
-          </p>
+      <div style={{ marginBottom: 20, padding: 24, borderRadius: 12, border: `1px solid ${activeMoon ? "rgba(165,180,252,0.4)" : "rgba(165,180,252,0.2)"}`, background: "rgba(10,5,32,0.5)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#a5b4fc", marginBottom: 8 }}>☽ MOON READING</div>
+            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
+              {activeMoon ? "Your moon reading is open." : "Tonight's live moon phase and Sun Bear's Medicine Wheel. Galileo reads immediately — the full sky, spoken aloud."}
+            </p>
+            <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
+              {activeMoon ? `${activeMoon.exchangesTotal - activeMoon.exchangesUsed} QUESTIONS REMAINING` : "$5 · FULL INSTANT READING + 2 QUESTIONS · SPOKEN ALOUD"}
+            </p>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+            {activeMoon ? (
+              <>
+                <Link href="/moon" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(165,180,252,0.08)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+                  RETURN ✦
+                </Link>
+                <form action={async () => { "use server"; await prisma.readingSession.update({ where: { id: activeMoon.id }, data: { status: "complete", completedAt: new Date() } }); redirect("/dashboard") }}>
+                  <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>abandon</button>
+                </form>
+              </>
+            ) : (
+              <>
+                <a href={`${MOON_LINK}?client_reference_id=${user.id}--moon`} style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.5)", background: "linear-gradient(135deg, rgba(165,180,252,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+                  BEGIN · $5
+                </a>
+                {process.env.NODE_ENV !== "production" && (
+                  <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "moon", status: "active", exchangesTotal: 2 } }); redirect("/moon") }}>
+                    <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "1px solid rgba(42,26,85,0.4)", borderRadius: 4, padding: "6px 12px", cursor: "pointer" }}>DEV: FREE TEST</button>
+                  </form>
+                )}
+              </>
+            )}
+          </div>
         </div>
-        <Link href="/moon" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(165,180,252,0.08)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-          {activeMoon ? "RETURN ✦" : "BEGIN ✦"}
-        </Link>
       </div>
 
       {/* ── PALM ── */}
-      <div style={{ marginBottom: 32, padding: 24, borderRadius: 12, border: `1px solid ${activePalm ? "rgba(201,168,76,0.4)" : "rgba(201,168,76,0.2)"}`, background: "rgba(10,5,32,0.5)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-        <div>
-          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#c9a84c", marginBottom: 8 }}>✋ PALM READING</div>
-          <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
-            {activePalm ? "Your palm reading is open." : "Galileo reads your hand intuitively — no photo needed. Deep, specific, spoken aloud."}
-          </p>
-          <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-            {activePalm ? `${activePalm.exchangesTotal - activePalm.exchangesUsed} EXCHANGES REMAINING` : "$5 · 5 EXCHANGES · SPOKEN ALOUD"}
-          </p>
+      <div style={{ marginBottom: 32, padding: 24, borderRadius: 12, border: `1px solid ${activePalm ? "rgba(201,168,76,0.4)" : "rgba(201,168,76,0.2)"}`, background: "rgba(10,5,32,0.5)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#c9a84c", marginBottom: 8 }}>✋ PALM READING</div>
+            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
+              {activePalm ? "Your palm reading is open." : "Upload a photo of your hand. Galileo reads your lines, your mounts, your soul — several paragraphs, spoken aloud."}
+            </p>
+            <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
+              {activePalm ? `${activePalm.exchangesTotal - activePalm.exchangesUsed} EXCHANGES REMAINING` : "$5 · FULL HAND READING + 4 EXCHANGES · SPOKEN ALOUD"}
+            </p>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+            {activePalm ? (
+              <>
+                <Link href="/palm" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.4)", background: "rgba(201,168,76,0.08)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+                  RETURN ✦
+                </Link>
+                <form action={async () => { "use server"; await prisma.readingSession.update({ where: { id: activePalm.id }, data: { status: "complete", completedAt: new Date() } }); redirect("/dashboard") }}>
+                  <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>abandon</button>
+                </form>
+              </>
+            ) : (
+              <>
+                <a href={`${PALM_LINK}?client_reference_id=${user.id}--palm`} style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+                  BEGIN · $5
+                </a>
+                {process.env.NODE_ENV !== "production" && (
+                  <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "palm", status: "active", exchangesTotal: 5 } }); redirect("/palm") }}>
+                    <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "1px solid rgba(42,26,85,0.4)", borderRadius: 4, padding: "6px 12px", cursor: "pointer" }}>DEV: FREE TEST</button>
+                  </form>
+                )}
+              </>
+            )}
+          </div>
         </div>
-        <Link href="/palm" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.4)", background: "rgba(201,168,76,0.08)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-          {activePalm ? "RETURN ✦" : "BEGIN ✦"}
-        </Link>
       </div>
 
       {/* Past readings */}

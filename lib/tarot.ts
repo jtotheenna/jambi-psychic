@@ -228,6 +228,9 @@ export function chooseSpreadsForConcern(concern: string): SpreadType {
     return SPREADS.find(s => s.name === "The Shadow and Light")!
   }
 
-  if (lower.length < 30) return SPREADS[0]
-  return SPREADS.find(s => s.name === "Past, Present, Future")!
+  // Short single-word / very brief prompts → focused single card
+  if (lower.length < 20) return SPREADS[0]
+
+  // Default: Celtic Cross — it's a full $10 reading, give them a real spread
+  return SPREADS.find(s => s.name === "The Celtic Cross")!
 }

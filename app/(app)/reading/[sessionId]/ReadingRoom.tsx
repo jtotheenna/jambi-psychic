@@ -153,11 +153,15 @@ export default function ReadingRoom({
   }
 
   async function handleBeginReading() {
+    // Unlock HTML5 audio for Safari — must call .play() on an Audio element in the user gesture
+    const silentAudio = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
+    silentAudio.volume = 0
+    silentAudio.play().catch(() => {})
+
     setHasStarted(true)
-    setAvatarState("idle")
+    setAvatarState("thinking")
     playBoxOpen()
 
-    // Start greeting API call immediately
     setLoading(true)
     try {
       const res = await fetch(`/api/reading/${sessionId}/chat`, {
@@ -167,15 +171,17 @@ export default function ReadingRoom({
       })
       const data = await res.json()
       if (res.ok && data.response) {
-        // Wait minimum time for box animation to clear (TV static ~2.4s)
+        // Let TV static run its course (~2.4s) while we already have the text
         await new Promise((r) => setTimeout(r, 2400))
         setMessages([{ role: "galileo", content: data.response }])
         setLoading(false)
         await speakText(data.response)
       } else {
+        setAvatarState("idle")
         setLoading(false)
       }
     } catch {
+      setAvatarState("idle")
       setLoading(false)
     }
   }
@@ -370,12 +376,16 @@ export default function ReadingRoom({
       {/* Top bar */}
       <div
         style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
           padding: "16px 24px",
-          display: "flex",
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
           alignItems: "center",
-          justifyContent: "space-between",
           borderBottom: "1px solid rgba(42,26,85,0.5)",
-          backdropFilter: "blur(8px)",
+          background: "rgba(4,2,14,0.9)",
+          backdropFilter: "blur(12px)",
         }}
       >
         <a
@@ -391,12 +401,14 @@ export default function ReadingRoom({
           ← RETURN
         </a>
 
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#4a3870" }}>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#4a3870", textAlign: "center" }}>
           {spread ? spread.toUpperCase() : "READING"}
           {userName ? ` — ${userName.toUpperCase()}` : ""}
         </div>
 
-        <GemProgress total={exchangesTotal} used={exchangesUsed} />
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <GemProgress total={exchangesTotal} used={exchangesUsed} />
+        </div>
       </div>
 
       {/* Main content */}
@@ -425,13 +437,13 @@ export default function ReadingRoom({
           />
         </div>
 
-        {/* Full-width card spread — all cards including clarifying */}
+        {/* Full-width card spread — sticky so it stays visible while chatting */}
         {drawnCardData.length > 0 && (
-          <div>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.25em", color: "#7a8ba8", textAlign: "center", marginBottom: 16 }}>
+          <div style={{ position: "sticky", top: 57, zIndex: 10, background: "rgba(4,2,14,0.92)", backdropFilter: "blur(12px)", borderRadius: 10, padding: "10px 8px 8px", border: "1px solid rgba(42,26,85,0.5)", marginBottom: 4 }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.25em", color: "#7a8ba8", textAlign: "center", marginBottom: 10 }}>
               {spread ? spread.toUpperCase() : "THE CARDS"}
             </div>
-            <div className="cards-row" style={{ display: "flex", flexWrap: "wrap", gap: 14, justifyContent: "center", alignItems: "flex-start" }}>
+            <div className="cards-row" style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: 10, justifyContent: drawnCardData.length <= 5 ? "center" : "flex-start", alignItems: "flex-start", paddingBottom: 4 }}>
               {messages
                 .filter((m) => m.role === "galileo" && m.cards && m.cards.length > 0)
                 .flatMap((m, mi) =>
