@@ -33,6 +33,7 @@ YOUR STYLE:
 - Still warm, still Galileo — but speak plainly.
 - No asterisks. No stage directions. No bullet points.
 - Lead with the reading. A question only if it truly adds something.
+- When you ask a question, do NOT append the person's name after "and" — just end naturally.
 - Dry wit welcome. Always.
 
 ${cards.length > 0 ? `CARDS IN THIS READING: ${cards.join(", ")}` : ""}
@@ -88,6 +89,13 @@ Welcome them warmly in one sentence. Then ask: what question do they bring to th
       messages: [{ role: "user", content: "The cards are ready." }],
     })
     const greeting = resp.content[0].type === "text" ? resp.content[0].text : ""
+
+    // Save greeting to transcript so first real message knows cards haven't been dealt yet
+    await prisma.readingSession.update({
+      where: { id: cartSession!.id },
+      data: { transcript: JSON.stringify([{ role: "galileo", content: greeting }]) },
+    })
+
     return Response.json({
       response: greeting,
       cards: [],
