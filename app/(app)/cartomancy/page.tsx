@@ -59,6 +59,7 @@ export default function CartomancyPage() {
     if (!res.ok) { setLoading(false); voice.setLoading(false); return }
 
     if (!sessionId && data.sessionId) setSessionId(data.sessionId)
+    if (data.cards?.length > 0) setAllCards(data.cards)
     setMessages([{ role: "galileo", content: data.response }])
     voice.setLoading(false)
     setLoading(false)
