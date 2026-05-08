@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import GalileoPanel from "@/components/GalileoPanel"
 import GemProgress from "@/components/GemProgress"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
+import { getStoredLanguage } from "@/lib/language"
+import LanguageSelector from "@/components/LanguageSelector"
 import TarotCard from "@/components/TarotCard"
 import ChatBubble from "@/components/ChatBubble"
 import { TAROT_DECK } from "@/lib/tarot"
@@ -89,6 +91,7 @@ export default function ReadingRoom({
   const [interimTranscript, setInterimTranscript] = useState("")
 
   const voice = useGalileoVoice()
+  const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -170,7 +173,7 @@ export default function ReadingRoom({
       const res = await fetch(`/api/reading/${sessionId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "__OPENING__" }),
+        body: JSON.stringify({ message: "__OPENING__", language }),
       })
       const data = await res.json()
       if (res.ok && data.response) {
@@ -309,7 +312,7 @@ export default function ReadingRoom({
       const res = await fetch(`/api/reading/${sessionId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, voiceMode: voiceModeRef.current }),
+        body: JSON.stringify({ message: text, voiceMode: voiceModeRef.current, language }),
       })
 
       const data = await res.json()
@@ -409,7 +412,8 @@ export default function ReadingRoom({
           {userName ? ` — ${userName.toUpperCase()}` : ""}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
+          <LanguageSelector compact />
           <GemProgress total={exchangesTotal} used={exchangesUsed} />
         </div>
       </div>

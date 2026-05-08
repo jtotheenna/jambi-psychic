@@ -1,12 +1,13 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import Anthropic from "@anthropic-ai/sdk"
+import { languageInstruction, type Language } from "@/lib/language"
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
 const dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" })
 
-function buildSystem(userName: string | null, exchangesLeft: number) {
+function buildSystem(userName: string | null, exchangesLeft: number, language = "en") {
   return `You are Galileo — ancient oracle, palm reader of extraordinary precision. You have read ten thousand hands.
 
 Today is ${dateStr}.${userName ? ` The person's name is ${userName}.` : ""}
@@ -19,7 +20,7 @@ YOUR STYLE:
 
 Exchanges remaining: ${exchangesLeft}.
 ${exchangesLeft === 1 ? "FINAL EXCHANGE. Close with something true and complete. No question." : ""}
-${exchangesLeft === 0 ? "Last words. Make them land." : ""}`
+${exchangesLeft === 0 ? "Last words. Make them land." : ""}${languageInstruction(language as Language)}`
 }
 
 export async function POST(req: Request) {
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
-  const { message, sessionId, imageData, voiceMode } = body
+  const { message, sessionId, imageData, voiceMode, language = "en" } = body
 
   if (!message?.trim()) return Response.json({ error: "No message" }, { status: 400 })
 
@@ -41,11 +42,8 @@ export async function POST(req: Request) {
         include: { user: true },
       })
 
-  if (!palmSession && process.env.NODE_ENV === "production") {
-    return Response.json({ error: "Purchase a palm reading first" }, { status: 403 })
-  }
-
   if (!palmSession) {
+    // TESTING: free session for all — remove before launch
     palmSession = await prisma.readingSession.create({
       data: { userId: session.user.id, type: "palm", status: "active", exchangesTotal: 5 },
       include: { user: true },
@@ -82,7 +80,7 @@ export async function POST(req: Request) {
     const resp = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: voiceMode ? 800 : 1400,
-      system: `${buildSystem(userName, palmSession!.exchangesTotal)}
+      system: `${buildSystem(userName, palmSession!.exchangesTotal, language)}
 
 YOUR OPENING READING — deliver it now, fully and immediately. No preamble. No "I see your hand before me." Just begin reading.
 
@@ -122,7 +120,7 @@ Be authoritative. Be warm. Be specific. This is what they paid for — give them
   const resp = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: voiceMode ? 300 : 600,
-    system: buildSystem(userName, exchangesLeft),
+    system: buildSystem(userName, exchangesLeft, language),
     messages,
   })
 

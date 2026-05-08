@@ -2,10 +2,11 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import Anthropic from "@anthropic-ai/sdk"
 import { CARTOMANCY_DECK, shuffleCartomancy } from "@/lib/cartomancy"
+import { languageInstruction, type Language } from "@/lib/language"
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
-function buildSystem(userName: string | null, exchangesLeft: number, cards: string[], voiceMode: boolean) {
+function buildSystem(userName: string | null, exchangesLeft: number, cards: string[], voiceMode: boolean, language = "en") {
   const dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" })
 
   return `You are Galileo — ancient oracle, reader of the cartomantic tradition. You read playing cards the old way: direct, grounded, and exact.
@@ -30,14 +31,14 @@ ${cards.length > 0 ? `CARDS IN THIS READING: ${cards.join(", ")}` : ""}
 Exchanges remaining: ${exchangesLeft}.
 ${exchangesLeft === 1 ? "FINAL EXCHANGE. Close with something true and complete. No question." : ""}
 ${exchangesLeft === 0 ? "Last words. Make them land." : ""}
-${voiceMode ? "VOICE MODE: Keep responses to 2-3 sentences max. Tight and spoken." : ""}`
+${voiceMode ? "VOICE MODE: Keep responses to 2-3 sentences max. Tight and spoken." : ""}${languageInstruction(language as Language)}`
 }
 
 export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { message, sessionId, voiceMode = false } = await req.json()
+  const { message, sessionId, voiceMode = false, language = "en" } = await req.json()
   if (!message?.trim()) return Response.json({ error: "Message required" }, { status: 400 })
 
   let cartSession = sessionId
@@ -50,11 +51,8 @@ export async function POST(req: Request) {
         include: { user: { include: { details: true } } },
       })
 
-  if (!cartSession && process.env.NODE_ENV === "production") {
-    return Response.json({ error: "Purchase a cartomancy reading first" }, { status: 403 })
-  }
-
   if (!cartSession) {
+    // TESTING: free session for all — remove before launch
     cartSession = await prisma.readingSession.create({
       data: { userId: session.user.id, type: "cartomancy", status: "active", exchangesTotal: 10 },
       include: { user: { include: { details: true } } },
@@ -93,7 +91,7 @@ Welcome them warmly — one sentence. Then ask: what question do they bring toni
   }
 
   const exchangesLeft = cartSession!.exchangesTotal - cartSession!.exchangesUsed - 1
-  const systemPrompt = buildSystem(userName, exchangesLeft, allCards, voiceMode)
+  const systemPrompt = buildSystem(userName, exchangesLeft, allCards, voiceMode, language)
 
   const anthropicMessages: Anthropic.MessageParam[] = []
   for (const msg of transcript) {

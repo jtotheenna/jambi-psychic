@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import GalileoPanel from "@/components/GalileoPanel"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
+import { getStoredLanguage } from "@/lib/language"
+import LanguageSelector from "@/components/LanguageSelector"
 
 type CardDrawn = { name: string; suit: string; rank: string }
 type Message = { role: "user" | "galileo"; content: string; cards?: CardDrawn[] }
@@ -27,6 +29,7 @@ export default function CartomancyPage() {
   const [allCards, setAllCards] = useState<CardDrawn[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
   const voice = useGalileoVoice()
+  const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -45,7 +48,7 @@ export default function CartomancyPage() {
     const res = await fetch("/api/cartomancy", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "__OPENING__", sessionId }),
+      body: JSON.stringify({ message: "__OPENING__", sessionId, language }),
     })
     const data = await res.json()
     if (!res.ok) { setLoading(false); voice.setLoading(false); return }
@@ -68,7 +71,7 @@ export default function CartomancyPage() {
     const res = await fetch("/api/cartomancy", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: msg, sessionId, voiceMode: voice.mode === "conversational" }),
+      body: JSON.stringify({ message: msg, sessionId, voiceMode: voice.mode === "conversational", language }),
     })
     const data = await res.json()
     if (!res.ok) { setLoading(false); voice.setLoading(false); return }
@@ -93,7 +96,10 @@ export default function CartomancyPage() {
       <div style={{ padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(42,26,85,0.5)" }}>
         <Link href="/dashboard" style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#7a8ba8", textDecoration: "none" }}>← RETURN</Link>
         <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#e879a0" }}>♠ CARTOMANCY</div>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.1em", color: "#4a3870" }}>{exchangesTotal - exchangesUsed} LEFT</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <LanguageSelector compact />
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.1em", color: "#4a3870" }}>{exchangesTotal - exchangesUsed} LEFT</div>
+        </div>
       </div>
 
       <div style={{ flex: 1, maxWidth: 720, width: "100%", margin: "0 auto", padding: "24px 16px", display: "flex", flexDirection: "column", gap: 20 }}>

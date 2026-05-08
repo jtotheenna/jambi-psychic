@@ -6,6 +6,8 @@ import GalileoPanel from "@/components/GalileoPanel"
 import MoonWheel from "@/components/MoonWheel"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { getMoonData, type MoonData } from "@/lib/moon"
+import { getStoredLanguage } from "@/lib/language"
+import LanguageSelector from "@/components/LanguageSelector"
 
 type Message = { role: "user" | "galileo"; content: string }
 
@@ -38,6 +40,7 @@ export default function MoonPage() {
   const [hasEntered, setHasEntered] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const voice = useGalileoVoice()
+  const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -57,7 +60,7 @@ export default function MoonPage() {
     const res = await fetch("/api/moon", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "__OPENING__", sessionId }),
+      body: JSON.stringify({ message: "__OPENING__", sessionId, language }),
     })
     const data = await res.json()
     if (!res.ok) { setLoading(false); voice.setLoading(false); return }
@@ -81,7 +84,7 @@ export default function MoonPage() {
     const res = await fetch("/api/moon", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: msg, sessionId, voiceMode: voice.mode === "conversational" }),
+      body: JSON.stringify({ message: msg, sessionId, voiceMode: voice.mode === "conversational", language }),
     })
     const data = await res.json()
     if (!res.ok) { setLoading(false); voice.setLoading(false); return }
@@ -106,6 +109,9 @@ export default function MoonPage() {
       <Link href="/dashboard" style={{ position: "absolute", top: 24, left: 24, fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#7a8ba8", textDecoration: "none", zIndex: 2 }}>
         ← RETURN
       </Link>
+      <div style={{ position: "absolute", top: 20, right: 16, zIndex: 2 }}>
+        <LanguageSelector compact />
+      </div>
 
       {/* Top layout: wheel + avatar */}
       <div style={{ display: "flex", gap: 24, justifyContent: "center", alignItems: "flex-start", padding: "48px 24px 16px", flexWrap: "wrap" }}>

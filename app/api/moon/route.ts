@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import Anthropic from "@anthropic-ai/sdk"
 import { getMoonData } from "@/lib/moon"
+import { languageInstruction, type Language } from "@/lib/language"
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { message, sessionId } = await req.json()
+  const { message, sessionId, language = "en" } = await req.json()
   if (!message?.trim()) return Response.json({ error: "No question provided" }, { status: 400 })
 
   // Find active moon session or create one (dev bypass)
@@ -50,13 +51,12 @@ export async function POST(req: Request) {
         where: { userId: session.user.id, type: "moon", status: "active" },
       })
 
-  if (!moonSession && process.env.NODE_ENV !== "production") {
+  if (!moonSession) {
+    // TESTING: free session for all — remove before launch
     moonSession = await prisma.readingSession.create({
       data: { userId: session.user.id, type: "moon", status: "active", exchangesTotal: 2 },
     })
   }
-
-  if (!moonSession) return Response.json({ error: "Purchase a moon reading first" }, { status: 403 })
   if (moonSession.exchangesUsed >= moonSession.exchangesTotal) {
     return Response.json({ error: "Reading complete" }, { status: 403 })
   }
@@ -89,7 +89,7 @@ Write 5-7 rich paragraphs covering ALL of this:
 6. What tonight specifically asks — what to release, begin, sit with, or honor under this exact sky
 7. A closing truth that ties phase + moon + path into one real thing they can carry
 
-Be rich, specific, authoritative. This is their reading. Give them everything.`,
+Be rich, specific, authoritative. This is their reading. Give them everything.${languageInstruction(language as Language)}`,
       messages: [{ role: "user", content: "Read the moon." }],
     })
     const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
@@ -110,7 +110,7 @@ Be rich, specific, authoritative. This is their reading. Give them everything.`,
     messages.push({ role: msg.role === "galileo" ? "assistant" : "user", content: msg.content })
   }
 
-  const systemPrompt = buildMoonPrompt(moonData, message, isOpening)
+  const systemPrompt = buildMoonPrompt(moonData, message, isOpening) + languageInstruction(language as Language)
 
   messages.push({ role: "user", content: message })
 

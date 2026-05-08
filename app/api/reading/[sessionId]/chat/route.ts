@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import Anthropic from "@anthropic-ai/sdk"
 import { TAROT_DECK, chooseSpreadsForConcern } from "@/lib/tarot"
+import { languageInstruction, type Language } from "@/lib/language"
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -27,7 +28,8 @@ function buildSystemPrompt(
   pastReadingSummary: string | null,
   exchangesLeft: number,
   preDrawnCards?: DrawnCard[],
-  voiceMode = false
+  voiceMode = false,
+  language: Language = "en"
 ) {
   const memory = userDetails
     ? `
@@ -82,7 +84,7 @@ ${memory}
 Exchanges remaining: ${exchangesLeft} of ${exchangesLeft + (exchangesLeft <= 2 ? exchangesLeft : 0)}.
 ${exchangesLeft <= 3 && exchangesLeft > 1 ? "Getting close to the end. Start weaving things together — still conversational but begin offering closure." : ""}
 ${exchangesLeft === 1 ? "FINAL EXCHANGE. Do NOT ask a question. Give them one true, complete thing to carry out of here. A statement, not a prompt. Land it." : ""}
-${exchangesLeft === 0 ? "LAST WORDS. No question. Just close it with something real." : ""}`
+${exchangesLeft === 0 ? "LAST WORDS. No question. Just close it with something real." : ""}${languageInstruction(language)}`
 }
 
 type StoredMessage = {
@@ -99,7 +101,7 @@ export async function POST(
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
   const { sessionId } = await params
-  const { message, voiceMode = false } = await req.json()
+  const { message, voiceMode = false, language = "en" } = await req.json()
 
   if (!message?.trim()) return Response.json({ error: "Message required" }, { status: 400 })
 
@@ -163,7 +165,8 @@ export async function POST(
     pastSummary,
     exchangesLeft,
     preDrawnCards,
-    voiceMode
+    voiceMode,
+    language as Language
   )
 
   const anthropicMessages: Anthropic.MessageParam[] = []
@@ -181,7 +184,7 @@ export async function POST(
       max_tokens: 120,
       system: `You are Galileo — an ancient oracle in a moon box. Wry, warm, direct. No asterisks or stage directions.
 ${reading.user.name ? `The person's name is ${reading.user.name}.` : ""}
-You have just appeared. Welcome them by name, warmly and briefly — one sentence. Then ask them one direct question: what question do they carry with them tonight? Make it feel sacred and alive. 2 sentences maximum. End with a question mark.`,
+You have just appeared. Welcome them by name, warmly and briefly — one sentence. Then ask them one direct question: what question do they carry with them tonight? Make it feel sacred and alive. 2 sentences maximum. End with a question mark.${languageInstruction(language as Language)}`,
       messages: [{ role: "user", content: "The box has opened." }],
     })
     const greeting = greetingResp.content[0].type === "text" ? greetingResp.content[0].text : ""

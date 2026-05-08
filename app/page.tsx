@@ -2,10 +2,13 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
+import LanguageSelector from "@/components/LanguageSelector"
+import { type Language } from "@/lib/language"
 
 export default function LandingPage() {
   const [playing, setPlaying] = useState(false)
   const [glowing, setGlowing] = useState(false)
+  const [, setLanguage] = useState<Language>("en")
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
@@ -55,6 +58,11 @@ export default function LandingPage() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 1 }}>
+
+      {/* Language selector — top right */}
+      <div style={{ position: "fixed", top: 16, right: 16, zIndex: 50 }}>
+        <LanguageSelector onChange={setLanguage} />
+      </div>
 
       {/* ── HERO ── */}
       <div style={{ width: "100%", maxWidth: 760, textAlign: "center", padding: "64px 24px 52px" }}>
