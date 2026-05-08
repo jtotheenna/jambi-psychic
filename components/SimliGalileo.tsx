@@ -47,6 +47,7 @@ export default function SimliGalileo({ speaking, onSendAudio, onConnected, onDis
   const init = useCallback(async () => {
     if (status !== "idle") return
     setStatus("connecting")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
 
     try {
       const { SimliClient, generateIceServers } = await import("simli-client")
@@ -95,12 +96,15 @@ export default function SimliGalileo({ speaking, onSendAudio, onConnected, onDis
     }
   }, [status, onSendAudio, onConnected, onDisconnected])
 
+  // Auto-connect on mount
   useEffect(() => {
+    init()
     return () => {
       if (clientRef.current) {
         (clientRef.current as { stop: () => void }).stop?.()
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
@@ -166,17 +170,9 @@ export default function SimliGalileo({ speaking, onSendAudio, onConnected, onDis
 
       <audio ref={audioRef} autoPlay />
 
-      {/* Connect button — only shown when idle */}
-      {status === "idle" && (
-        <button onClick={init} style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", color: "#a5b4fc", background: "none", border: "1px solid rgba(165,180,252,0.3)", borderRadius: 6, padding: "6px 14px", cursor: "pointer" }}>
-          CONNECT GALILEO ▶
-        </button>
-      )}
-
       <div style={{ textAlign: "center" }}>
         <div style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 18, letterSpacing: "0.15em" }} className="text-shimmer">GALILEO</div>
         <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.2em", color: "#7a8ba8", marginTop: 2 }}>THE CELESTIAL ORACLE</div>
-        {status === "connecting" && <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", color: "#4a3870", marginTop: 4 }}>AWAKENING...</div>}
       </div>
     </div>
   )
