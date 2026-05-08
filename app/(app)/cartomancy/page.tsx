@@ -9,7 +9,7 @@ import LanguageSelector from "@/components/LanguageSelector"
 import GemProgress from "@/components/GemProgress"
 import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
 
-type CardDrawn = { name: string; suit: string; rank: string }
+type CardDrawn = { name: string; suit: string; rank: string; position?: string }
 type Message = { role: "user" | "galileo"; content: string; cards?: CardDrawn[] }
 
 const SUIT_SYMBOL: Record<string, string> = {
@@ -59,7 +59,6 @@ export default function CartomancyPage() {
     if (!res.ok) { setLoading(false); voice.setLoading(false); return }
 
     if (!sessionId && data.sessionId) setSessionId(data.sessionId)
-    if (data.cards?.length > 0) setAllCards(data.cards)
     setMessages([{ role: "galileo", content: data.response }])
     voice.setLoading(false)
     setLoading(false)
@@ -123,29 +122,36 @@ export default function CartomancyPage() {
           />
         </div>
 
-        {/* Cards drawn — styled like real playing cards */}
+        {/* Cards — shown after question is asked */}
         {allCards.length > 0 && (
-          <div style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid rgba(232,121,160,0.2)", background: "rgba(10,5,32,0.5)" }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a8ba8", marginBottom: 14 }}>THE CARDS</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
+          <div style={{ padding: "14px 16px", borderRadius: 10, border: "1px solid rgba(232,121,160,0.2)", background: "rgba(10,5,32,0.5)", position: "sticky", top: 57, zIndex: 10, backdropFilter: "blur(12px)" }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a8ba8", marginBottom: 14, textAlign: "center" }}>THE CARDS</div>
+            <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: 12, justifyContent: allCards.length <= 4 ? "center" : "flex-start", paddingBottom: 4 }}>
               {allCards.map((card, i) => {
                 const isRed = card.suit === "Hearts" || card.suit === "Diamonds"
                 const rank = RANK_ABBR[card.rank] || card.rank
                 const sym = SUIT_SYMBOL[card.suit]
                 const color = isRed ? "#c41e3a" : "#111"
                 return (
-                  <div key={i} style={{ width: 76, height: 108, borderRadius: 7, background: "#fff", border: "1px solid #ddd", boxShadow: "0 6px 20px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "6px 7px", flexShrink: 0 }}>
-                    {/* Top-left */}
-                    <div style={{ fontFamily: "Georgia, serif", fontWeight: "bold", color, lineHeight: 1 }}>
-                      <div style={{ fontSize: rank.length > 1 ? 12 : 14 }}>{rank}</div>
-                      <div style={{ fontSize: 12 }}>{sym}</div>
+                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                    {card.position && (
+                      <div style={{ fontFamily: "'Cinzel', serif", fontSize: 7, letterSpacing: "0.1em", color: "#7a8ba8", textAlign: "center", maxWidth: 80, textTransform: "uppercase" }}>
+                        {card.position}
+                      </div>
+                    )}
+                    <div style={{ width: 80, height: 112, borderRadius: 7, background: "#fff", border: "1px solid #ddd", boxShadow: "0 6px 20px rgba(0,0,0,0.55)", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "6px 7px" }}>
+                      <div style={{ fontFamily: "Georgia, serif", fontWeight: "bold", color, lineHeight: 1 }}>
+                        <div style={{ fontSize: rank.length > 1 ? 12 : 14 }}>{rank}</div>
+                        <div style={{ fontSize: 13 }}>{sym}</div>
+                      </div>
+                      <div style={{ textAlign: "center", fontSize: 30, color, lineHeight: 1 }}>{sym}</div>
+                      <div style={{ fontFamily: "Georgia, serif", fontWeight: "bold", color, lineHeight: 1, transform: "rotate(180deg)", alignSelf: "flex-end" }}>
+                        <div style={{ fontSize: rank.length > 1 ? 12 : 14 }}>{rank}</div>
+                        <div style={{ fontSize: 13 }}>{sym}</div>
+                      </div>
                     </div>
-                    {/* Center */}
-                    <div style={{ textAlign: "center", fontSize: 28, color, lineHeight: 1 }}>{sym}</div>
-                    {/* Bottom-right (rotated) */}
-                    <div style={{ fontFamily: "Georgia, serif", fontWeight: "bold", color, lineHeight: 1, transform: "rotate(180deg)", alignSelf: "flex-end" }}>
-                      <div style={{ fontSize: rank.length > 1 ? 12 : 14 }}>{rank}</div>
-                      <div style={{ fontSize: 12 }}>{sym}</div>
+                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: 7, color: "#7a8ba8", textAlign: "center", maxWidth: 80 }}>
+                      {card.name}
                     </div>
                   </div>
                 )

@@ -76,3 +76,99 @@ export function shuffleCartomancy(count: number): PlayingCard[] {
   }
   return deck.slice(0, count)
 }
+
+export type CartomancySpread = {
+  name: string
+  positions: string[]
+  description: string
+  bestFor: string[]
+}
+
+export const CARTOMANCY_SPREADS: CartomancySpread[] = [
+  {
+    name: "The Single Card",
+    positions: ["Your answer"],
+    description: "One card — a direct answer",
+    bestFor: ["yes or no", "one card", "quick", "daily", "simple"],
+  },
+  {
+    name: "Past, Present, Future",
+    positions: ["What was", "What is", "What is coming"],
+    description: "Three cards across time",
+    bestFor: ["3 card", "three card", "past present future", "general", "what's happening"],
+  },
+  {
+    name: "The Cross",
+    positions: ["The heart of the matter", "What crosses you", "What is beneath", "What is behind you", "What is ahead"],
+    description: "Five cards — the full situation",
+    bestFor: ["5 card", "five card", "situation", "cross", "stuck", "decision"],
+  },
+  {
+    name: "The Horseshoe",
+    positions: ["The past", "The present", "Hidden influences", "What you bring", "What stands in the way", "What is possible", "The outcome"],
+    description: "Seven cards — a complete picture",
+    bestFor: ["7 card", "seven card", "horseshoe", "full", "complete", "everything"],
+  },
+  {
+    name: "The Love Draw",
+    positions: ["Your heart", "Their heart", "What connects you", "What stands between you", "What the cards see"],
+    description: "Five cards for love and connection",
+    bestFor: ["love", "relationship", "partner", "romance", "dating", "marriage", "feelings"],
+  },
+  {
+    name: "The Decision",
+    positions: ["Where you stand", "Option one", "Option two", "What you fear", "What will guide you"],
+    description: "Five cards for a fork in the road",
+    bestFor: ["decision", "choice", "should i", "which", "options", "career", "move"],
+  },
+  {
+    name: "The Year Ahead",
+    positions: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    description: "Twelve cards — one for each month",
+    bestFor: ["year", "year ahead", "months", "12 card", "twelve"],
+  },
+]
+
+const NUMBER_WORDS: Record<string, number> = {
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
+}
+
+export function chooseCartomancySpread(concern: string): CartomancySpread {
+  const lower = concern.toLowerCase()
+
+  // Explicit card count
+  const numMatch = lower.match(/\b(\d+)\s*card/)
+  if (numMatch) {
+    const n = parseInt(numMatch[1])
+    const match = CARTOMANCY_SPREADS.find(s => s.positions.length === n)
+    if (match) return match
+    return CARTOMANCY_SPREADS.reduce((a, b) =>
+      Math.abs(a.positions.length - n) <= Math.abs(b.positions.length - n) ? a : b
+    )
+  }
+
+  // Word numbers
+  for (const [word, n] of Object.entries(NUMBER_WORDS)) {
+    if (new RegExp(`\\b${word}\\s*card`).test(lower)) {
+      const match = CARTOMANCY_SPREADS.find(s => s.positions.length === n)
+      if (match) return match
+    }
+  }
+
+  // Named spreads
+  if (lower.includes("horseshoe")) return CARTOMANCY_SPREADS.find(s => s.name === "The Horseshoe")!
+  if (lower.includes("year")) return CARTOMANCY_SPREADS.find(s => s.name === "The Year Ahead")!
+  if (lower.includes("cross")) return CARTOMANCY_SPREADS.find(s => s.name === "The Cross")!
+
+  // Topic-based
+  if (lower.includes("love") || lower.includes("relationship") || lower.includes("partner") || lower.includes("romance") || lower.includes("dating") || lower.includes("marriage")) {
+    return CARTOMANCY_SPREADS.find(s => s.name === "The Love Draw")!
+  }
+  if (lower.includes("decision") || lower.includes("choice") || lower.includes("should i") || lower.includes("which") || lower.includes("career")) {
+    return CARTOMANCY_SPREADS.find(s => s.name === "The Decision")!
+  }
+
+  // Default: Past Present Future for short questions, Cross for longer ones
+  if (lower.length < 25) return CARTOMANCY_SPREADS.find(s => s.name === "Past, Present, Future")!
+  return CARTOMANCY_SPREADS.find(s => s.name === "The Cross")!
+}

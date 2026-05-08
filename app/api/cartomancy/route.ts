@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import Anthropic from "@anthropic-ai/sdk"
-import { CARTOMANCY_DECK, shuffleCartomancy } from "@/lib/cartomancy"
+import { shuffleCartomancy, chooseCartomancySpread } from "@/lib/cartomancy"
 import { languageInstruction, type Language } from "@/lib/language"
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
@@ -13,25 +13,34 @@ function buildSystem(userName: string | null, exchangesLeft: number, cards: stri
 
 Today is ${dateStr}.${userName ? ` The person's name is ${userName}.` : ""}
 
-You have a 52-card playing card deck. The suits carry weight:
+THE DECK: 52 playing cards. The suits:
 - Hearts: love, emotion, relationships, the inner life
 - Diamonds: money, work, material world, practical outcomes
 - Clubs: ambition, career, energy, action
-- Spades: truth, conflict, difficulty, transformation — the hardest cards and the most honest
+- Spades: truth, conflict, difficulty, transformation — the hardest and most honest
+
+THE SPREADS YOU USE (server deals them, you interpret):
+- Single Card: one direct answer
+- Past, Present, Future: the arc of the situation
+- The Cross (5 cards): center, crosses, beneath, behind, ahead
+- The Horseshoe (7 cards): complete picture across time
+- The Love Draw (5 cards): both hearts, connection, obstacle, outcome
+- The Decision (5 cards): position, option one, option two, fear, guide
+- The Year Ahead (12 cards): one per month
 
 YOUR STYLE:
-- Blunter than tarot. More direct. The playing cards do not soften.
-- Still warm, still wise, still Galileo — but speak plainly.
+- Blunter than tarot. More direct. These cards do not soften.
+- Still warm, still Galileo — but speak plainly.
 - No asterisks. No stage directions. No bullet points.
-- After your reading, ask ONE question that opens the conversation deeper.
-- Dry wit is welcome. Always.
+- Lead with the reading. A question only if it truly adds something.
+- Dry wit welcome. Always.
 
 ${cards.length > 0 ? `CARDS IN THIS READING: ${cards.join(", ")}` : ""}
 
-Exchanges remaining: ${exchangesLeft}.
-${exchangesLeft === 1 ? "FINAL EXCHANGE. Close with something true and complete. No question." : ""}
+Questions remaining: ${exchangesLeft}.
+${exchangesLeft === 1 ? "FINAL QUESTION. Close with something true and complete. No question at the end." : ""}
 ${exchangesLeft === 0 ? "Last words. Make them land." : ""}
-${voiceMode ? "VOICE MODE: Keep responses to 2-3 sentences max. Tight and spoken." : ""}${languageInstruction(language as Language)}`
+${voiceMode ? "VOICE: 2-3 sentences max." : ""}${languageInstruction(language as Language)}`
 }
 
 export async function POST(req: Request) {
@@ -69,29 +78,19 @@ export async function POST(req: Request) {
   const cardsAlreadyDealt = allCards.length > 0
   const userName = (cartSession as any).user?.name ?? null
 
-  // Auto-greeting — draw cards immediately so they appear on open
+  // Auto-greeting — no cards yet, just welcome and ask the question
   if (message === "__OPENING__") {
-    const count = 5
-    const drawn = shuffleCartomancy(count)
-    drawn.forEach(c => allCards.push(c.name))
-
     const resp = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 120,
       system: `You are Galileo — ancient oracle, reader of playing cards in the old cartomantic tradition. No asterisks. No stage directions.${userName ? ` The person's name is ${userName}.` : ""}
-The cards have been cut. Welcome them in one sentence, then ask what question they bring. 2 sentences max. End with a question.${languageInstruction(language as Language)}`,
-      messages: [{ role: "user", content: "The cards are cut." }],
+Welcome them warmly in one sentence. Then ask: what question do they bring to the cards tonight? 2 sentences max. End with a question.${languageInstruction(language as Language)}`,
+      messages: [{ role: "user", content: "The cards are ready." }],
     })
     const greeting = resp.content[0].type === "text" ? resp.content[0].text : ""
-
-    await prisma.readingSession.update({
-      where: { id: cartSession!.id },
-      data: { cardsDrawn: JSON.stringify(allCards) },
-    })
-
     return Response.json({
       response: greeting,
-      cards: drawn,
+      cards: [],
       exchangesUsed: cartSession!.exchangesUsed,
       exchangesTotal: cartSession!.exchangesTotal,
       isComplete: false,
@@ -100,11 +99,19 @@ The cards have been cut. Welcome them in one sentence, then ask what question th
     })
   }
 
-  // Draw cards on second message (after they share their concern)
-  let drawnCards: ReturnType<typeof shuffleCartomancy> | undefined
+  // Draw cards after the first real question, using spread detection
+  type DrawnCartomancyCard = ReturnType<typeof shuffleCartomancy>[number] & { position: string }
+  let drawnCards: DrawnCartomancyCard[] | undefined
+  let spreadName = cartSession!.spread
   if (!isOpening && !cardsAlreadyDealt) {
-    const count = Math.floor(Math.random() * 3) + 3 // 3-5 cards
-    drawnCards = shuffleCartomancy(count)
+    const allUserText = [
+      ...transcript.filter((m: { role: string }) => m.role === "user").map((m: { content: string }) => m.content),
+      message,
+    ].join(" ")
+    const spread = chooseCartomancySpread(allUserText)
+    spreadName = spread.name
+    const drawn = shuffleCartomancy(spread.positions.length)
+    drawnCards = drawn.map((card, i) => ({ ...card, position: spread.positions[i] }))
     drawnCards.forEach(c => allCards.push(c.name))
   }
 
@@ -123,7 +130,7 @@ The cards have been cut. Welcome them in one sentence, then ask what question th
   if (drawnCards) {
     anthropicMessages.push({
       role: "user",
-      content: `${userContent}\n\n[Cards drawn for this reading: ${drawnCards.map(c => `${c.name} (${c.suit}): ${c.uprightMeaning}`).join(" | ")}]\n\nIntroduce these cards and begin the reading.`
+      content: `${userContent}\n\n[THE ${spreadName?.toUpperCase() || "SPREAD"} HAS BEEN DEALT:\n${drawnCards.map(c => `  ${c.position}: ${c.name} (${c.suit}) — ${c.uprightMeaning}`).join("\n")}]\n\nRead this spread for this person. Lead with the reading.`
     })
   } else {
     anthropicMessages.push({ role: "user", content: userContent })
@@ -150,6 +157,7 @@ The cards have been cut. Welcome them in one sentence, then ask what question th
     data: {
       transcript: JSON.stringify(transcript),
       cardsDrawn: JSON.stringify(allCards),
+      spread: spreadName,
       question,
       exchangesUsed: newExchangesUsed,
       status: isComplete ? "complete" : "active",
