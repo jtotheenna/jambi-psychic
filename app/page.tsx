@@ -97,7 +97,7 @@ export default function LandingPage() {
           Bring him what you're carrying. He has been waiting.
         </p>
         <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(15px, 3vw, 17px)", color: "#8878a8", lineHeight: 1.75, maxWidth: 460, margin: "0 auto 44px" }}>
-          Ask your question. He reads the cards, the sky, or the lines of your hand — and speaks his answer aloud, in his own voice, about you.
+          Every reading is a real conversation — spoken aloud, in his voice, remembered across every visit.
         </p>
 
         {/* Primary CTA */}
@@ -136,24 +136,6 @@ export default function LandingPage() {
           <Link href="/login" style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#6a5a8a", textDecoration: "none", fontStyle: "italic", marginTop: 4 }}>
             I have been here before
           </Link>
-        </div>
-      </div>
-
-      {/* ── WHAT MAKES THIS DIFFERENT ── */}
-      <div style={{ width: "100%", maxWidth: 680, padding: "0 24px", marginBottom: 64 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
-          {[
-            { icon: "🎙", title: "He speaks", body: "Every response is read aloud by Galileo in his own voice. Not text-to-speech. His voice." },
-            { icon: "♾", title: "He remembers", body: "Galileo recalls your past readings, your themes, your patterns. He knows you." },
-            { icon: "🌙", title: "Live sky", body: "Moon readings use the actual lunar phase and Medicine Wheel — right now, for you." },
-            { icon: "✦", title: "Real conversation", body: "Ask follow-up questions. Go deeper. A reading is a dialogue, not a printout." },
-          ].map(({ icon, title, body }) => (
-            <div key={title} style={{ padding: "20px", borderRadius: 10, border: "1px solid rgba(42,26,85,0.6)", background: "rgba(10,5,32,0.4)", textAlign: "center" }}>
-              <div style={{ fontSize: 24, marginBottom: 10 }}>{icon}</div>
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.15em", color: "#c8d4e8", marginBottom: 8 }}>{title.toUpperCase()}</div>
-              <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#7a8ba8", lineHeight: 1.6, margin: 0 }}>{body}</p>
-            </div>
-          ))}
         </div>
       </div>
 

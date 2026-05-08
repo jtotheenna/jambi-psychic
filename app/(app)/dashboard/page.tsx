@@ -4,9 +4,10 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import PayButton from "./PayButton"
 
-const TAROT_LINK = process.env.STRIPE_TAROT_LINK!
-const PALM_LINK  = process.env.STRIPE_PALM_LINK!
-const MOON_LINK  = process.env.STRIPE_MOON_LINK!
+const TAROT_LINK        = process.env.STRIPE_TAROT_LINK!
+const PALM_LINK         = process.env.STRIPE_PALM_LINK!
+const MOON_LINK         = process.env.STRIPE_MOON_LINK!
+const CARTOMANCY_LINK   = process.env.STRIPE_CARTOMANCY_LINK!
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -26,9 +27,10 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login")
 
-  const activeTarot = user.sessions.find((s) => s.status === "active" && s.type === "tarot")
-  const activePalm  = user.sessions.find((s) => s.status === "active" && s.type === "palm")
-  const activeMoon  = user.sessions.find((s) => s.status === "active" && s.type === "moon")
+  const activeTarot      = user.sessions.find((s) => s.status === "active" && s.type === "tarot")
+  const activePalm       = user.sessions.find((s) => s.status === "active" && s.type === "palm")
+  const activeMoon       = user.sessions.find((s) => s.status === "active" && s.type === "moon")
+  const activeCartomancy = user.sessions.find((s) => s.status === "active" && s.type === "cartomancy")
   const completedSessions = user.sessions.filter((s) => s.status === "complete")
 
   return (
@@ -186,6 +188,44 @@ export default async function DashboardPage() {
                 </a>
                 {process.env.NODE_ENV !== "production" && (
                   <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "palm", status: "active", exchangesTotal: 5 } }); redirect("/palm") }}>
+                    <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "1px solid rgba(42,26,85,0.4)", borderRadius: 4, padding: "6px 12px", cursor: "pointer" }}>DEV: FREE TEST</button>
+                  </form>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── CARTOMANCY ── */}
+      <div style={{ marginBottom: 32, padding: 24, borderRadius: 12, border: `1px solid ${activeCartomancy ? "rgba(232,121,160,0.4)" : "rgba(232,121,160,0.2)"}`, background: "rgba(10,5,32,0.5)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#e879a0", marginBottom: 8 }}>♠ CARTOMANCY</div>
+            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
+              {activeCartomancy ? "Your cartomancy reading is open." : "The old language of playing cards. Direct, sharp, and strangely accurate. Galileo reads a full 52-card deck, spoken aloud."}
+            </p>
+            <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
+              {activeCartomancy ? `${activeCartomancy.exchangesTotal - activeCartomancy.exchangesUsed} EXCHANGES REMAINING` : "$10 · UP TO 10 EXCHANGES · SPOKEN ALOUD"}
+            </p>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+            {activeCartomancy ? (
+              <>
+                <Link href="/cartomancy" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(232,121,160,0.4)", background: "rgba(232,121,160,0.08)", color: "#e879a0", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+                  RETURN ✦
+                </Link>
+                <form action={async () => { "use server"; await prisma.readingSession.update({ where: { id: activeCartomancy.id }, data: { status: "complete", completedAt: new Date() } }); redirect("/dashboard") }}>
+                  <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>abandon</button>
+                </form>
+              </>
+            ) : (
+              <>
+                <a href={`${CARTOMANCY_LINK}?client_reference_id=${user.id}--cartomancy`} style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(232,121,160,0.5)", background: "linear-gradient(135deg, rgba(232,121,160,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#e879a0", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+                  BEGIN · $10
+                </a>
+                {process.env.NODE_ENV !== "production" && (
+                  <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 10 } }); redirect(`/cartomancy`) }}>
                     <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "1px solid rgba(42,26,85,0.4)", borderRadius: 4, padding: "6px 12px", cursor: "pointer" }}>DEV: FREE TEST</button>
                   </form>
                 )}
