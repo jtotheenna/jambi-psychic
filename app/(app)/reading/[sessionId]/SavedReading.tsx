@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import { TAROT_DECK } from "@/lib/tarot"
-import Image from "next/image"
 import { useState } from "react"
+import TarotCard from "@/components/TarotCard"
 
 type Message = {
   role: "user" | "galileo"
@@ -21,9 +21,6 @@ type Props = {
   sessionId: string
 }
 
-function cardSlug(name: string) {
-  return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
-}
 
 export default function SavedReading({ transcript, cardsDrawn, spread, question, completedAt, userName, sessionId }: Props) {
   const [copied, setCopied] = useState(false)
@@ -80,11 +77,11 @@ export default function SavedReading({ transcript, cardsDrawn, spread, question,
           </div>
         )}
 
-        {/* Cards */}
+        {/* Cards — clickable with modal */}
         {uniqueCards.length > 0 && (
           <div style={{ marginBottom: 40 }}>
             <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#7a8ba8", marginBottom: 16, textAlign: "center" }}>
-              THE CARDS
+              THE CARDS · tap to learn more
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
               {transcript
@@ -94,20 +91,13 @@ export default function SavedReading({ transcript, cardsDrawn, spread, question,
                   const cardData = TAROT_DECK.find((c) => c.name === card.name)
                   if (!cardData) return null
                   return (
-                    <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                      {card.position && (
-                        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.12em", color: "#4a3870", textTransform: "uppercase" }}>
-                          {card.position}
-                        </div>
-                      )}
-                      <div style={{ width: 80, height: 134, borderRadius: 6, overflow: "hidden", border: "1px solid rgba(201,168,76,0.3)", position: "relative", transform: card.reversed ? "rotate(180deg)" : "none" }}>
-                        <Image src={`/cards/${cardSlug(card.name)}.jpg`} alt={card.name} fill style={{ objectFit: "cover" }} sizes="80px" />
-                      </div>
-                      <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#7a8ba8", textAlign: "center", maxWidth: 80 }}>
-                        {card.name}
-                        {card.reversed && <div style={{ fontSize: 7, color: "#be123c" }}>↻ reversed</div>}
-                      </div>
-                    </div>
+                    <TarotCard
+                      key={i}
+                      card={cardData}
+                      position={card.position}
+                      isReversed={card.reversed ?? false}
+                      revealDelay={i * 80}
+                    />
                   )
                 })
                 .filter(Boolean)}
