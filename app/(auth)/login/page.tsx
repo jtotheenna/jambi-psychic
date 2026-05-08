@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useFormStatus } from "react-dom"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
@@ -75,7 +75,7 @@ const inputStyle: React.CSSProperties = {
   boxSizing: "border-box",
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -167,5 +167,13 @@ export default function LoginPage() {
         </a>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }
