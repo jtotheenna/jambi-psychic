@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import GalileoPanel from "@/components/GalileoPanel"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
@@ -35,10 +35,19 @@ export default function MoonPage() {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const voice = useGalileoVoice()
+  const hasGreeted = useRef(false)
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
   }, [messages])
+
+  // Auto-greeting on mount
+  useEffect(() => {
+    if (hasGreeted.current) return
+    hasGreeted.current = true
+    voice.open()
+    sendMessage("__OPENING__")
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function sendMessage(text?: string) {
     const msg = (text ?? input).trim()

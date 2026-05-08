@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { imageBase64, mimeType = "image/jpeg" } = await req.json()
+  const { imageBase64, mimeType = "image/jpeg", message: followUpMessage } = await req.json()
   if (!imageBase64) return Response.json({ error: "No image provided" }, { status: 400 })
 
   // Check they have a paid palm reading session (or dev bypass)
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       ],
     })
   } else {
-    messages.push({ role: "user", content: imageBase64 ? "Please read my palm." : (await req.json().catch(() => ({}))).message || "Tell me more." })
+    messages.push({ role: "user", content: followUpMessage || "Tell me more." })
   }
 
   const resp = await anthropic.messages.create({

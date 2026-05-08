@@ -158,3 +158,27 @@ body::after {
 ::-webkit-scrollbar-track { background: #0a0520; }
 ::-webkit-scrollbar-thumb { background: #2a1a55; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #3a2a70; }
+
+/* ── Mobile ── */
+@media (max-width: 640px) {
+  .reading-top { flex-direction: column !important; align-items: center !important; }
+  .reading-avatar { width: 100% !important; display: flex; justify-content: center; }
+  .reading-cards { width: 100% !important; }
+  .reading-chat { max-height: 38vh !important; }
+  .reading-main { padding: 12px 10px !important; gap: 16px !important; }
+
+  /* Shrink the box on mobile */
+  .reading-avatar > div > div { width: 180px !important; }
+
+  /* Cards scroll horizontally on mobile */
+  .cards-row { flex-wrap: nowrap !important; overflow-x: auto !important; padding-bottom: 8px; justify-content: flex-start !important; }
+
+  /* Dashboard */
+  .dash-card { flex-direction: column !important; align-items: flex-start !important; }
+
+  /* Forms */
+  .border-ornate { padding: 24px 20px !important; }
+
+  /* Hide side card animations on small screens for performance */
+  .side-card { display: none !important; }
+}

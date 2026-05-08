@@ -104,51 +104,75 @@ export type SpreadType = {
 export const SPREADS: SpreadType[] = [
   {
     name: "The Single Card",
-    description: "One card for a focused insight",
     positions: ["Your answer"],
-    bestFor: ["quick guidance", "yes/no questions", "daily reflection"],
+    description: "One card for a focused insight",
+    bestFor: ["1 card", "one card", "daily", "quick", "yes or no"],
+  },
+  {
+    name: "The Two Paths",
+    positions: ["What is", "What could be"],
+    description: "Two cards showing where you are and where you could go",
+    bestFor: ["2 card", "two card"],
   },
   {
     name: "Past, Present, Future",
-    description: "Three cards tracing the arc of your situation",
     positions: ["What was", "What is", "What is becoming"],
-    bestFor: ["understanding a situation", "relationships", "career moves", "general guidance"],
+    description: "The arc of your situation",
+    bestFor: ["3 card", "three card", "past present future", "general guidance"],
   },
   {
     name: "The Heart's Truth",
-    description: "Four cards for matters of love and connection",
     positions: ["Your heart", "Their heart", "What connects you", "What the universe wishes for you"],
-    bestFor: ["love questions", "relationships", "romantic decisions"],
+    description: "Four cards for love and connection",
+    bestFor: ["4 card", "four card", "love", "relationship", "partner", "romance"],
   },
   {
     name: "The Crossroads",
-    description: "Five cards for decisions and turning points",
     positions: ["Where you stand", "What pulls you left", "What pulls you right", "What you fear", "What will guide you"],
-    bestFor: ["big decisions", "life changes", "feeling stuck", "choosing a path"],
-  },
-  {
-    name: "The Mirror",
-    description: "Three cards to see yourself more clearly",
-    positions: ["Who you are now", "What you cannot see about yourself", "Your greatest strength in this moment"],
-    bestFor: ["self-discovery", "personal growth", "understanding yourself"],
+    description: "Five cards for decisions",
+    bestFor: ["5 card", "five card", "decision", "choice", "crossroads", "stuck"],
   },
   {
     name: "The Shadow and Light",
+    positions: ["Your conscious desire", "Your hidden fear", "The obstacle", "The resource you have", "The lesson", "The invitation"],
     description: "Six cards exploring deeper patterns",
-    positions: ["Your conscious desire", "Your hidden fear", "The obstacle", "The resource you already have", "The lesson", "The invitation"],
-    bestFor: ["complex situations", "recurring patterns", "deep healing", "spiritual guidance"],
+    bestFor: ["6 card", "six card", "pattern", "heal", "shadow", "trauma"],
   },
   {
     name: "The Seven Stars",
-    description: "Seven cards for a full reading",
     positions: ["The past", "The present", "Hidden influences", "What you bring", "What stands in the way", "What is possible", "The outcome"],
-    bestFor: ["seven card", "7 card", "full reading", "deep dive"],
+    description: "Seven cards — a complete arc",
+    bestFor: ["7 card", "seven card"],
+  },
+  {
+    name: "The Horseshoe",
+    positions: ["The past", "The present", "Hidden influences", "The near future", "External influences", "Hopes and fears", "The likely outcome", "What to do"],
+    description: "Eight cards — the horseshoe spread",
+    bestFor: ["8 card", "eight card", "horseshoe"],
+  },
+  {
+    name: "The Three Worlds",
+    positions: ["The physical situation", "The emotional truth", "The spiritual message", "What was", "What is", "What is coming", "The hidden factor", "What you need", "The final word"],
+    description: "Nine cards — mind, body, spirit across time",
+    bestFor: ["9 card", "nine card"],
   },
   {
     name: "The Celtic Cross",
+    positions: ["The situation", "What crosses you", "The root cause", "The recent past", "What crowns you", "What is coming", "Your position", "Outside forces", "Hopes and fears", "The outcome"],
     description: "Ten cards — the complete picture",
-    positions: ["The situation", "What crosses you", "The root", "The recent past", "What crowns you", "What's coming", "Your position", "Outside forces", "Hopes and fears", "The outcome"],
-    bestFor: ["ten card", "10 card", "celtic cross", "complete reading", "everything"],
+    bestFor: ["10 card", "ten card", "celtic cross", "complete reading"],
+  },
+  {
+    name: "The Year Ahead",
+    positions: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    description: "Twelve cards — one for each month",
+    bestFor: ["12 card", "twelve card", "year", "year ahead", "months"],
+  },
+  {
+    name: "The Full Spread",
+    positions: ["The foundation", "The recent past", "The present moment", "Hidden influences", "Your conscious goal", "The near future", "Your inner state", "External environment", "Hopes and fears", "The likely outcome", "What you bring", "What stands in your way", "The final word"],
+    description: "Thirteen cards — a complete reading",
+    bestFor: ["13 card", "thirteen card", "full spread", "everything"],
   },
 ]
 
@@ -157,31 +181,53 @@ export function drawCards(count: number): TarotCard[] {
   return shuffled.slice(0, count)
 }
 
+const NUMBER_WORDS: Record<string, number> = {
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6,
+  seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13,
+}
+
 export function chooseSpreadsForConcern(concern: string): SpreadType {
   const lower = concern.toLowerCase()
 
-  // Explicit card count requests always win
-  if (/\b(10|ten)\s*card/.test(lower) || lower.includes("celtic cross")) return SPREADS[7]
-  if (/\b(7|seven)\s*card/.test(lower)) return SPREADS[6]
-  if (/\b(6|six)\s*card/.test(lower)) return SPREADS[5]
-  if (/\b(5|five)\s*card/.test(lower)) return SPREADS[3]
-  if (/\b(4|four)\s*card/.test(lower)) return SPREADS[2]
-  if (/\b(3|three)\s*card/.test(lower)) return SPREADS[1]
-  if (/\b(1|one)\s*card/.test(lower) || lower.includes("single card") || lower.includes("one card")) return SPREADS[0]
+  // Explicit card count — numeric or word
+  const numMatch = lower.match(/\b(\d+)\s*card/)
+  if (numMatch) {
+    const n = parseInt(numMatch[1])
+    const match = SPREADS.find((s) => s.positions.length === n)
+    if (match) return match
+    // Closest spread
+    return SPREADS.reduce((a, b) =>
+      Math.abs(a.positions.length - n) <= Math.abs(b.positions.length - n) ? a : b
+    )
+  }
 
-  // Topic-based selection
+  // Word numbers
+  for (const [word, n] of Object.entries(NUMBER_WORDS)) {
+    if (new RegExp(`\\b${word}\\s*card`).test(lower)) {
+      const match = SPREADS.find((s) => s.positions.length === n)
+      if (match) return match
+    }
+  }
+
+  // Named spreads
+  if (lower.includes("celtic cross")) return SPREADS.find(s => s.name === "The Celtic Cross")!
+  if (lower.includes("horseshoe"))   return SPREADS.find(s => s.name === "The Horseshoe")!
+  if (lower.includes("year"))        return SPREADS.find(s => s.name === "The Year Ahead")!
+  if (lower.includes("full spread") || lower.includes("everything") || lower.includes("full reading")) {
+    return SPREADS.find(s => s.name === "The Full Spread")!
+  }
+
+  // Topic-based
   if (lower.includes("love") || lower.includes("relationship") || lower.includes("partner") || lower.includes("heart") || lower.includes("dating") || lower.includes("marriage")) {
-    return SPREADS[2] // Heart's Truth
+    return SPREADS.find(s => s.name === "The Heart's Truth")!
   }
-  if (lower.includes("decision") || lower.includes("choose") || lower.includes("stuck") || lower.includes("path") || lower.includes("should i") || lower.includes("career") || lower.includes("job") || lower.includes("move")) {
-    return SPREADS[3] // Crossroads
+  if (lower.includes("decision") || lower.includes("choose") || lower.includes("stuck") || lower.includes("path") || lower.includes("should i") || lower.includes("career")) {
+    return SPREADS.find(s => s.name === "The Crossroads")!
   }
-  if (lower.includes("myself") || lower.includes("who am i") || lower.includes("understand") || lower.includes("identity") || lower.includes("purpose")) {
-    return SPREADS[4] // Mirror
+  if (lower.includes("pattern") || lower.includes("trauma") || lower.includes("heal") || lower.includes("shadow")) {
+    return SPREADS.find(s => s.name === "The Shadow and Light")!
   }
-  if (lower.includes("pattern") || lower.includes("keep") || lower.includes("always") || lower.includes("trauma") || lower.includes("heal") || lower.includes("shadow")) {
-    return SPREADS[5] // Shadow and Light
-  }
+
   if (lower.length < 30) return SPREADS[0]
-  return SPREADS[1]
+  return SPREADS.find(s => s.name === "Past, Present, Future")!
 }

@@ -222,9 +222,9 @@ export default async function DashboardPage() {
             $5 · 5 EXCHANGES · SPOKEN ALOUD
           </p>
         </div>
-        <a href={`${MOON_LINK}?client_reference_id=${user.id}--moon`} style={{ padding: "10px 28px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(165,180,252,0.08)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-          BEGIN · $5
-        </a>
+        <Link href="/moon" style={{ padding: "10px 28px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(165,180,252,0.08)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+          BEGIN ✦
+        </Link>
       </div>
 
       {/* Palm reading */}
@@ -240,9 +240,9 @@ export default async function DashboardPage() {
             $5 · 5 EXCHANGES · SPOKEN ALOUD
           </p>
         </div>
-        <a href={`${PALM_LINK}?client_reference_id=${user.id}--palm`} style={{ padding: "10px 28px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.4)", background: "rgba(201,168,76,0.08)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-          BEGIN · $5
-        </a>
+        <Link href="/palm" style={{ padding: "10px 28px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.4)", background: "rgba(201,168,76,0.08)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+          BEGIN ✦
+        </Link>
       </div>
 
       {/* Past readings */}

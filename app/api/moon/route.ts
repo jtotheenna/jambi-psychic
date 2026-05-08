@@ -69,6 +69,28 @@ export async function POST(req: Request) {
   const transcript = moonSession.transcript ? JSON.parse(moonSession.transcript) : []
   const isOpening = transcript.length === 0
 
+  // Auto-greeting — free exchange, not saved to transcript
+  if (message === "__OPENING__") {
+    const resp = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 100,
+      system: `You are Galileo — ancient oracle, warm and direct. No asterisks or stage directions.
+Tonight: ${moonData.phase}, ${moonData.illumination}% illuminated. Sun Bear Moon: ${moonData.sunBearMoon.name} — ${moonData.sunBearMoon.totem}.
+Welcome them in one sentence referencing tonight's sky. Then ask one open question — what do they want to know, what's on their mind, what brought them here tonight. 2-3 sentences total.`,
+      messages: [{ role: "user", content: "The moon reading has opened." }],
+    })
+    const greeting = resp.content[0].type === "text" ? resp.content[0].text : ""
+    return Response.json({
+      reading: greeting,
+      sessionId: moonSession.id,
+      moonData: { phase: moonData.phase, illumination: moonData.illumination, dayOfCycle: moonData.dayOfCycle, phaseEmoji: moonData.phaseEmoji, sunBearMoon: moonData.sunBearMoon },
+      exchangesUsed: moonSession.exchangesUsed,
+      exchangesTotal: moonSession.exchangesTotal,
+      isComplete: false,
+      isGreeting: true,
+    })
+  }
+
   // Build message history
   const messages: Anthropic.MessageParam[] = []
   for (const msg of transcript) {
@@ -77,10 +99,9 @@ export async function POST(req: Request) {
 
   const systemPrompt = isOpening
     ? buildMoonPrompt(moonData, message)
-    : `You are Galileo, continuing a moon reading.
-Current moon: ${moonData.phase}, ${moonData.illumination}% illuminated.
-Sun Bear Moon: ${moonData.sunBearMoon.name} — totem ${moonData.sunBearMoon.totem}.
-Continue the conversation warmly and directly. 2-3 paragraphs max. No stage directions.`
+    : `You are Galileo, continuing a moon reading. Wry, warm, direct. No asterisks or stage directions.
+Current moon: ${moonData.phase}, ${moonData.illumination}% illuminated. Sun Bear Moon: ${moonData.sunBearMoon.name} — totem ${moonData.sunBearMoon.totem}.
+Keep it conversational — 2-4 sentences, then ask one question that pulls them deeper. Follow their thread. Don't summarize. Leave space for them.`
 
   messages.push({ role: "user", content: message })
 

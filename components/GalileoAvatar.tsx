@@ -410,7 +410,7 @@ export default function GalileoAvatar({ state }: Props) {
               width: "100%",
               height: "100%",
               objectFit: "cover",
-              objectPosition: "center top",
+              objectPosition: "center 30%",
               opacity: faceVisible ? 1 : 0,
               transition: "opacity 1.5s ease",
               zIndex: 1,
@@ -423,8 +423,7 @@ export default function GalileoAvatar({ state }: Props) {
             }}
           />
 
-          {/* CSS face fallback (hidden once image loads) */}
-          <GalileoFace visible={faceVisible} speaking={internalState === "speaking"} />
+          {/* CSS face — only shown if image fails to load */}
 
           {/* Thinking dots */}
           {internalState === "thinking" && (
@@ -468,20 +467,6 @@ export default function GalileoAvatar({ state }: Props) {
             </div>
           ))}
 
-          {/* Front center ornament */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 14,
-              left: "50%",
-              transform: "translateX(-50%)",
-              fontSize: 18,
-              color: "rgba(201,168,76,0.5)",
-              zIndex: 3,
-            }}
-          >
-            ✦
-          </div>
         </div>
       </div>
 

@@ -39,9 +39,20 @@ export default function PalmPage() {
 
   const handleFile = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) return
-    const reader = new FileReader()
-    reader.onload = (e) => setPreview(e.target?.result as string)
-    reader.readAsDataURL(file)
+    // Resize to max 1024px before storing to keep payload small
+    const img = document.createElement("img")
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const MAX = 1024
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height))
+      const canvas = document.createElement("canvas")
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height)
+      setPreview(canvas.toDataURL("image/jpeg", 0.85))
+      URL.revokeObjectURL(url)
+    }
+    img.src = url
   }, [])
 
   async function submitPalm() {
@@ -49,16 +60,15 @@ export default function PalmPage() {
     setPhase("reading")
 
     const [, data] = preview.split(",")
-    const mimeType = preview.split(";")[0].split(":")[1]
 
     const res = await fetch("/api/palm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imageBase64: data, mimeType }),
+      body: JSON.stringify({ imageBase64: data, mimeType: "image/jpeg" }),
     })
 
-    const json = await res.json()
     if (!res.ok) { setPhase("upload"); return }
+    const json = await res.json()
 
     setReading(json.reading)
     setPhase("done")

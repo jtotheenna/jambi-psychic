@@ -157,27 +157,27 @@ export default function ReadingRoom({
     setAvatarState("idle")
     playBoxOpen()
 
-    // Wait for box open animation then auto-generate greeting
-    setTimeout(async () => {
-      setLoading(true)
-      try {
-        const res = await fetch(`/api/reading/${sessionId}/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: "__OPENING__" }),
-        })
-        const data = await res.json()
-        if (res.ok && data.response) {
-          setMessages([{ role: "galileo", content: data.response }])
-          setLoading(false)
-          await speakText(data.response)
-        } else {
-          setLoading(false)
-        }
-      } catch {
+    // Start greeting API call immediately
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/reading/${sessionId}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: "__OPENING__" }),
+      })
+      const data = await res.json()
+      if (res.ok && data.response) {
+        // Wait minimum time for box animation to clear (TV static ~2.4s)
+        await new Promise((r) => setTimeout(r, 2400))
+        setMessages([{ role: "galileo", content: data.response }])
+        setLoading(false)
+        await speakText(data.response)
+      } else {
         setLoading(false)
       }
-    }, 3400) // after TV static clears
+    } catch {
+      setLoading(false)
+    }
   }
 
   // ── Conversational voice mode ──────────────────────────────────────────────
@@ -412,59 +412,54 @@ export default function ReadingRoom({
           gap: 24,
         }}
       >
-        {/* Galileo + Cards row */}
-        <div style={{ display: "flex", gap: 24, alignItems: "flex-start", justifyContent: "center", flexWrap: "wrap" }}>
-          {/* Avatar + mode selector */}
-          <div style={{ flexShrink: 0 }}>
-            <GalileoPanel
-              avatarState={hasStarted ? avatarState : "closed"}
-              hasStarted={hasStarted}
-              mode={voice.mode}
-              setMode={voice.setMode}
-              isListening={isListening}
-              interimTranscript={interimTranscript}
-              voiceSupported={voiceSupported}
-            />
-          </div>
+        {/* Avatar row */}
+        <div className="reading-avatar" style={{ display: "flex", justifyContent: "center" }}>
+          <GalileoPanel
+            avatarState={hasStarted ? avatarState : "closed"}
+            hasStarted={hasStarted}
+            mode={voice.mode}
+            setMode={voice.setMode}
+            isListening={isListening}
+            interimTranscript={interimTranscript}
+            voiceSupported={voiceSupported}
+          />
+        </div>
 
-          {/* Cards drawn */}
-          {drawnCardData.length > 0 && (
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <div
-                style={{
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: 9,
-                  letterSpacing: "0.2em",
-                  color: "#7a8ba8",
-                  marginBottom: 12,
-                  textAlign: "center",
-                }}
-              >
-                THE CARDS
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
-                {messages
-                  .filter((m) => m.role === "galileo" && m.cards && m.cards.length > 0)
-                  .flatMap((m, mi) =>
-                    (m.cards || []).map((card, ci) => {
-                      const cardData = findCardData(card.name)
-                      if (!cardData) return null
-                      return (
+        {/* Full-width card spread — all cards including clarifying */}
+        {drawnCardData.length > 0 && (
+          <div>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.25em", color: "#7a8ba8", textAlign: "center", marginBottom: 16 }}>
+              {spread ? spread.toUpperCase() : "THE CARDS"}
+            </div>
+            <div className="cards-row" style={{ display: "flex", flexWrap: "wrap", gap: 14, justifyContent: "center", alignItems: "flex-start" }}>
+              {messages
+                .filter((m) => m.role === "galileo" && m.cards && m.cards.length > 0)
+                .flatMap((m, mi) =>
+                  (m.cards || []).map((card, ci) => {
+                    const cardData = findCardData(card.name)
+                    if (!cardData) return null
+                    const isClarifying = card.position === "Clarifying"
+                    return (
+                      <div key={`${mi}-${ci}`} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        {isClarifying && (
+                          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", color: "#a5b4fc", marginBottom: 4 }}>
+                            ✦ CLARIFYING
+                          </div>
+                        )}
                         <TarotCard
-                          key={`${mi}-${ci}`}
                           card={cardData}
-                          position={card.position}
-                          revealDelay={(mi * 3 + ci) * 300}
+                          position={isClarifying ? undefined : card.position}
+                          revealDelay={(mi * 3 + ci) * 250}
                           isReversed={card.reversed}
                         />
-                      )
-                    })
-                  )
-                  .filter(Boolean)}
-              </div>
+                      </div>
+                    )
+                  })
+                )
+                .filter(Boolean)}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Begin button (fresh reading) */}
         {!hasStarted && (
@@ -641,7 +636,7 @@ export default function ReadingRoom({
                 </button>
               </div>
               <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.12em", color: "#2a1a55", textAlign: "center" }}>
-                {isListening ? "RELEASE TO STOP" : "HOLD 🎙 TO SPEAK · OR TYPE · ENTER TO SEND"}
+                {isListening ? "RELEASE TO STOP" : "TYPE OR HOLD MIC · ENTER TO SEND"}
               </div>
             </>
           </div>
