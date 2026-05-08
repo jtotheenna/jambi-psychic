@@ -34,6 +34,12 @@ export default function LandingPage() {
       btn: "CHOOSE TAROT",
     },
     {
+      icon: "♠", name: "Cartomancy", price: "$10", color: "#e879a0", glow: "rgba(232,121,160,0.3)", border: "rgba(232,121,160,0.25)",
+      tagline: "The old language of playing cards. Direct, sharp, and strangely accurate.",
+      desc: "Galileo draws from a shuffled 52-card deck of hearts, spades, diamonds, and clubs. Older in spirit, blunt in tone, and grounded in everyday fate, this reading speaks plainly about the question in front of you.",
+      btn: "CHOOSE CARTOMANCY",
+    },
+    {
       icon: "☽", name: "Moon Reading", price: "$5", color: "#a5b4fc", glow: "rgba(165,180,252,0.3)", border: "rgba(165,180,252,0.25)",
       tagline: "The current moon phase. The live sky. A message for your season.",
       desc: "Galileo reads the moon as it is right now, blending the current lunar phase with Medicine Wheel wisdom to reflect what this moment is asking of you. Open the reading, and the sky is already set.",
@@ -44,12 +50,6 @@ export default function LandingPage() {
       tagline: "Upload your palm. Hear what the lines reveal.",
       desc: "Take a photo of your dominant hand, and Galileo will read the lines, mounts, shape, and symbols of your palm. Your reading is spoken aloud, with room to ask follow-up questions and go deeper.",
       btn: "CHOOSE PALM",
-    },
-    {
-      icon: "♠", name: "Cartomancy", price: "$10", color: "#e879a0", glow: "rgba(232,121,160,0.3)", border: "rgba(232,121,160,0.25)",
-      tagline: "The old language of playing cards. Direct, sharp, and strangely accurate.",
-      desc: "Galileo draws from a shuffled 52-card deck of hearts, spades, diamonds, and clubs. Older in spirit, blunt in tone, and grounded in everyday fate, this reading speaks plainly about the question in front of you.",
-      btn: "CHOOSE CARTOMANCY",
     },
   ]
 
