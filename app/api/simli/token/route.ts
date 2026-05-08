@@ -2,7 +2,7 @@ export async function POST() {
   const apiKey = process.env.SIMLI_API_KEY!
   const faceId = process.env.SIMLI_FACE_ID!
 
-  const res = await fetch("https://api.simli.ai/startSession", {
+  const res = await fetch("https://api.simli.ai/startAudioToVideoSession", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

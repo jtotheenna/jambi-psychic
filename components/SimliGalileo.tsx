@@ -55,7 +55,7 @@ export default function SimliGalileo({ speaking, onSendAudio, onConnected, onDis
       if (!tokenRes.ok) throw new Error("Token fetch failed")
       const { session_token } = await tokenRes.json()
 
-      const iceServers = await generateIceServers(process.env.NEXT_PUBLIC_SIMLI_FACE_ID || "")
+      const iceServers = await generateIceServers("o9f1298cjhpilxszvk193q")
 
       const client = new SimliClient(
         session_token,
