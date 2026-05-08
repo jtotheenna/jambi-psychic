@@ -1,249 +1,159 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
-import Image from "next/image"
+import GalileoPanel from "@/components/GalileoPanel"
+import { useGalileoVoice } from "@/lib/useGalileoVoice"
 
 function playAudio(src: string): Promise<void> {
   return new Promise((resolve) => {
     const audio = new Audio(src)
     const done = () => { URL.revokeObjectURL(src); resolve() }
-    audio.onended = done
-    audio.onerror = done
+    audio.onended = done; audio.onerror = done
     audio.play().catch(done)
   })
 }
 
 async function fetchTTS(text: string): Promise<string | null> {
   try {
-    const res = await fetch("/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    })
+    const res = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) })
     if (!res.ok || res.status === 204) return null
     const blob = await res.blob()
     return URL.createObjectURL(blob)
   } catch { return null }
 }
 
-type Phase = "upload" | "reading" | "done"
+type Message = { role: "user" | "galileo"; content: string }
 
 export default function PalmPage() {
-  const [phase, setPhase] = useState<Phase>("upload")
-  const [preview, setPreview] = useState<string | null>(null)
-  const [reading, setReading] = useState("")
-  const [speaking, setSpeaking] = useState(false)
-  const [dragOver, setDragOver] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [messages, setMessages] = useState<Message[]>([])
+  const [input, setInput] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [exchangesUsed, setExchangesUsed] = useState(0)
+  const [exchangesTotal] = useState(5)
+  const [isComplete, setIsComplete] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const hasGreeted = useRef(false)
+  const voice = useGalileoVoice()
 
-  const handleFile = useCallback((file: File) => {
-    if (!file.type.startsWith("image/")) return
-    // Resize to max 1024px before storing to keep payload small
-    const img = document.createElement("img")
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const MAX = 1024
-      const scale = Math.min(1, MAX / Math.max(img.width, img.height))
-      const canvas = document.createElement("canvas")
-      canvas.width = Math.round(img.width * scale)
-      canvas.height = Math.round(img.height * scale)
-      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height)
-      setPreview(canvas.toDataURL("image/jpeg", 0.85))
-      URL.revokeObjectURL(url)
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+  }, [messages])
+
+  useEffect(() => {
+    if (hasGreeted.current) return
+    hasGreeted.current = true
+    voice.open()
+    sendMessage("__OPENING__")
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function sendMessage(text?: string) {
+    const msg = (text ?? input).trim()
+    if (!msg || loading || isComplete) return
+    setInput("")
+    setLoading(true)
+    voice.setLoading(true)
+
+    if (msg !== "__OPENING__") {
+      setMessages((prev) => [...prev, { role: "user", content: msg }])
     }
-    img.src = url
-  }, [])
-
-  async function submitPalm() {
-    if (!preview) return
-    setPhase("reading")
-
-    const [, data] = preview.split(",")
 
     const res = await fetch("/api/palm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imageBase64: data, mimeType: "image/jpeg" }),
+      body: JSON.stringify({ message: msg, sessionId, voiceMode: voice.mode === "conversational" }),
     })
 
-    if (!res.ok) { setPhase("upload"); return }
-    const json = await res.json()
+    const data = await res.json()
+    if (!res.ok) { setLoading(false); voice.setLoading(false); return }
 
-    setReading(json.reading)
-    setPhase("done")
-
-    // Speak the reading
-    setSpeaking(true)
-    const audio = await fetchTTS(json.reading)
-    if (audio) await playAudio(audio)
-    setSpeaking(false)
+    if (!sessionId) setSessionId(data.sessionId)
+    if (!data.isGreeting) {
+      setExchangesUsed(data.exchangesUsed)
+      setIsComplete(data.isComplete)
+    }
+    setMessages((prev) => [...prev, { role: "galileo", content: data.reading }])
+    voice.setLoading(false)
+    setLoading(false)
+    if (voice.mode !== "text") {
+      await voice.speak(data.reading)
+      if (voice.mode === "conversational" && !data.isComplete) {
+        voice.startListening((t) => sendMessage(t))
+      }
+    }
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px", position: "relative", zIndex: 1 }}>
-
-      <Link href="/dashboard" style={{ position: "absolute", top: 24, left: 24, fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#7a8ba8", textDecoration: "none" }}>
-        ← RETURN
-      </Link>
-
-      <div style={{ textAlign: "center", marginBottom: 40 }}>
-        <div style={{ fontSize: 36, marginBottom: 12 }}>✋</div>
-        <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 22, letterSpacing: "0.12em" }} className="text-shimmer">
-          READ MY PALM
-        </h1>
-        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#7a8ba8", fontStyle: "italic", marginTop: 8 }}>
-          Hold your hand open, palm facing up. Good light. A clear photo.
-        </p>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", position: "relative", zIndex: 1 }}>
+      <div style={{ padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(42,26,85,0.5)" }}>
+        <Link href="/dashboard" style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#7a8ba8", textDecoration: "none" }}>← RETURN</Link>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#4a3870" }}>✋ PALM READING</div>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.1em", color: "#4a3870" }}>{exchangesTotal - exchangesUsed} LEFT</div>
       </div>
 
-      {phase === "upload" && (
-        <div style={{ width: "100%", maxWidth: 480 }}>
-          {/* Drop zone */}
-          <div
-            onClick={() => inputRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
-            style={{
-              border: `2px dashed ${dragOver ? "rgba(165,180,252,0.7)" : "rgba(42,26,85,0.7)"}`,
-              borderRadius: 16,
-              padding: preview ? 0 : "48px 24px",
-              cursor: "pointer",
-              background: dragOver ? "rgba(79,70,229,0.08)" : "rgba(10,5,32,0.4)",
-              transition: "all 0.2s ease",
-              overflow: "hidden",
-              position: "relative",
-              minHeight: preview ? 320 : undefined,
-            }}
-          >
-            {preview ? (
-              <>
-                <Image src={preview} alt="Your palm" fill style={{ objectFit: "contain" }} sizes="480px" />
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 70%, rgba(4,2,14,0.9) 100%)" }} />
-                <div style={{ position: "absolute", bottom: 16, left: 0, right: 0, textAlign: "center", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.15em", color: "#7a8ba8" }}>
-                  TAP TO CHANGE
-                </div>
-              </>
-            ) : (
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>☽</div>
-                <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.2em", color: "#7a8ba8", marginBottom: 8 }}>
-                  TAP TO UPLOAD
-                </div>
-                <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#4a3870", fontStyle: "italic" }}>
-                  or drag your photo here
-                </div>
-              </div>
-            )}
-          </div>
+      <div style={{ flex: 1, maxWidth: 720, width: "100%", margin: "0 auto", padding: "24px 16px", display: "flex", flexDirection: "column", gap: 20 }}>
 
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            style={{ display: "none" }}
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <GalileoPanel
+            avatarState={voice.avatarState}
+            hasStarted={voice.hasStarted}
+            mode={voice.mode}
+            setMode={voice.setMode}
+            isListening={voice.isListening}
+            interimTranscript={voice.interimTranscript}
+            voiceSupported={voice.voiceSupported}
           />
-
-          {preview && (
-            <button
-              onClick={submitPalm}
-              style={{
-                marginTop: 20,
-                width: "100%",
-                padding: "16px",
-                borderRadius: 8,
-                border: "1px solid rgba(201,168,76,0.5)",
-                background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)",
-                color: "#c9a84c",
-                fontFamily: "'Cinzel', serif",
-                fontSize: 13,
-                letterSpacing: "0.2em",
-                cursor: "pointer",
-              }}
-            >
-              READ MY PALM ✦
-            </button>
-          )}
         </div>
-      )}
 
-      {phase === "reading" && (
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 40, animation: "moonPulse 1.5s ease-in-out infinite", marginBottom: 20 }}>☽</div>
-          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.2em", color: "#a5b4fc" }}>
-            GALILEO IS READING YOUR HAND...
-          </div>
-          <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 16, color: "#4a3870", fontStyle: "italic", marginTop: 12, maxWidth: 320 }}>
-            He has seen ten thousand palms. He is taking his time with yours.
-          </p>
-        </div>
-      )}
-
-      {phase === "done" && (
-        <div style={{ maxWidth: 640, width: "100%" }}>
-          {/* Thumb image */}
-          {preview && (
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 32 }}>
-              <div style={{ width: 80, height: 80, borderRadius: "50%", overflow: "hidden", border: "2px solid rgba(201,168,76,0.4)", position: "relative" }}>
-                <Image src={preview} alt="Your palm" fill style={{ objectFit: "cover" }} sizes="80px" />
+        <div ref={scrollRef} style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16, maxHeight: "50vh", overflowY: "auto" }}>
+          {messages.map((msg, i) => (
+            <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", flexDirection: msg.role === "user" ? "row-reverse" : "row" }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, background: msg.role === "galileo" ? "radial-gradient(circle, #1a0d3f, #0a0520)" : "rgba(42,26,85,0.6)", border: msg.role === "galileo" ? "1px solid rgba(165,180,252,0.4)" : "1px solid rgba(201,168,76,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>
+                {msg.role === "galileo" ? "☽" : "✦"}
+              </div>
+              <div style={{ maxWidth: "78%", padding: "14px 18px", borderRadius: msg.role === "galileo" ? "4px 16px 16px 16px" : "16px 4px 16px 16px", background: msg.role === "galileo" ? "linear-gradient(135deg, rgba(26,13,63,0.9), rgba(10,5,32,0.9))" : "rgba(42,26,85,0.5)", border: msg.role === "galileo" ? "1px solid rgba(165,180,252,0.2)" : "1px solid rgba(201,168,76,0.2)", fontFamily: "'EB Garamond', serif", fontSize: 17, lineHeight: 1.8, color: "#ddd8f0", backdropFilter: "blur(8px)" }}>
+                {msg.content}
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "radial-gradient(circle, #1a0d3f, #0a0520)", border: "1px solid rgba(165,180,252,0.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>☽</div>
+              <div style={{ padding: "14px 18px", borderRadius: "4px 16px 16px 16px", background: "rgba(26,13,63,0.9)", border: "1px solid rgba(165,180,252,0.2)", display: "flex", gap: 6, alignItems: "center" }}>
+                {[0,1,2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: "#a5b4fc", animation: "moonPulse 1.2s ease-in-out infinite", animationDelay: `${i*0.3}s` }} />)}
               </div>
             </div>
           )}
+        </div>
 
-          <div
-            style={{
-              padding: 32,
-              borderRadius: 16,
-              border: "1px solid rgba(201,168,76,0.2)",
-              background: "linear-gradient(135deg, rgba(26,13,63,0.9) 0%, rgba(10,5,32,0.9) 100%)",
-              backdropFilter: "blur(8px)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-              <div style={{ fontSize: 18, color: speaking ? "#a5b4fc" : "#c9a84c", animation: speaking ? "moonPulse 1s ease-in-out infinite" : "none" }}>
-                {speaking ? "◉" : "☽"}
-              </div>
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: speaking ? "#a5b4fc" : "#7a8ba8" }}>
-                {speaking ? "GALILEO IS SPEAKING..." : "GALILEO"}
-              </div>
-            </div>
-
-            <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 18, color: "#ddd8f0", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
-              {reading}
+        {!isComplete ? (
+          <div style={{ padding: 16, background: "rgba(10,5,32,0.6)", borderRadius: 12, border: "1px solid rgba(42,26,85,0.6)", backdropFilter: "blur(8px)" }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+                disabled={loading}
+                placeholder="Ask anything..."
+                rows={2}
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", color: "#ddd8f0", fontFamily: "'EB Garamond', serif", fontSize: 17, lineHeight: 1.6 }}
+              />
+              <button onClick={() => sendMessage()} disabled={loading || !input.trim()} style={{ padding: "10px 20px", borderRadius: 8, height: 40, border: "1px solid rgba(201,168,76,0.4)", background: loading || !input.trim() ? "rgba(42,26,85,0.3)" : "linear-gradient(135deg, rgba(201,168,76,0.15), rgba(79,70,229,0.15))", color: loading || !input.trim() ? "#4a3870" : "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.15em", cursor: loading || !input.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
+                {loading ? "☽" : "SEND ✦"}
+              </button>
             </div>
           </div>
-
-          <div style={{ marginTop: 24, display: "flex", gap: 12, justifyContent: "center" }}>
-            <button
-              onClick={() => { setPhase("upload"); setPreview(null); setReading("") }}
-              style={{
-                padding: "10px 28px", borderRadius: 8,
-                border: "1px solid rgba(42,26,85,0.6)",
-                background: "rgba(10,5,32,0.4)",
-                color: "#7a8ba8", fontFamily: "'Cinzel', serif", fontSize: 10,
-                letterSpacing: "0.15em", cursor: "pointer",
-              }}
-            >
-              READ AGAIN
-            </button>
-            <Link
-              href="/dashboard"
-              style={{
-                padding: "10px 28px", borderRadius: 8,
-                border: "1px solid rgba(201,168,76,0.3)",
-                background: "rgba(201,168,76,0.08)",
-                color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10,
-                letterSpacing: "0.15em", textDecoration: "none", display: "inline-block",
-              }}
-            >
+        ) : (
+          <div style={{ textAlign: "center", padding: 24, borderRadius: 12, border: "1px solid rgba(201,168,76,0.2)", background: "rgba(10,5,32,0.6)" }}>
+            <div style={{ fontSize: 24, marginBottom: 8 }}>✋</div>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.2em", color: "#c9a84c", marginBottom: 16 }}>THE READING IS COMPLETE</div>
+            <Link href="/dashboard" style={{ padding: "10px 28px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.3)", background: "rgba(201,168,76,0.08)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.15em", textDecoration: "none" }}>
               RETURN ✦
             </Link>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

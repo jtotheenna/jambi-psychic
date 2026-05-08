@@ -93,6 +93,10 @@ export default async function LandingPage() {
         </p>
       </div>
 
+      <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 12, color: "#2a1a55", textAlign: "center", fontStyle: "italic", maxWidth: 480, lineHeight: 1.7, marginBottom: 12, padding: "0 24px" }}>
+        For entertainment and self-reflection only. All readings are AI-generated and do not constitute professional advice of any kind. No refunds. Enter at your own risk — and with an open mind.
+      </p>
+
       <a href="https://jennasys.pro" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#1a0d3f", textDecoration: "none", marginBottom: 40 }}>
         POWERED BY JENNASYS PRO
       </a>

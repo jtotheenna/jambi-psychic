@@ -1,30 +1,17 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import GalileoPanel from "@/components/GalileoPanel"
+import MoonWheel from "@/components/MoonWheel"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
-
-type MoonInfo = {
-  phase: string
-  illumination: number
-  dayOfCycle: number
-  phaseEmoji: string
-  sunBearMoon: {
-    name: string
-    totem: string
-    element: string
-    clan: string
-    path: string
-    energy: string
-    dates: string
-  }
-}
+import { getMoonData, type MoonData } from "@/lib/moon"
 
 type Message = { role: "user" | "galileo"; content: string }
 
 export default function MoonPage() {
-  const [moonInfo, setMoonInfo] = useState<MoonInfo | null>(null)
+  // Pre-calculate immediately so wheel shows before API responds
+  const [moonInfo, setMoonInfo] = useState<MoonData>(() => getMoonData(new Date()))
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
@@ -41,12 +28,13 @@ export default function MoonPage() {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
   }, [messages])
 
-  // Auto-greeting on mount
+  // Auto-greeting on mount — fires immediately
   useEffect(() => {
     if (hasGreeted.current) return
     hasGreeted.current = true
     voice.open()
-    sendMessage("__OPENING__")
+    // Small delay so avatar animation starts first
+    setTimeout(() => sendMessage("__OPENING__"), 400)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function sendMessage(text?: string) {
@@ -55,7 +43,11 @@ export default function MoonPage() {
     setInput("")
     setLoading(true)
     voice.setLoading(true)
-    setMessages((prev) => [...prev, { role: "user", content: msg }])
+
+    // Don't show user message for the auto-opening
+    if (msg !== "__OPENING__") {
+      setMessages((prev) => [...prev, { role: "user", content: msg }])
+    }
 
     const res = await fetch("/api/moon", {
       method: "POST",
@@ -66,106 +58,52 @@ export default function MoonPage() {
     const data = await res.json()
     if (!res.ok) { setLoading(false); voice.setLoading(false); return }
 
-    if (!moonInfo) { setMoonInfo(data.moonData); voice.open() }
+    if (data.moonData) setMoonInfo(data.moonData)
     if (!sessionId) setSessionId(data.sessionId)
-    setExchangesUsed(data.exchangesUsed)
-    setIsComplete(data.isComplete)
+    if (!data.isGreeting) {
+      setExchangesUsed(data.exchangesUsed)
+      setIsComplete(data.isComplete)
+    }
     setMessages((prev) => [...prev, { role: "galileo", content: data.reading }])
 
     voice.setLoading(false)
     setLoading(false)
-    await voice.speak(data.reading)
 
-    if (voice.mode === "conversational" && !data.isComplete) {
-      voice.startListening((t) => sendMessage(t))
+    // Speak immediately unless text mode
+    if (voice.mode !== "text") {
+      await voice.speak(data.reading)
+      if (voice.mode === "conversational" && !data.isComplete) {
+        voice.startListening((t) => sendMessage(t))
+      }
     }
   }
 
-  const PHASE_COLORS: Record<string, string> = {
-    "New Moon": "#1a0d3f",
-    "Waxing Crescent": "#2a1a55",
-    "First Quarter": "#3a2a70",
-    "Waxing Gibbous": "#4a3870",
-    "Full Moon": "#c9a84c",
-    "Waning Gibbous": "#4a3870",
-    "Last Quarter": "#3a2a70",
-    "Waning Crescent": "#2a1a55",
-  }
-
-  const glowColor = moonInfo?.phase === "Full Moon" ? "rgba(201,168,76,0.6)" : "rgba(165,180,252,0.4)"
-
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", position: "relative", zIndex: 1 }}>
-      <Link href="/dashboard" style={{ position: "absolute", top: 24, left: 24, fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#7a8ba8", textDecoration: "none" }}>
+      <Link href="/dashboard" style={{ position: "absolute", top: 24, left: 24, fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#7a8ba8", textDecoration: "none", zIndex: 2 }}>
         ← RETURN
       </Link>
 
-      {/* Avatar + mode selector */}
-      <div style={{ display: "flex", justifyContent: "center", padding: "40px 24px 0" }}>
-        <GalileoPanel
-          avatarState={voice.avatarState}
-          hasStarted={voice.hasStarted}
-          mode={voice.mode}
-          setMode={voice.setMode}
-          isListening={voice.isListening}
-          interimTranscript={voice.interimTranscript}
-          voiceSupported={voice.voiceSupported}
-        />
-      </div>
+      {/* Two column layout: wheel left, avatar right */}
+      <div style={{ display: "flex", gap: 24, justifyContent: "center", alignItems: "flex-start", padding: "48px 24px 16px", flexWrap: "wrap" }}>
 
-      {/* Moon phase display */}
-      <div style={{ textAlign: "center", padding: "24px 24px 32px" }}>
-        <div style={{
-          fontSize: 72,
-          marginBottom: 8,
-          filter: `drop-shadow(0 0 20px ${glowColor})`,
-          animation: "moonPulse 4s ease-in-out infinite",
-        }}>
-          {moonInfo?.phaseEmoji ?? "☽"}
+        {/* Moon wheel */}
+        <div style={{ flexShrink: 0 }}>
+          <MoonWheel moonData={moonInfo} />
         </div>
 
-        <div style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 20, letterSpacing: "0.12em", marginBottom: 4 }} className="text-shimmer">
-          {moonInfo?.phase ?? "THE MOON READING"}
+        {/* Avatar + mode */}
+        <div style={{ flexShrink: 0 }}>
+          <GalileoPanel
+            avatarState={voice.avatarState}
+            hasStarted={voice.hasStarted}
+            mode={voice.mode}
+            setMode={voice.setMode}
+            isListening={voice.isListening}
+            interimTranscript={voice.interimTranscript}
+            voiceSupported={voice.voiceSupported}
+          />
         </div>
-
-        {moonInfo && (
-          <>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#a5b4fc", marginBottom: 20 }}>
-              {moonInfo.illumination}% ILLUMINATED · DAY {moonInfo.dayOfCycle} OF THE CYCLE
-            </div>
-
-            {/* Sun Bear moon card */}
-            <div style={{
-              display: "inline-block",
-              padding: "20px 32px",
-              borderRadius: 12,
-              border: "1px solid rgba(201,168,76,0.25)",
-              background: "rgba(10,5,32,0.6)",
-              backdropFilter: "blur(8px)",
-              textAlign: "center",
-              maxWidth: 480,
-            }}>
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#c9a84c", marginBottom: 8 }}>
-                SUN BEAR MEDICINE WHEEL
-              </div>
-              <div style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 16, letterSpacing: "0.1em", color: "#c8d4e8", marginBottom: 4 }}>
-                {moonInfo.sunBearMoon.name}
-              </div>
-              <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#7a8ba8", fontStyle: "italic", marginBottom: 12 }}>
-                {moonInfo.sunBearMoon.totem} · {moonInfo.sunBearMoon.clan} · {moonInfo.sunBearMoon.dates}
-              </div>
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.12em", color: "#4a3870" }}>
-                {moonInfo.sunBearMoon.path}
-              </div>
-            </div>
-          </>
-        )}
-
-        {!moonInfo && (
-          <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#7a8ba8", fontStyle: "italic", maxWidth: 400, margin: "16px auto 0" }}>
-            Ask Galileo anything. He knows exactly where the moon stands tonight.
-          </p>
-        )}
       </div>
 
       {/* Chat */}

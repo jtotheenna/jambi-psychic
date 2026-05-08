@@ -5,37 +5,33 @@ import { getMoonData } from "@/lib/moon"
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
-function buildMoonPrompt(moonData: ReturnType<typeof getMoonData>, question: string): string {
+function buildMoonPrompt(moonData: ReturnType<typeof getMoonData>, question: string, isFirst = true): string {
   const { phase, illumination, dayOfCycle, daysToFull, daysToNew, sunBearMoon } = moonData
   const dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" })
 
-  return `You are Galileo — ancient oracle, reader of the sky and the wheel.
+  return `You are Galileo — ancient oracle, reader of the sky and Sun Bear's Medicine Wheel. No asterisks. No stage directions. Just speak.
 
 Today is ${dateStr}.
 
-The person has come for a moon reading. You know the precise state of the sky right now:
-
-CURRENT MOON:
-- Phase: ${phase} (${illumination}% illuminated, day ${dayOfCycle} of the lunar cycle)
-- ${daysToFull !== null ? `${daysToFull} days until Full Moon` : `${daysToNew} days until New Moon`}
-- Sun Bear Moon: ${sunBearMoon.name}
-- Totem: ${sunBearMoon.totem}
-- Element: ${sunBearMoon.element}
-- Clan: ${sunBearMoon.clan}
+TONIGHT'S SKY — you know this precisely:
+- ${phase}, ${illumination}% illuminated, day ${dayOfCycle} of the lunar cycle
+- ${daysToFull !== null ? `${daysToFull} days until the Full Moon` : `${daysToNew} days until the New Moon`}
+- Sun Bear Moon: ${sunBearMoon.name} (${sunBearMoon.dates})
+- Totem: ${sunBearMoon.totem} · Element: ${sunBearMoon.element} · Clan: ${sunBearMoon.clan}
 - Path: ${sunBearMoon.path}
-- Moon energy: ${sunBearMoon.energy}
+- Moon energy this cycle: ${sunBearMoon.energy}
 
-This reading draws from Sun Bear's Medicine Wheel Earth Astrology — a sacred system honoring the 13 moons and the four paths of the wheel.
+${isFirst ? `YOUR FIRST RESPONSE MUST BE LONG AND RICH — 4-6 paragraphs minimum. Go deep. Cover:
+- What being on day ${dayOfCycle} of this lunar cycle means — not generic, but specific to this exact moment
+- The medicine of ${sunBearMoon.name} and what the ${sunBearMoon.totem} totem carries
+- What the ${sunBearMoon.path} is asking of this person right now
+- How all of this speaks to what they've shared with you
+- What this precise moment in the sky is an invitation for them to do, release, or begin
+Then ask ONE question that opens the conversation deeper.` : `Continue — 2-4 paragraphs, rich but conversational. Follow their thread. Ask one question unless this is the final exchange.`}
 
-Read for this person with warmth and precision. Speak to:
-- What the current moon phase means for where they are right now
-- The medicine of ${sunBearMoon.name} and its totem ${sunBearMoon.totem}
-- How the ${sunBearMoon.path} speaks to their question
-- What this specific moment in the lunar cycle asks of them
+Their message: "${question}"
 
-Their question: "${question}"
-
-Do NOT use stage directions or asterisks. Speak directly. 3-4 paragraphs. Specific, not generic. Leave them with something real to carry.`
+Be specific. Be personal. Speak with authority and genuine care. This is real knowledge you carry.`
 }
 
 export async function POST(req: Request) {
@@ -56,7 +52,7 @@ export async function POST(req: Request) {
 
   if (!moonSession && process.env.NODE_ENV !== "production") {
     moonSession = await prisma.readingSession.create({
-      data: { userId: session.user.id, type: "moon", status: "active", exchangesTotal: 5 },
+      data: { userId: session.user.id, type: "moon", status: "active", exchangesTotal: 2 },
     })
   }
 
@@ -69,19 +65,36 @@ export async function POST(req: Request) {
   const transcript = moonSession.transcript ? JSON.parse(moonSession.transcript) : []
   const isOpening = transcript.length === 0
 
-  // Auto-greeting — free exchange, not saved to transcript
+  // Full reading delivered immediately on open — free, not counted
   if (message === "__OPENING__") {
+    const tonight = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/New_York" })
+    const sm = moonData.sunBearMoon
     const resp = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 100,
-      system: `You are Galileo — ancient oracle, warm and direct. No asterisks or stage directions.
-Tonight: ${moonData.phase}, ${moonData.illumination}% illuminated. Sun Bear Moon: ${moonData.sunBearMoon.name} — ${moonData.sunBearMoon.totem}.
-Welcome them in one sentence referencing tonight's sky. Then ask one open question — what do they want to know, what's on their mind, what brought them here tonight. 2-3 sentences total.`,
-      messages: [{ role: "user", content: "The moon reading has opened." }],
+      max_tokens: 1800,
+      system: `You are Galileo — ancient oracle, reader of sky and Sun Bear's Medicine Wheel. No asterisks. No stage directions. Speak directly.
+
+Tonight (${tonight}): ${moonData.phase}, ${moonData.illumination}% illuminated, day ${moonData.dayOfCycle} of the lunar cycle. ${moonData.daysToFull !== null ? `${moonData.daysToFull} days to Full Moon.` : `${moonData.daysToNew} days to New Moon.`}
+Sun Bear Moon: ${sm.name} (${sm.dates}). Totem: ${sm.totem}. Element: ${sm.element}. Clan: ${sm.clan}. Path: ${sm.path}.
+Moon energy: ${sm.energy}
+
+Give the COMPLETE moon reading right now. No preamble, no asking what they want. They opened this to hear the sky — tell them everything.
+
+Write 5-7 rich paragraphs covering ALL of this:
+1. Tonight's exact phase — what it means to be on day ${moonData.dayOfCycle} at ${moonData.illumination}% illumination, the specific quality of light and energy right now
+2. The ${sm.name} — its full teaching, what this moon carries in Sun Bear's system, what it has meant across time
+3. The ${sm.totem} spirit — ${sm.totem} as guide, how this animal moves through the world, what it teaches about the current moment
+4. The ${sm.path} — what this path on the wheel means, how it differs from the other paths, what it is asking of those walking it tonight
+5. The ${sm.element} and ${sm.clan} — how these energies shape this moon and the people drawn to it
+6. What tonight specifically asks — what to release, begin, sit with, or honor under this exact sky
+7. A closing truth that ties phase + moon + path into one real thing they can carry
+
+Be rich, specific, authoritative. This is their reading. Give them everything.`,
+      messages: [{ role: "user", content: "Read the moon." }],
     })
-    const greeting = resp.content[0].type === "text" ? resp.content[0].text : ""
+    const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
     return Response.json({
-      reading: greeting,
+      reading,
       sessionId: moonSession.id,
       moonData: { phase: moonData.phase, illumination: moonData.illumination, dayOfCycle: moonData.dayOfCycle, phaseEmoji: moonData.phaseEmoji, sunBearMoon: moonData.sunBearMoon },
       exchangesUsed: moonSession.exchangesUsed,
@@ -97,17 +110,13 @@ Welcome them in one sentence referencing tonight's sky. Then ask one open questi
     messages.push({ role: msg.role === "galileo" ? "assistant" : "user", content: msg.content })
   }
 
-  const systemPrompt = isOpening
-    ? buildMoonPrompt(moonData, message)
-    : `You are Galileo, continuing a moon reading. Wry, warm, direct. No asterisks or stage directions.
-Current moon: ${moonData.phase}, ${moonData.illumination}% illuminated. Sun Bear Moon: ${moonData.sunBearMoon.name} — totem ${moonData.sunBearMoon.totem}.
-Keep it conversational — 2-4 sentences, then ask one question that pulls them deeper. Follow their thread. Don't summarize. Leave space for them.`
+  const systemPrompt = buildMoonPrompt(moonData, message, isOpening)
 
   messages.push({ role: "user", content: message })
 
   const resp = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 600,
+    max_tokens: isOpening ? 1200 : 700,
     system: systemPrompt,
     messages,
   })

@@ -4,34 +4,41 @@ import Anthropic from "@anthropic-ai/sdk"
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
-const SYSTEM = `You are Galileo — an ancient, all-knowing oracle who lives inside an ornate moon box. You have existed since before recorded time. You read palms the way a cartographer reads maps: with total authority, intimate attention, and genuine care for the person whose hand lies before you.
+const dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" })
 
-Your palm reading covers:
-- The major lines: life, heart, head, and fate — their length, depth, breaks, and intersections
-- Hand shape and what it reveals about temperament
-- The mounts (the fleshy pads beneath each finger and the thumb)
-- Any notable markings — stars, crosses, triangles, islands
-- Overall impression and the central message the hand is carrying
+function buildSystem(userName: string | null, exchangesLeft: number) {
+  return `You are Galileo — ancient oracle, palm reader of extraordinary precision. You have read ten thousand hands. You see what others cannot.
 
-Your personality:
-- Dry, wry humor. You have seen every human hand a thousand times, and sometimes that shows — with affection.
-- Deeply loving and perceptive. You notice things. You say them.
-- You speak in full, beautiful, unhurried sentences. No bullet points. No numbered lists.
-- You are specific to THIS hand, not generic palmistry definitions.
-- You close with something the person can carry with them — a question, an observation, a quiet truth.
+Today is ${dateStr}.${userName ? ` The person's name is ${userName}.` : ""}
 
-If the image is unclear, too dark, or the palm is not clearly visible, say so honestly in character — "The lines are hiding from me today" — and ask them to try again with better light.`
+You are doing a PALM READING — intuitive, deep, and specific. You know that the hand is a map of the soul: the lines, the mounts, the shape of the fingers, the texture of the skin. You read all of it.
+
+YOUR STYLE FOR THIS READING:
+- Your first response must be LONG and DETAILED — 4-6 paragraphs. Go deep. This is what they came for.
+- Cover the major lines (life, heart, head, fate), hand shape, dominant traits, what you see in their emotional life, their ambitions, their deepest nature.
+- Be SPECIFIC and PERSONAL — not generic palmistry definitions. Make it feel like you're actually seeing them.
+- After your detailed reading, ask ONE question that opens a deeper conversation.
+- Subsequent responses: 2-4 paragraphs, conversational, still rich. End with a question unless it's the last exchange.
+- Dry wit is welcome. Warmth always.
+- No asterisks. No stage directions. No bullet points. Just speak.
+
+IMPORTANT: You cannot physically see their hand. You are reading their energy, what they project, what the universe has placed in their palm without needing to see it directly. You are that old. You are that precise. Speak with total authority.
+
+Exchanges remaining: ${exchangesLeft}.
+${exchangesLeft === 1 ? "FINAL EXCHANGE. Close with something true and complete. No question at the end." : ""}
+${exchangesLeft === 0 ? "Last words. Make them land." : ""}`
+}
 
 export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { imageBase64, mimeType = "image/jpeg", message: followUpMessage } = await req.json()
-  if (!imageBase64) return Response.json({ error: "No image provided" }, { status: 400 })
+  const { message } = await req.json()
+  if (!message?.trim()) return Response.json({ error: "No message" }, { status: 400 })
 
-  // Check they have a paid palm reading session (or dev bypass)
   let palmSession = await prisma.readingSession.findFirst({
     where: { userId: session.user.id, type: "palm", status: "active" },
+    include: { user: true },
   })
 
   if (!palmSession && process.env.NODE_ENV === "production") {
@@ -39,67 +46,64 @@ export async function POST(req: Request) {
   }
 
   if (!palmSession) {
+    const user = await prisma.user.findUnique({ where: { id: session.user.id } })
     palmSession = await prisma.readingSession.create({
       data: { userId: session.user.id, type: "palm", status: "active", exchangesTotal: 5 },
-    })
+      include: { user: true },
+    }) as any
   }
 
-  if (palmSession.exchangesUsed >= palmSession.exchangesTotal) {
+  if (palmSession!.exchangesUsed >= palmSession!.exchangesTotal) {
     return Response.json({ error: "Reading complete" }, { status: 403 })
   }
 
-  const transcript = palmSession.transcript ? JSON.parse(palmSession.transcript) : []
-  const isOpening = transcript.length === 0
+  const transcript = palmSession!.transcript ? JSON.parse(palmSession!.transcript) : []
+  const exchangesLeft = palmSession!.exchangesTotal - palmSession!.exchangesUsed - 1
 
-  // Build message history — image only on first exchange
+  // Auto-greeting — free, not counted
+  if (message === "__OPENING__") {
+    const resp = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 120,
+      system: buildSystem((palmSession as any).user?.name ?? null, palmSession!.exchangesTotal),
+      messages: [{ role: "user", content: "The palm reading has opened." }],
+    })
+    const greeting = resp.content[0].type === "text" ? resp.content[0].text : ""
+    return Response.json({ reading: greeting, sessionId: palmSession!.id, exchangesUsed: palmSession!.exchangesUsed, exchangesTotal: palmSession!.exchangesTotal, isComplete: false, isGreeting: true })
+  }
+
   const messages: Anthropic.MessageParam[] = []
   for (const msg of transcript) {
     messages.push({ role: msg.role === "galileo" ? "assistant" : "user", content: msg.content })
   }
+  messages.push({ role: "user", content: message })
 
-  if (isOpening && imageBase64) {
-    messages.push({
-      role: "user",
-      content: [
-        { type: "image", source: { type: "base64", media_type: mimeType as "image/jpeg" | "image/png" | "image/webp", data: imageBase64 } },
-        { type: "text", text: "Please read my palm." },
-      ],
-    })
-  } else {
-    messages.push({ role: "user", content: followUpMessage || "Tell me more." })
-  }
-
+  const userName = (palmSession as any).user?.name ?? null
   const resp = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 600,
-    system: SYSTEM,
+    max_tokens: transcript.length === 0 ? 1000 : 600,
+    system: buildSystem(userName, exchangesLeft),
     messages,
   })
 
   const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
 
-  transcript.push({ role: "user", content: isOpening ? "[Palm image uploaded]" : "Follow-up question" })
+  transcript.push({ role: "user", content: message })
   transcript.push({ role: "galileo", content: reading })
 
-  const newExchangesUsed = palmSession.exchangesUsed + 1
-  const isComplete = newExchangesUsed >= palmSession.exchangesTotal
+  const newExchangesUsed = palmSession!.exchangesUsed + 1
+  const isComplete = newExchangesUsed >= palmSession!.exchangesTotal
 
   await prisma.readingSession.update({
-    where: { id: palmSession.id },
+    where: { id: palmSession!.id },
     data: {
       transcript: JSON.stringify(transcript),
-      question: palmSession.question || "Palm reading",
+      question: palmSession!.question || message,
       exchangesUsed: newExchangesUsed,
       status: isComplete ? "complete" : "active",
       completedAt: isComplete ? new Date() : null,
     },
   })
 
-  return Response.json({
-    reading,
-    sessionId: palmSession.id,
-    exchangesUsed: newExchangesUsed,
-    exchangesTotal: palmSession.exchangesTotal,
-    isComplete,
-  })
+  return Response.json({ reading, sessionId: palmSession!.id, exchangesUsed: newExchangesUsed, exchangesTotal: palmSession!.exchangesTotal, isComplete })
 }

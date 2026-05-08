@@ -26,7 +26,9 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login")
 
-  const activeSession = user.sessions.find((s) => s.status === "active")
+  const activeTarot = user.sessions.find((s) => s.status === "active" && s.type === "tarot")
+  const activePalm  = user.sessions.find((s) => s.status === "active" && s.type === "palm")
+  const activeMoon  = user.sessions.find((s) => s.status === "active" && s.type === "moon")
   const completedSessions = user.sessions.filter((s) => s.status === "complete")
 
   return (
@@ -71,177 +73,81 @@ export default async function DashboardPage() {
         </form>
       </div>
 
-      {/* Active session */}
-      {activeSession && (
-        <div
-          style={{
-            marginBottom: 32,
-            padding: 24,
-            borderRadius: 12,
-            border: "1px solid rgba(165,180,252,0.3)",
-            background: "linear-gradient(135deg, rgba(79,70,229,0.1) 0%, rgba(10,5,32,0.6) 100%)",
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "'Cinzel', serif",
-              fontSize: 10,
-              letterSpacing: "0.2em",
-              color: "#a5b4fc",
-              marginBottom: 12,
-            }}
-          >
-            READING IN PROGRESS
+      {/* ── TAROT ── */}
+      <div style={{ marginBottom: 20, padding: 24, borderRadius: 12, border: `1px solid ${activeTarot ? "rgba(165,180,252,0.4)" : "rgba(201,168,76,0.25)"}`, background: activeTarot ? "linear-gradient(135deg, rgba(79,70,229,0.1) 0%, rgba(10,5,32,0.6) 100%)" : "rgba(10,5,32,0.5)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: activeTarot ? "#a5b4fc" : "#c9a84c", marginBottom: 8 }}>
+              ★ TAROT READING
+            </div>
+            {activeTarot ? (
+              <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
+                {activeTarot.question ? `"${activeTarot.question.substring(0, 70)}${activeTarot.question.length > 70 ? "..." : ""}"` : "Your reading is open."}
+              </p>
+            ) : (
+              <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
+                Any question. Any spread. He reads the cards and remembers you forever.
+              </p>
+            )}
+            <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
+              {activeTarot ? `${activeTarot.exchangesTotal - activeTarot.exchangesUsed} EXCHANGES REMAINING` : "$10 · UP TO 10 EXCHANGES · SPOKEN ALOUD"}
+            </p>
           </div>
-          <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 18, color: "#c8d4e8", fontStyle: "italic", marginBottom: 16 }}>
-            {activeSession.question
-              ? `"${activeSession.question.substring(0, 80)}${activeSession.question.length > 80 ? "..." : ""}"`
-              : "Your reading is open."}
-          </p>
-          <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-            <Link
-              href={`/reading/${activeSession.id}`}
-              style={{
-                padding: "10px 28px",
-                borderRadius: 8,
-                border: "1px solid rgba(165,180,252,0.4)",
-                background: "rgba(79,70,229,0.12)",
-                color: "#a5b4fc",
-                fontFamily: "'Cinzel', serif",
-                fontSize: 10,
-                letterSpacing: "0.18em",
-                textDecoration: "none",
-              }}
-            >
-              RETURN TO READING
-            </Link>
-            <span style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#7a8ba8", letterSpacing: "0.1em" }}>
-              {activeSession.exchangesTotal - activeSession.exchangesUsed} VISIONS REMAINING
-            </span>
-            <form action={async () => {
-              "use server"
-              await prisma.readingSession.update({
-                where: { id: activeSession.id },
-                data: { status: "complete", completedAt: new Date() },
-              })
-              redirect("/dashboard")
-            }}>
-              <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.12em", color: "#4a3870", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
-                abandon
-              </button>
-            </form>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+            {activeTarot ? (
+              <>
+                <Link href={`/reading/${activeTarot.id}`} style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(79,70,229,0.12)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+                  RETURN ✦
+                </Link>
+                <form action={async () => { "use server"; await prisma.readingSession.update({ where: { id: activeTarot.id }, data: { status: "complete", completedAt: new Date() } }); redirect("/dashboard") }}>
+                  <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>abandon</button>
+                </form>
+              </>
+            ) : (
+              <>
+                <a href={`${TAROT_LINK}?client_reference_id=${user.id}--tarot`} style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+                  BEGIN · $10
+                </a>
+                {process.env.NODE_ENV !== "production" && (
+                  <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 10 } }); redirect(`/reading/${r.id}`) }}>
+                    <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "1px solid rgba(42,26,85,0.4)", borderRadius: 4, padding: "6px 12px", cursor: "pointer" }}>DEV: FREE TEST</button>
+                  </form>
+                )}
+              </>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
-      {/* New reading */}
-      {!activeSession && (
-        <div
-          style={{
-            marginBottom: 40,
-            padding: 32,
-            borderRadius: 12,
-            border: "1px solid rgba(201,168,76,0.25)",
-            background: "rgba(10,5,32,0.5)",
-            textAlign: "center",
-          }}
-        >
-          <div style={{ fontSize: 32, marginBottom: 12, color: "#c8d4e8", textShadow: "0 0 20px rgba(200,212,232,0.4)" }}>☽</div>
-          <div
-            style={{ fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.2em", color: "#c9a84c", marginBottom: 12 }}
-          >
-            BEGIN A NEW READING
-          </div>
-          <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#7a8ba8", fontStyle: "italic", marginBottom: 24 }}>
-            Ten visions. Any question. He is waiting.
-          </p>
-          <p style={{ fontFamily: "'Cinzel', serif", fontSize: 11, color: "#4a3870", letterSpacing: "0.15em", marginBottom: 24 }}>
-            $10 · 10 EXCHANGES · REMEMBERED FOREVER
-          </p>
-          <a
-            href={`${TAROT_LINK}?client_reference_id=${user.id}--tarot`}
-            style={{
-              display: "inline-block",
-              padding: "16px 48px",
-              borderRadius: 8,
-              border: "1px solid rgba(201,168,76,0.5)",
-              background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)",
-              color: "#c9a84c",
-              fontFamily: "'Cinzel', serif",
-              fontSize: 13,
-              letterSpacing: "0.2em",
-              textDecoration: "none",
-            }}
-          >
-            BEGIN · $10
-          </a>
-          {process.env.NODE_ENV !== "production" && (
-            <form
-              action={async () => {
-                "use server"
-                const session = await auth()
-                if (!session?.user) return
-                const reading = await prisma.readingSession.create({
-                  data: { userId: session.user.id, status: "active", exchangesTotal: 10 },
-                })
-                redirect(`/reading/${reading.id}`)
-              }}
-            >
-              <button
-                type="submit"
-                style={{
-                  marginTop: 12,
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: 9,
-                  letterSpacing: "0.15em",
-                  color: "#4a3870",
-                  background: "none",
-                  border: "1px solid rgba(42,26,85,0.4)",
-                  borderRadius: 6,
-                  padding: "8px 20px",
-                  cursor: "pointer",
-                }}
-              >
-                DEV: TEST WITHOUT PAYING
-              </button>
-            </form>
-          )}
-        </div>
-      )}
-
-      {/* Moon reading */}
-      <div style={{ marginBottom: 20, padding: 24, borderRadius: 12, border: "1px solid rgba(165,180,252,0.2)", background: "rgba(10,5,32,0.5)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+      {/* ── MOON ── */}
+      <div style={{ marginBottom: 20, padding: 24, borderRadius: 12, border: `1px solid ${activeMoon ? "rgba(165,180,252,0.4)" : "rgba(165,180,252,0.2)"}`, background: "rgba(10,5,32,0.5)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#a5b4fc", marginBottom: 8 }}>
-            ☽ MOON READING
-          </div>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#a5b4fc", marginBottom: 8 }}>☽ MOON READING</div>
           <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
-            Galileo reads from the live moon phase and Sun Bear's Medicine Wheel.
+            {activeMoon ? "Your moon reading is open." : "Tonight's live moon phase and Sun Bear's Medicine Wheel. A full reading, spoken aloud."}
           </p>
           <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-            $5 · 5 EXCHANGES · SPOKEN ALOUD
+            {activeMoon ? `${activeMoon.exchangesTotal - activeMoon.exchangesUsed} QUESTIONS REMAINING` : "$5 · FULL READING + 2 QUESTIONS · SPOKEN ALOUD"}
           </p>
         </div>
-        <Link href="/moon" style={{ padding: "10px 28px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(165,180,252,0.08)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-          BEGIN ✦
+        <Link href="/moon" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(165,180,252,0.08)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+          {activeMoon ? "RETURN ✦" : "BEGIN ✦"}
         </Link>
       </div>
 
-      {/* Palm reading */}
-      <div style={{ marginBottom: 32, padding: 24, borderRadius: 12, border: "1px solid rgba(201,168,76,0.2)", background: "rgba(10,5,32,0.5)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+      {/* ── PALM ── */}
+      <div style={{ marginBottom: 32, padding: 24, borderRadius: 12, border: `1px solid ${activePalm ? "rgba(201,168,76,0.4)" : "rgba(201,168,76,0.2)"}`, background: "rgba(10,5,32,0.5)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#c9a84c", marginBottom: 8 }}>
-            ✋ PALM READING
-          </div>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#c9a84c", marginBottom: 8 }}>✋ PALM READING</div>
           <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
-            Upload a photo of your hand. Galileo reads the lines and answers your questions.
+            {activePalm ? "Your palm reading is open." : "Galileo reads your hand intuitively — no photo needed. Deep, specific, spoken aloud."}
           </p>
           <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-            $5 · 5 EXCHANGES · SPOKEN ALOUD
+            {activePalm ? `${activePalm.exchangesTotal - activePalm.exchangesUsed} EXCHANGES REMAINING` : "$5 · 5 EXCHANGES · SPOKEN ALOUD"}
           </p>
         </div>
-        <Link href="/palm" style={{ padding: "10px 28px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.4)", background: "rgba(201,168,76,0.08)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-          BEGIN ✦
+        <Link href="/palm" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.4)", background: "rgba(201,168,76,0.08)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+          {activePalm ? "RETURN ✦" : "BEGIN ✦"}
         </Link>
       </div>
 

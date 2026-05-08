@@ -2,8 +2,21 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Ask Galileo — The Celestial Oracle",
-  description: "An ancient fortune teller awaits inside the box. He has seen your situation before. He cares about you anyway.",
+  title: "Galileo — AI Tarot, Palm & Moon Readings",
+  description: "An ancient oracle who reads tarot, your palm, and the live moon — then speaks his answer aloud in his own voice. He remembers you across every visit. Readings start at $3.",
+  keywords: ["tarot reading", "palm reading", "moon reading", "ai tarot", "online tarot", "psychic reading", "astrology", "oracle", "tarot cards"],
+  openGraph: {
+    title: "Galileo — AI Tarot, Palm & Moon Readings",
+    description: "An ancient oracle in a moon box. Tarot, palm reading, and live moon readings — spoken aloud in his own voice.",
+    type: "website",
+    images: [{ url: "/galileo.jpg", width: 1200, height: 1200, alt: "Galileo the Celestial Oracle" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Galileo — AI Tarot, Palm & Moon Readings",
+    description: "An ancient oracle in a moon box. Real tarot. Real palm readings. The live moon. Spoken aloud.",
+    images: ["/galileo.jpg"],
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

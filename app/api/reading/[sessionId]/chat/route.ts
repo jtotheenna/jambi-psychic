@@ -47,7 +47,7 @@ The cards drawn are:
 ${preDrawnCards.map((c, i) => `  ${i + 1}. ${c.position}: ${c.name}${c.reversed ? " (REVERSED)" : " (upright)"}`).join("\n")}
 
 After that line, give your interpretation — brief, specific to this person.`
-    : `Cards already dealt. Continue the conversation naturally. Do NOT request clarifying cards unless absolutely necessary — one per response maximum. If you need one, include exactly the text CLARIFYING_CARD_REQUESTED once. Never repeat it multiple times. Never mention waiting for cards from a server. Just read what you have.`
+    : `THE SPREAD IS CLOSED. Never output CARDS_DRAWN — it will be deleted. Never draw a new spread. If the user asks for cards, remind them the spread is already laid and interpret the existing cards in that context. You may request ONE clarifying card by writing CLARIFYING_CARD_REQUESTED once — never more than once per response.`
 
   const dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" })
 
@@ -229,16 +229,21 @@ You have just appeared. Welcome them warmly and briefly — one sentence. Then a
     }
   }
 
-  // Extract the CARDS_DRAWN line the AI echoes back (or fall back to what we pre-drew)
+  // Extract CARDS_DRAWN — but ONLY if we pre-drew cards this exchange
+  // If cards were already dealt, strip any rogue CARDS_DRAWN the AI invented
   let cards: { name: string; position?: string; reversed?: boolean }[] | undefined
   let cleanedResponse = galileoRaw
 
   const cardsMatch = galileoRaw.match(/CARDS_DRAWN:\s*(\[.*?\])/s)
-  if (cardsMatch) {
+  if (cardsMatch && preDrawnCards) {
+    // Valid — this is our pre-drawn echo
     try { cards = JSON.parse(cardsMatch[1]) } catch { /* ignore */ }
     cleanedResponse = galileoRaw.replace(/CARDS_DRAWN:\s*\[.*?\]/s, "").trim()
+  } else if (cardsMatch && !preDrawnCards) {
+    // AI invented cards mid-reading — strip it out, ignore the cards
+    cleanedResponse = galileoRaw.replace(/CARDS_DRAWN:\s*\[.*?\]/s, "").trim()
   } else if (preDrawnCards) {
-    // AI forgot to echo — use what we drew
+    // AI forgot to echo our pre-drawn cards — use them
     cards = preDrawnCards
   }
 
