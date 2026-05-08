@@ -6,6 +6,8 @@ import GalileoPanel from "@/components/GalileoPanel"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { getStoredLanguage } from "@/lib/language"
 import LanguageSelector from "@/components/LanguageSelector"
+import GemProgress from "@/components/GemProgress"
+import { playBoxOpen, playCardReveal, playGalileoSpeak, playSessionEnd } from "@/lib/sounds"
 
 type CardDrawn = { name: string; suit: string; rank: string }
 type Message = { role: "user" | "galileo"; content: string; cards?: CardDrawn[] }
@@ -44,6 +46,7 @@ export default function CartomancyPage() {
 
     setHasStarted(true)
     voice.open()
+    playBoxOpen()
     setLoading(true)
     voice.setLoading(true)
 
@@ -82,10 +85,15 @@ export default function CartomancyPage() {
     if (data.cards?.length > 0) setAllCards(prev => [...prev, ...data.cards])
     setExchangesUsed(data.exchangesUsed)
     setIsComplete(data.isComplete)
+    if (data.isComplete) playSessionEnd()
     setMessages(prev => [...prev, { role: "galileo", content: data.response, cards: data.cards }])
+    if (data.cards?.length > 0) {
+      data.cards.forEach((_: unknown, i: number) => setTimeout(() => playCardReveal(i), i * 300))
+    }
     voice.setLoading(false)
     setLoading(false)
     if (voice.mode !== "text") {
+      if (voice.mode === "aloud") playGalileoSpeak()
       await voice.speak(data.response)
       if (voice.mode === "conversational" && !data.isComplete) {
         voice.startListening(t => sendMessage(t))
@@ -98,9 +106,9 @@ export default function CartomancyPage() {
       <div style={{ padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(42,26,85,0.5)" }}>
         <Link href="/dashboard" style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#7a8ba8", textDecoration: "none" }}>← RETURN</Link>
         <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#e879a0" }}>♠ CARTOMANCY</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <LanguageSelector compact />
-          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.1em", color: "#4a3870" }}>{exchangesTotal - exchangesUsed} LEFT</div>
+          <GemProgress total={exchangesTotal} used={exchangesUsed} />
         </div>
       </div>
 
