@@ -11,22 +11,6 @@ import LanguageSelector from "@/components/LanguageSelector"
 
 type Message = { role: "user" | "galileo"; content: string }
 
-function ShareMoonButton({ moonInfo, firstReading }: { moonInfo: MoonData; firstReading: string }) {
-  const [copied, setCopied] = useState(false)
-  function share() {
-    const text = `🌙 ${moonInfo.phase} · ${moonInfo.sunBearMoon.name}\n\n${firstReading.substring(0, 200)}...\n\nGet your moon reading at askgalileo.live`
-    if (navigator.share) {
-      navigator.share({ title: "My Moon Reading with Galileo", text })
-    } else {
-      navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
-    }
-  }
-  return (
-    <button onClick={share} style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", color: copied ? "#a5b4fc" : "#7a8ba8", background: "none", border: `1px solid ${copied ? "rgba(165,180,252,0.3)" : "rgba(42,26,85,0.5)"}`, borderRadius: 6, padding: "6px 14px", cursor: "pointer" }}>
-      {copied ? "COPIED ✦" : "SHARE READING ✦"}
-    </button>
-  )
-}
 
 export default function MoonPage() {
   const [moonInfo, setMoonInfo] = useState<MoonData>(() => getMoonData(new Date()))
@@ -70,7 +54,9 @@ export default function MoonPage() {
     setMessages([{ role: "galileo", content: data.reading }])
     voice.setLoading(false)
     setLoading(false)
-    await voice.speak(data.reading)
+    // Speak only the first paragraph so TTS starts immediately
+    const firstPara = data.reading.split("\n\n")[0] || data.reading.slice(0, 400)
+    await voice.speak(firstPara)
   }
 
   async function sendMessage(text?: string) {
@@ -175,11 +161,6 @@ export default function MoonPage() {
           </div>
         )}
 
-        {messages.length > 0 && (
-          <div style={{ textAlign: "center" }}>
-            <ShareMoonButton moonInfo={moonInfo} firstReading={messages.find(m => m.role === "galileo")?.content ?? ""} />
-          </div>
-        )}
 
         {hasEntered && !isComplete ? (
           <div style={{ padding: 16, background: "rgba(10,5,32,0.6)", borderRadius: 12, border: "1px solid rgba(42,26,85,0.6)", backdropFilter: "blur(8px)" }}>

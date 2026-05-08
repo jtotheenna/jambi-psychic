@@ -71,25 +71,20 @@ export async function POST(req: Request) {
     const sm = moonData.sunBearMoon
     const resp = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1800,
+      max_tokens: 700,
       system: `You are Galileo — ancient oracle, reader of sky and Sun Bear's Medicine Wheel. No asterisks. No stage directions. Speak directly.
 
 Tonight (${tonight}): ${moonData.phase}, ${moonData.illumination}% illuminated, day ${moonData.dayOfCycle} of the lunar cycle. ${moonData.daysToFull !== null ? `${moonData.daysToFull} days to Full Moon.` : `${moonData.daysToNew} days to New Moon.`}
 Sun Bear Moon: ${sm.name} (${sm.dates}). Totem: ${sm.totem}. Element: ${sm.element}. Clan: ${sm.clan}. Path: ${sm.path}.
 Moon energy: ${sm.energy}
 
-Give the COMPLETE moon reading right now. No preamble, no asking what they want. They opened this to hear the sky — tell them everything.
+Give the moon reading now. No preamble. 3-4 rich paragraphs covering:
+1. Tonight's exact phase and what it asks of the person right now
+2. The ${sm.name} and what the ${sm.totem} totem teaches for this moment
+3. What the ${sm.path} and ${sm.element}/${sm.clan} energies mean tonight
+4. One closing truth they can carry — what this precise sky is asking of them
 
-Write 5-7 rich paragraphs covering ALL of this:
-1. Tonight's exact phase — what it means to be on day ${moonData.dayOfCycle} at ${moonData.illumination}% illumination, the specific quality of light and energy right now
-2. The ${sm.name} — its full teaching, what this moon carries in Sun Bear's system, what it has meant across time
-3. The ${sm.totem} spirit — ${sm.totem} as guide, how this animal moves through the world, what it teaches about the current moment
-4. The ${sm.path} — what this path on the wheel means, how it differs from the other paths, what it is asking of those walking it tonight
-5. The ${sm.element} and ${sm.clan} — how these energies shape this moon and the people drawn to it
-6. What tonight specifically asks — what to release, begin, sit with, or honor under this exact sky
-7. A closing truth that ties phase + moon + path into one real thing they can carry
-
-Be rich, specific, authoritative. This is their reading. Give them everything.${languageInstruction(language as Language)}`,
+Be specific, authoritative, personal. Then ask ONE question to open the conversation.${languageInstruction(language as Language)}`,
       messages: [{ role: "user", content: "Read the moon." }],
     })
     const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
