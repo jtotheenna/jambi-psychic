@@ -1,6 +1,9 @@
+"use client"
+
 import Link from "next/link"
 import { TAROT_DECK } from "@/lib/tarot"
 import Image from "next/image"
+import { useState } from "react"
 
 type Message = {
   role: "user" | "galileo"
@@ -15,13 +18,25 @@ type Props = {
   question: string | null
   completedAt: Date | null
   userName: string | null
+  sessionId: string
 }
 
 function cardSlug(name: string) {
   return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
 }
 
-export default function SavedReading({ transcript, cardsDrawn, spread, question, completedAt, userName }: Props) {
+export default function SavedReading({ transcript, cardsDrawn, spread, question, completedAt, userName, sessionId }: Props) {
+  const [copied, setCopied] = useState(false)
+
+  function share() {
+    const url = `${window.location.origin}/share/${sessionId}`
+    if (navigator.share) {
+      navigator.share({ title: "A reading with Galileo", text: question ? `"${question}"` : "My reading with Galileo", url })
+    } else {
+      navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+    }
+  }
+
   const date = completedAt
     ? new Date(completedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
     : null
@@ -46,7 +61,9 @@ export default function SavedReading({ transcript, cardsDrawn, spread, question,
             </div>
           )}
         </div>
-        <div style={{ width: 60 }} />
+        <button onClick={share} style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", color: copied ? "#a5b4fc" : "#c9a84c", background: "none", border: `1px solid ${copied ? "rgba(165,180,252,0.4)" : "rgba(201,168,76,0.3)"}`, borderRadius: 6, padding: "6px 12px", cursor: "pointer", transition: "all 0.2s" }}>
+          {copied ? "COPIED ✦" : "SHARE ✦"}
+        </button>
       </div>
 
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 24px" }}>

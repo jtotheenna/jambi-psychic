@@ -9,6 +9,23 @@ import { getMoonData, type MoonData } from "@/lib/moon"
 
 type Message = { role: "user" | "galileo"; content: string }
 
+function ShareMoonButton({ moonInfo, firstReading }: { moonInfo: MoonData; firstReading: string }) {
+  const [copied, setCopied] = useState(false)
+  function share() {
+    const text = `🌙 ${moonInfo.phase} · ${moonInfo.sunBearMoon.name}\n\n${firstReading.substring(0, 200)}...\n\nGet your moon reading at askgalileo.live`
+    if (navigator.share) {
+      navigator.share({ title: "My Moon Reading with Galileo", text })
+    } else {
+      navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+    }
+  }
+  return (
+    <button onClick={share} style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", color: copied ? "#a5b4fc" : "#7a8ba8", background: "none", border: `1px solid ${copied ? "rgba(165,180,252,0.3)" : "rgba(42,26,85,0.5)"}`, borderRadius: 6, padding: "6px 14px", cursor: "pointer" }}>
+      {copied ? "COPIED ✦" : "SHARE READING ✦"}
+    </button>
+  )
+}
+
 export default function MoonPage() {
   const [moonInfo, setMoonInfo] = useState<MoonData>(() => getMoonData(new Date()))
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -149,6 +166,12 @@ export default function MoonPage() {
         {sessionId && !isComplete && (
           <div style={{ textAlign: "center", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", color: "#4a3870" }}>
             {exchangesTotal - exchangesUsed} QUESTIONS REMAINING
+          </div>
+        )}
+
+        {messages.length > 0 && (
+          <div style={{ textAlign: "center" }}>
+            <ShareMoonButton moonInfo={moonInfo} firstReading={messages.find(m => m.role === "galileo")?.content ?? ""} />
           </div>
         )}
 

@@ -29,6 +29,7 @@ export default async function ReadingPage({
   if (reading.status === "complete") {
     return (
       <SavedReading
+        sessionId={sessionId}
         transcript={transcript}
         cardsDrawn={cardsDrawn}
         spread={reading.spread}
