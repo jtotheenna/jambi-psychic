@@ -199,7 +199,7 @@ export default async function DashboardPage() {
                 </form>
               </>
             ) : (
-              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 7 } }); redirect("/cartomancy") }}>
+              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 5 } }); redirect("/cartomancy") }}>
                 <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(232,121,160,0.5)", background: "linear-gradient(135deg, rgba(232,121,160,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#e879a0", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
               </form>
             )}

@@ -7,6 +7,7 @@ import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { getStoredLanguage } from "@/lib/language"
 import LanguageSelector from "@/components/LanguageSelector"
 import GemProgress from "@/components/GemProgress"
+import CartomancyCard from "@/components/CartomancyCard"
 import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
 
 type CardDrawn = { name: string; suit: string; rank: string; position?: string }
@@ -122,40 +123,23 @@ export default function CartomancyPage() {
           />
         </div>
 
-        {/* Cards — shown after question is asked */}
+        {/* Cards — shown after question, sticky + clickable */}
         {allCards.length > 0 && (
           <div style={{ padding: "14px 16px", borderRadius: 10, border: "1px solid rgba(232,121,160,0.2)", background: "rgba(10,5,32,0.5)", position: "sticky", top: 57, zIndex: 10, backdropFilter: "blur(12px)" }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a8ba8", marginBottom: 14, textAlign: "center" }}>THE CARDS</div>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a8ba8", marginBottom: 14, textAlign: "center" }}>
+              THE CARDS · tap to learn more
+            </div>
             <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: 12, justifyContent: allCards.length <= 4 ? "center" : "flex-start", paddingBottom: 4 }}>
-              {allCards.map((card, i) => {
-                const isRed = card.suit === "Hearts" || card.suit === "Diamonds"
-                const rank = RANK_ABBR[card.rank] || card.rank
-                const sym = SUIT_SYMBOL[card.suit]
-                const color = isRed ? "#c41e3a" : "#111"
-                return (
-                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                    {card.position && (
-                      <div style={{ fontFamily: "'Cinzel', serif", fontSize: 7, letterSpacing: "0.1em", color: "#7a8ba8", textAlign: "center", maxWidth: 80, textTransform: "uppercase" }}>
-                        {card.position}
-                      </div>
-                    )}
-                    <div style={{ width: 80, height: 112, borderRadius: 7, background: "#fff", border: "1px solid #ddd", boxShadow: "0 6px 20px rgba(0,0,0,0.55)", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "6px 7px" }}>
-                      <div style={{ fontFamily: "Georgia, serif", fontWeight: "bold", color, lineHeight: 1 }}>
-                        <div style={{ fontSize: rank.length > 1 ? 12 : 14 }}>{rank}</div>
-                        <div style={{ fontSize: 13 }}>{sym}</div>
-                      </div>
-                      <div style={{ textAlign: "center", fontSize: 30, color, lineHeight: 1 }}>{sym}</div>
-                      <div style={{ fontFamily: "Georgia, serif", fontWeight: "bold", color, lineHeight: 1, transform: "rotate(180deg)", alignSelf: "flex-end" }}>
-                        <div style={{ fontSize: rank.length > 1 ? 12 : 14 }}>{rank}</div>
-                        <div style={{ fontSize: 13 }}>{sym}</div>
-                      </div>
-                    </div>
-                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: 7, color: "#7a8ba8", textAlign: "center", maxWidth: 80 }}>
-                      {card.name}
-                    </div>
-                  </div>
-                )
-              })}
+              {allCards.map((card, i) => (
+                <CartomancyCard
+                  key={i}
+                  name={card.name}
+                  suit={card.suit}
+                  rank={card.rank}
+                  position={card.position}
+                  revealDelay={i * 150}
+                />
+              ))}
             </div>
           </div>
         )}
