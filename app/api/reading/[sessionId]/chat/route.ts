@@ -48,7 +48,7 @@ CARDS_DRAWN: ${JSON.stringify(preDrawnCards)}
 The cards drawn are:
 ${preDrawnCards.map((c, i) => `  ${i + 1}. ${c.position}: ${c.name}${c.reversed ? " (REVERSED)" : " (upright)"}`).join("\n")}
 
-After that line, give your interpretation — brief, specific to this person.`
+THIS IS THE FULL READING. Read every single card now — all ${preDrawnCards.length} of them. Go through each position and interpret it specifically for this person and their question. Name the card, say what it means in their situation, connect it to what they told you. Do not hold any cards back for later. Do not say "we'll come back to that." Read the whole spread completely in this response. Then — and only then — invite them to go deeper with one question.`
     : `THE SPREAD IS CLOSED. Never output CARDS_DRAWN — it will be deleted. Never draw a new spread. If the user asks for cards, remind them the spread is already laid and interpret the existing cards in that context. You may request ONE clarifying card by writing CLARIFYING_CARD_REQUESTED once — never more than once per response.`
 
   const dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" })
@@ -206,7 +206,7 @@ You have just appeared. Welcome them by name, warmly and briefly — one sentenc
 
   const resp = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: voiceMode ? 150 : preDrawnCards ? 1000 : 600,
+    max_tokens: voiceMode ? 300 : preDrawnCards ? 1800 : 700,
     system: systemPrompt,
     messages: anthropicMessages,
   })
