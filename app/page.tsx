@@ -114,7 +114,14 @@ export default function LandingPage() {
               href: "/signup", btn: "CHOOSE CARTOMANCY",
             },
           ].map(({ icon, name, price, color, border, tagline, desc, href, btn }) => (
-            <div key={name} style={{ padding: "24px", borderRadius: 10, border: `1px solid ${border}`, background: "rgba(10,5,32,0.5)" }}>
+            <div
+              key={name}
+              style={{ padding: "24px", borderRadius: 10, border: `1px solid ${border}`, background: "rgba(10,5,32,0.5)", transition: "transform 0.18s ease, box-shadow 0.18s ease", cursor: "pointer" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px) scale(1.01)"; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 12px 40px ${color}30, 0 0 0 1px ${color}60` }}
+              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = "none"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none" }}
+              onTouchStart={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px) scale(1.01)"; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 12px 40px ${color}30, 0 0 0 1px ${color}60` }}
+              onTouchEnd={e => { (e.currentTarget as HTMLDivElement).style.transform = "none"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none" }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 18, color }}>{icon}</span>
                 <span style={{ fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.15em", color: "#c8d4e8" }}>{name.toUpperCase()}</span>
