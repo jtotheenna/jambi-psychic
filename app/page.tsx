@@ -91,26 +91,26 @@ export default function LandingPage() {
           {[
             {
               icon: "★", name: "Tarot Reading", price: "$10", color: "#c9a84c", border: "rgba(201,168,76,0.25)",
-              tagline: "Any question. Any spread. Up to 10 exchanges.",
-              desc: "Ask your question, Galileo deals the cards from a full 78-card deck — randomly shuffled — and speaks your reading aloud. He remembers you across every visit.",
+              tagline: "Any question. A full 78-card deck. Up to 10 exchanges.",
+              desc: "Ask what you need to know, and Galileo will draw from a fully shuffled tarot deck to speak your reading aloud. Each card is interpreted through your question, your energy, and the story unfolding across the spread.",
               href: "/signup", btn: "CHOOSE TAROT",
             },
             {
               icon: "☽", name: "Moon Reading", price: "$5", color: "#a5b4fc", border: "rgba(165,180,252,0.2)",
-              tagline: "The live sky. Tonight's exact moon phase.",
-              desc: "A full reading based on tonight's actual moon and Sun Bear's Medicine Wheel. Galileo reads immediately when you open it — the sky is already set.",
+              tagline: "The current moon phase. The live sky. A message for your season.",
+              desc: "Galileo reads the moon as it is right now, blending the current lunar phase with Medicine Wheel wisdom to reflect what this moment is asking of you. Open the reading, and the sky is already set.",
               href: "/signup", btn: "CHOOSE MOON",
             },
             {
               icon: "✋", name: "Palm Reading", price: "$5", color: "#c8d4e8", border: "rgba(200,212,232,0.15)",
-              tagline: "Upload your hand. He reads the lines, mounts, and shape.",
-              desc: "Take a photo of your dominant palm, upload it, and Galileo reads what is written there — several paragraphs, spoken aloud, then 4 exchanges to go deeper.",
+              tagline: "Upload your palm. Hear what the lines reveal.",
+              desc: "Take a photo of your dominant hand, and Galileo will read the lines, mounts, shape, and symbols of your palm. Your reading is spoken aloud, with room to ask follow-up questions and go deeper.",
               href: "/signup", btn: "CHOOSE PALM",
             },
             {
               icon: "♠", name: "Cartomancy", price: "$10", color: "#e879a0", border: "rgba(232,121,160,0.2)",
-              tagline: "52 playing cards. Older than tarot. Blunter than the stars.",
-              desc: "The cards of the common world — hearts, spades, diamonds, clubs. Galileo reads them with the same precision as tarot. Ten exchanges, Fisher-Yates shuffled, spoken aloud.",
+              tagline: "The old language of playing cards. Direct, sharp, and strangely accurate.",
+              desc: "Galileo draws from a shuffled 52-card deck of hearts, spades, diamonds, and clubs. Older in spirit, blunt in tone, and grounded in everyday fate, this reading speaks plainly about the question in front of you.",
               href: "/signup", btn: "CHOOSE CARTOMANCY",
             },
           ].map(({ icon, name, price, color, border, tagline, desc, href, btn }) => (
