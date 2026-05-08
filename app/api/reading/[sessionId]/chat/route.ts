@@ -213,40 +213,33 @@ You have just appeared. Welcome them by name, warmly and briefly — one sentenc
   let galileoRaw = resp.content[0].type === "text" ? resp.content[0].text : ""
 
   // Handle clarifying card request — draw server-side from unused cards
+  let clarifyingCardDrawn = false
   if (galileoRaw.includes("CLARIFYING_CARD_REQUESTED")) {
     const usedNames = new Set(allCards)
     const remaining = TAROT_DECK.filter((c) => !usedNames.has(c.name))
     if (remaining.length > 0) {
       const pick = remaining[Math.floor(Math.random() * remaining.length)]
-      const clarifier: DrawnCard = {
-        name: pick.name,
-        position: "Clarifying",
-        reversed: Math.random() < 0.33,
-      }
+      const clarifier: DrawnCard = { name: pick.name, position: "Clarifying", reversed: Math.random() < 0.33 }
       allCards.push(clarifier.name)
-      const cardLine = `\nCARDS_DRAWN: ${JSON.stringify([clarifier])}\n`
-      // Replace all occurrences — only one card drawn regardless
-      galileoRaw = galileoRaw.replace(/CLARIFYING_CARD_REQUESTED/g, cardLine)
+      galileoRaw = galileoRaw.replace(/CLARIFYING_CARD_REQUESTED/g, `\nCARDS_DRAWN: ${JSON.stringify([clarifier])}\n`)
+      clarifyingCardDrawn = true
     } else {
       galileoRaw = galileoRaw.replace(/CLARIFYING_CARD_REQUESTED/g, "")
     }
   }
 
-  // Extract CARDS_DRAWN — but ONLY if we pre-drew cards this exchange
-  // If cards were already dealt, strip any rogue CARDS_DRAWN the AI invented
+  // Extract CARDS_DRAWN — valid if we pre-drew this exchange OR drew a clarifying card
   let cards: { name: string; position?: string; reversed?: boolean }[] | undefined
   let cleanedResponse = galileoRaw
 
   const cardsMatch = galileoRaw.match(/CARDS_DRAWN:\s*(\[.*?\])/s)
-  if (cardsMatch && preDrawnCards) {
-    // Valid — this is our pre-drawn echo
+  if (cardsMatch && (preDrawnCards || clarifyingCardDrawn)) {
     try { cards = JSON.parse(cardsMatch[1]) } catch { /* ignore */ }
     cleanedResponse = galileoRaw.replace(/CARDS_DRAWN:\s*\[.*?\]/s, "").trim()
-  } else if (cardsMatch && !preDrawnCards) {
-    // AI invented cards mid-reading — strip it out, ignore the cards
+  } else if (cardsMatch) {
+    // AI invented cards — strip
     cleanedResponse = galileoRaw.replace(/CARDS_DRAWN:\s*\[.*?\]/s, "").trim()
   } else if (preDrawnCards) {
-    // AI forgot to echo our pre-drawn cards — use them
     cards = preDrawnCards
   }
 

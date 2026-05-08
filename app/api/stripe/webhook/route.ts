@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
         purchaseId: purchase.id,
         type,
         status: "active",
-        exchangesTotal: type === "tarot" ? EXCHANGES_PER_READING : 5,
+        exchangesTotal: type === "tarot" ? EXCHANGES_PER_READING : type === "cartomancy" ? 5 : 5,
       },
     })
   }
