@@ -101,10 +101,17 @@ Be authoritative. Be warm. Be specific. Give them everything.`,
 
     const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
 
-    // Mark complete immediately — palm reading is one full reading, no follow-ups
+    const transcript = [{ role: "galileo", content: reading }]
+
+    // Mark complete and save the reading to transcript
     await prisma.readingSession.update({
       where: { id: palmSession!.id },
-      data: { status: "complete", completedAt: new Date(), question: "Palm reading" },
+      data: {
+        status: "complete",
+        completedAt: new Date(),
+        question: "Palm reading",
+        transcript: JSON.stringify(transcript),
+      },
     })
 
     return Response.json({

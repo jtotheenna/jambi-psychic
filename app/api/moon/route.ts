@@ -89,10 +89,16 @@ Be specific, authoritative, personal. Then ask ONE question to open the conversa
     })
     const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
 
-    // Mark session complete — moon reading is a single full reading, no follow-ups
+    const transcript = [{ role: "galileo", content: reading }]
+
     await prisma.readingSession.update({
       where: { id: moonSession.id },
-      data: { status: "complete", completedAt: new Date(), question: "Moon reading" },
+      data: {
+        status: "complete",
+        completedAt: new Date(),
+        question: "Moon reading",
+        transcript: JSON.stringify(transcript),
+      },
     })
 
     return Response.json({
