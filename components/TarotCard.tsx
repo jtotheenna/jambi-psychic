@@ -46,8 +46,9 @@ function CardModal({ card, isReversed, onClose }: { card: TarotCardType; isRever
         }}
       >
         {/* Card image */}
-        <div style={{ flexShrink: 0, width: 100, height: 166, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(201,168,76,0.3)", transform: isReversed ? "rotate(180deg)" : "none", position: "relative" }}>
-          <Image src={imgSrc} alt={card.name} fill style={{ objectFit: "cover" }} sizes="100px" />
+        <div style={{ flexShrink: 0, width: 100, height: 166, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(201,168,76,0.3)", transform: isReversed ? "rotate(180deg)" : "none" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imgSrc} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         </div>
 
         {/* Info */}
