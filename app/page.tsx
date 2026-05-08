@@ -46,7 +46,7 @@ export default function LandingPage() {
         <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(40px, 8vw, 80px)", letterSpacing: "0.15em", marginBottom: 10, lineHeight: 1.1 }} className="text-shimmer">
           GALILEO
         </h1>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.4em", color: "#4a3870", marginBottom: 28 }}>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.4em", color: "#7a6ba8", marginBottom: 28 }}>
           THE CELESTIAL ORACLE
         </div>
 
@@ -72,7 +72,7 @@ export default function LandingPage() {
             {playing ? "GALILEO IS SPEAKING..." : "HEAR GALILEO FIRST"}
           </button>
 
-          <Link href="/login" style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#4a3870", textDecoration: "none", fontStyle: "italic" }}>
+          <Link href="/login" style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#7a6ba8", textDecoration: "none", fontStyle: "italic" }}>
             I have been here before
           </Link>
         </div>
@@ -83,7 +83,7 @@ export default function LandingPage() {
 
       {/* ── READINGS ── */}
       <div style={{ width: "100%", maxWidth: 680, padding: "0 20px", marginBottom: 72 }}>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.35em", color: "#4a3870", textAlign: "center", marginBottom: 32 }}>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.35em", color: "#7a6ba8", textAlign: "center", marginBottom: 32 }}>
           THE READINGS
         </div>
 
@@ -135,7 +135,7 @@ export default function LandingPage() {
 
       {/* ── HOW IT WORKS ── */}
       <div style={{ width: "100%", maxWidth: 560, padding: "0 20px", marginBottom: 72, textAlign: "center" }}>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.35em", color: "#4a3870", marginBottom: 32 }}>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.35em", color: "#7a6ba8", marginBottom: 32 }}>
           HOW IT WORKS
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -159,7 +159,7 @@ export default function LandingPage() {
 
       {/* ── HE REMEMBERS ── */}
       <div style={{ maxWidth: 560, padding: "0 20px", textAlign: "center", marginBottom: 64 }}>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.35em", color: "#4a3870", marginBottom: 20 }}>HE REMEMBERS YOU</div>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.35em", color: "#7a6ba8", marginBottom: 20 }}>HE REMEMBERS YOU</div>
         <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(16px, 4vw, 19px)", color: "#8878a8", lineHeight: 1.9, fontStyle: "italic" }}>
           Galileo tracks recurring themes across every reading. The second time you come, he knows you've been before. The fifth time, he references patterns you may not have noticed yourself.
         </p>
@@ -167,18 +167,21 @@ export default function LandingPage() {
 
       {/* Quote */}
       <div style={{ maxWidth: 480, padding: "0 32px", textAlign: "center", marginBottom: 56 }}>
-        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#4a3870", fontStyle: "italic", lineHeight: 1.8 }}>
+        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#7a6ba8", fontStyle: "italic", lineHeight: 1.8 }}>
           "The stars don't lie. They do, however, occasionally withhold."
         </p>
-        <p style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#2a1a55", marginTop: 8 }}>— GALILEO</p>
+        <p style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#6a5a8a", marginTop: 8 }}>— GALILEO</p>
       </div>
 
       {/* Disclaimer */}
-      <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 13, color: "#2a1a55", textAlign: "center", fontStyle: "italic", maxWidth: 480, lineHeight: 1.7, marginBottom: 12, padding: "0 24px" }}>
-        Galileo readings are for reflection, creativity, and entertainment. They are not medical, legal, financial, or crisis advice.
-      </p>
+      <div style={{ maxWidth: 520, padding: "16px 24px", marginBottom: 20, borderRadius: 8, border: "1px solid rgba(120,100,180,0.25)", background: "rgba(42,26,85,0.2)", textAlign: "center" }}>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#9a8ab8", marginBottom: 8 }}>FOR ENTERTAINMENT PURPOSES ONLY</div>
+        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#8a7aa8", fontStyle: "italic", lineHeight: 1.7, margin: 0 }}>
+          Galileo readings are for entertainment and self-reflection only. They are not medical, legal, financial, or crisis advice. All readings are AI-generated. No refunds.
+        </p>
+      </div>
 
-      <a href="https://jennasys.pro" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#1a0d3f", textDecoration: "none", marginBottom: 40 }}>
+      <a href="https://jennasys.pro" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#6a5a8a", textDecoration: "none", marginBottom: 40 }}>
         POWERED BY JENNASYS PRO
       </a>
     </div>
