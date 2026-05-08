@@ -88,13 +88,20 @@ Be specific, authoritative, personal. Then ask ONE question to open the conversa
       messages: [{ role: "user", content: "Read the moon." }],
     })
     const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
+
+    // Mark session complete — moon reading is a single full reading, no follow-ups
+    await prisma.readingSession.update({
+      where: { id: moonSession.id },
+      data: { status: "complete", completedAt: new Date(), question: "Moon reading" },
+    })
+
     return Response.json({
       reading,
       sessionId: moonSession.id,
       moonData: { phase: moonData.phase, illumination: moonData.illumination, dayOfCycle: moonData.dayOfCycle, phaseEmoji: moonData.phaseEmoji, sunBearMoon: moonData.sunBearMoon },
-      exchangesUsed: moonSession.exchangesUsed,
-      exchangesTotal: moonSession.exchangesTotal,
-      isComplete: false,
+      exchangesUsed: 1,
+      exchangesTotal: 1,
+      isComplete: true,
       isGreeting: true,
     })
   }

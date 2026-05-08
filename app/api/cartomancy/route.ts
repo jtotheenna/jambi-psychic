@@ -69,17 +69,35 @@ export async function POST(req: Request) {
   const cardsAlreadyDealt = allCards.length > 0
   const userName = (cartSession as any).user?.name ?? null
 
-  // Auto-greeting
+  // Auto-greeting — draw cards immediately so they appear on open
   if (message === "__OPENING__") {
+    const count = 5
+    const drawn = shuffleCartomancy(count)
+    drawn.forEach(c => allCards.push(c.name))
+
     const resp = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 120,
       system: `You are Galileo — ancient oracle, reader of playing cards in the old cartomantic tradition. No asterisks. No stage directions.${userName ? ` The person's name is ${userName}.` : ""}
-Welcome them warmly — one sentence. Then ask: what question do they bring tonight? Make it feel weighted and real. 2 sentences maximum. End with a question.`,
-      messages: [{ role: "user", content: "The cards are ready." }],
+The cards have been cut. Welcome them in one sentence, then ask what question they bring. 2 sentences max. End with a question.${languageInstruction(language as Language)}`,
+      messages: [{ role: "user", content: "The cards are cut." }],
     })
     const greeting = resp.content[0].type === "text" ? resp.content[0].text : ""
-    return Response.json({ response: greeting, cards: [], exchangesUsed: cartSession!.exchangesUsed, exchangesTotal: cartSession!.exchangesTotal, isComplete: false, isGreeting: true, sessionId: cartSession!.id })
+
+    await prisma.readingSession.update({
+      where: { id: cartSession!.id },
+      data: { cardsDrawn: JSON.stringify(allCards) },
+    })
+
+    return Response.json({
+      response: greeting,
+      cards: drawn,
+      exchangesUsed: cartSession!.exchangesUsed,
+      exchangesTotal: cartSession!.exchangesTotal,
+      isComplete: false,
+      isGreeting: true,
+      sessionId: cartSession!.id,
+    })
   }
 
   // Draw cards on second message (after they share their concern)

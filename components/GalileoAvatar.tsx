@@ -416,11 +416,8 @@ export default function GalileoAvatar({ state }: Props) {
               transition: "opacity 1.5s ease",
               zIndex: 1,
               filter: internalState === "speaking"
-                ? "brightness(1.15) drop-shadow(0 0 12px rgba(201,168,76,0.6))"
-                : internalState === "thinking"
-                ? "brightness(0.85) drop-shadow(0 0 8px rgba(165,180,252,0.5))"
+                ? "brightness(1.08) drop-shadow(0 0 8px rgba(201,168,76,0.3))"
                 : "brightness(1)",
-              animation: internalState === "speaking" ? "breathe 2s ease-in-out infinite" : "none",
             }}
           />
 

@@ -58,7 +58,7 @@ export async function POST(req: Request) {
   const transcript = palmSession!.transcript ? JSON.parse(palmSession!.transcript) : []
   const exchangesLeft = palmSession!.exchangesTotal - palmSession!.exchangesUsed - 1
 
-  // Full opening reading — uses vision if image provided, doesn't count as an exchange
+  // Full reading — uses vision if image provided, marks complete immediately (no follow-ups)
   if (message === "__OPENING__") {
     let content: Anthropic.MessageParam["content"]
 
@@ -84,70 +84,39 @@ export async function POST(req: Request) {
 
 YOUR OPENING READING — deliver it now, fully and immediately. No preamble. No "I see your hand before me." Just begin reading.
 
-Write ${voiceMode ? "3-4 paragraphs" : "5-7 paragraphs"}, covering ALL of this:
-1. The overall shape and quality of the hand — what it immediately tells you about this person's nature and approach to life
-2. The life line — its arc, depth, breaks, islands. What it says about their vitality and the shape of their journey
-3. The heart line — where love lives in them, how they give and receive it, what their emotional architecture looks like
-4. The head line — how their mind works, what kind of intelligence they carry, where their thoughts tend to go
-5. The fate line (if visible) — whether they are living a chosen path or drifting, what destiny seems to have written there
+Write 5-7 rich paragraphs covering ALL of this:
+1. The overall shape and quality of the hand — what it immediately tells you about this person's nature
+2. The life line — its arc, depth, breaks. What it says about their vitality and the shape of their journey
+3. The heart line — where love lives in them, how they give and receive it, their emotional architecture
+4. The head line — how their mind works, what kind of intelligence they carry
+5. The fate line (if visible) — whether they are living a chosen path or drifting
 6. The mounts — which are developed, which are flat, what this reveals about drives and gifts
 7. One striking, specific thing you see that most readers would miss — something personal and precise
 
-Then ask ONE question to open the conversation deeper.
+No question at the end. Close with a final statement — one true thing they can carry with them.
 
-Be authoritative. Be warm. Be specific. This is what they paid for — give them everything.`,
+Be authoritative. Be warm. Be specific. Give them everything.`,
       messages: [{ role: "user", content }],
     })
 
     const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
+
+    // Mark complete immediately — palm reading is one full reading, no follow-ups
+    await prisma.readingSession.update({
+      where: { id: palmSession!.id },
+      data: { status: "complete", completedAt: new Date(), question: "Palm reading" },
+    })
+
     return Response.json({
       reading,
       sessionId: palmSession!.id,
-      exchangesUsed: palmSession!.exchangesUsed,
-      exchangesTotal: palmSession!.exchangesTotal,
-      isComplete: false,
+      exchangesUsed: 1,
+      exchangesTotal: 1,
+      isComplete: true,
       isGreeting: true,
     })
   }
 
-  // Follow-up exchanges
-  const messages: Anthropic.MessageParam[] = []
-  for (const msg of transcript) {
-    messages.push({ role: msg.role === "galileo" ? "assistant" : "user", content: msg.content })
-  }
-  messages.push({ role: "user", content: message })
-
-  const resp = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: voiceMode ? 300 : 600,
-    system: buildSystem(userName, exchangesLeft, language),
-    messages,
-  })
-
-  const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
-
-  transcript.push({ role: "user", content: message })
-  transcript.push({ role: "galileo", content: reading })
-
-  const newExchangesUsed = palmSession!.exchangesUsed + 1
-  const isComplete = newExchangesUsed >= palmSession!.exchangesTotal
-
-  await prisma.readingSession.update({
-    where: { id: palmSession!.id },
-    data: {
-      transcript: JSON.stringify(transcript),
-      question: palmSession!.question || message,
-      exchangesUsed: newExchangesUsed,
-      status: isComplete ? "complete" : "active",
-      completedAt: isComplete ? new Date() : null,
-    },
-  })
-
-  return Response.json({
-    reading,
-    sessionId: palmSession!.id,
-    exchangesUsed: newExchangesUsed,
-    exchangesTotal: palmSession!.exchangesTotal,
-    isComplete,
-  })
+  // Palm reading is a single reading — no follow-up exchanges
+  return Response.json({ error: "This reading is complete." }, { status: 403 })
 }

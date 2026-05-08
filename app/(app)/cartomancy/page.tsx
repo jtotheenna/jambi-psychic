@@ -116,17 +116,32 @@ export default function CartomancyPage() {
           />
         </div>
 
-        {/* Cards drawn */}
+        {/* Cards drawn — styled like real playing cards */}
         {allCards.length > 0 && (
           <div style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid rgba(232,121,160,0.2)", background: "rgba(10,5,32,0.5)" }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a8ba8", marginBottom: 12 }}>THE CARDS</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              {allCards.map((card, i) => (
-                <div key={i} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${SUIT_COLOR[card.suit]}40`, background: `${SUIT_COLOR[card.suit]}10`, display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ color: SUIT_COLOR[card.suit], fontSize: 14 }}>{SUIT_SYMBOL[card.suit]}</span>
-                  <span style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.1em", color: "#c8d4e8" }}>{card.name}</span>
-                </div>
-              ))}
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a8ba8", marginBottom: 14 }}>THE CARDS</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
+              {allCards.map((card, i) => {
+                const isRed = card.suit === "Hearts" || card.suit === "Diamonds"
+                return (
+                  <div key={i} style={{ width: 72, height: 100, borderRadius: 6, background: "#fdfaf4", border: "1px solid rgba(255,255,255,0.3)", boxShadow: "0 4px 16px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "6px", position: "relative", flexShrink: 0 }}>
+                    {/* Top rank + suit */}
+                    <div style={{ fontFamily: "Georgia, serif", fontSize: 13, fontWeight: "bold", color: isRed ? "#c41e3a" : "#0a0a0a", lineHeight: 1 }}>
+                      {card.rank[0] === "1" ? "10" : card.rank[0]}
+                      <div style={{ fontSize: 11 }}>{SUIT_SYMBOL[card.suit]}</div>
+                    </div>
+                    {/* Center suit */}
+                    <div style={{ textAlign: "center", fontSize: 22, color: isRed ? "#c41e3a" : "#0a0a0a", lineHeight: 1 }}>
+                      {SUIT_SYMBOL[card.suit]}
+                    </div>
+                    {/* Bottom rank + suit (rotated) */}
+                    <div style={{ fontFamily: "Georgia, serif", fontSize: 13, fontWeight: "bold", color: isRed ? "#c41e3a" : "#0a0a0a", lineHeight: 1, transform: "rotate(180deg)", alignSelf: "flex-end" }}>
+                      {card.rank[0] === "1" ? "10" : card.rank[0]}
+                      <div style={{ fontSize: 11 }}>{SUIT_SYMBOL[card.suit]}</div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
