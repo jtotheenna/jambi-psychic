@@ -143,25 +143,17 @@ export default function ReadingRoom({
     setAvatarState("speaking")
 
     const audio = await fetchTTS(text)
-    if (audio && simliSendRef.current) {
-      // Send to Simli — it handles playback via its own audio element
-      try {
-        const res = await fetch(audio)
-        const blob = await res.blob()
-        const pcm = await audioBlobToPCM(blob)
-        simliSendRef.current(pcm)
-        // Wait estimated duration based on text length
-        await new Promise((r) => setTimeout(r, Math.min(text.length * 50, 8000)))
-      } catch {
-        // Fallback to regular audio
-        const played = await playAudio(audio)
-        if (!played) await new Promise((r) => setTimeout(r, Math.min(text.length * 38, 5000)))
+    if (audio) {
+      // Always play audio directly so user hears it
+      const audioPromise = playAudio(audio)
+      // Also send PCM to Simli for lip-sync if connected
+      if (simliSendRef.current) {
+        fetch(audio).then(r => r.blob()).then(blob => audioBlobToPCM(blob)).then(pcm => {
+          simliSendRef.current?.(pcm)
+        }).catch(() => {})
       }
-    } else if (audio) {
-      const played = await playAudio(audio)
-      if (!played) {
-        await new Promise((r) => setTimeout(r, Math.min(text.length * 38, 5000)))
-      }
+      const played = await audioPromise
+      if (!played) await new Promise((r) => setTimeout(r, Math.min(text.length * 38, 5000)))
     } else {
       await new Promise((r) => setTimeout(r, Math.min(text.length * 38, 5000)))
     }

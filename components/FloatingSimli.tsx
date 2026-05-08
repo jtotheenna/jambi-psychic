@@ -97,7 +97,7 @@ export default function FloatingSimli({ speaking, onSendAudio }: Props) {
       <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 3px)", pointerEvents: "none" }} />
       {/* Vignette */}
       <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at center, transparent 50%, rgba(4,2,14,0.6) 100%)", pointerEvents: "none" }} />
-      <audio ref={audioRef} autoPlay />
+      <audio ref={audioRef} autoPlay muted />
     </div>
   )
 }
