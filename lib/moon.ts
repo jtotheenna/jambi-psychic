@@ -178,9 +178,49 @@ export function getCurrentSunBearMoon(date: Date = new Date()): SunBearMoon {
 }
 
 // Astronomical moon phase calculation
-// Reference new moon: Jan 6, 2000 at 18:14 UTC (J2000)
-const KNOWN_NEW_MOON = new Date("2000-01-06T18:14:00Z").getTime()
-const LUNAR_CYCLE_MS = 29.530588853 * 24 * 60 * 60 * 1000
+// Mean synodic period (Jean Meeus, "Astronomical Algorithms" Ch. 47)
+const SYNODIC_MS = 29.530588861 * 24 * 60 * 60 * 1000
+
+// Verified reference new moons — USNO Astronomical Almanac + NASA eclipse center.
+// Using multiple anchors and picking the closest one minimises accumulated mean-period error.
+const NEW_MOON_ANCHORS: number[] = [
+  new Date("2000-01-06T18:14:00Z").getTime(), // USNO J2000 reference
+  new Date("2024-04-08T18:21:00Z").getTime(), // Total solar eclipse (NASA)
+  new Date("2024-10-02T18:49:00Z").getTime(), // Annular solar eclipse (NASA)
+  new Date("2025-01-29T12:36:00Z").getTime(), // USNO 2025 almanac
+  new Date("2025-05-27T03:02:00Z").getTime(), // USNO 2025 almanac
+  new Date("2025-09-21T19:54:00Z").getTime(), // USNO 2025 almanac
+  new Date("2026-01-18T19:51:00Z").getTime(), // USNO 2026 almanac
+  new Date("2026-05-16T20:01:00Z").getTime(), // USNO 2026 almanac
+  new Date("2026-09-11T03:27:00Z").getTime(), // USNO 2026 almanac
+  new Date("2027-01-07T20:24:00Z").getTime(), // USNO 2027 almanac
+]
+
+// Returns the cycle fraction [0,1) using the closest past anchor for best accuracy.
+function moonFraction(date: Date): number {
+  const now = date.getTime()
+  // Find anchors that are in the past, pick the one with fewest elapsed cycles
+  // (= least accumulated mean-period drift)
+  let bestFrac = -1
+  let bestCycles = Infinity
+  for (const anchor of NEW_MOON_ANCHORS) {
+    if (anchor > now) continue
+    const elapsed = now - anchor
+    const totalCycles = elapsed / SYNODIC_MS
+    const completeCycles = Math.floor(totalCycles)
+    if (completeCycles < bestCycles) {
+      bestCycles = completeCycles
+      bestFrac = totalCycles - completeCycles
+    }
+  }
+  // Fallback if somehow all anchors are in the future (shouldn't happen)
+  if (bestFrac < 0) {
+    const elapsed = now - NEW_MOON_ANCHORS[0]
+    const f = ((elapsed % SYNODIC_MS) + SYNODIC_MS) % SYNODIC_MS / SYNODIC_MS
+    return f
+  }
+  return bestFrac
+}
 
 export type MoonData = {
   phase: MoonPhase
@@ -193,28 +233,31 @@ export type MoonData = {
 }
 
 export function getMoonData(date: Date = new Date()): MoonData {
-  const elapsed = date.getTime() - KNOWN_NEW_MOON
-  const cyclePos = ((elapsed % LUNAR_CYCLE_MS) + LUNAR_CYCLE_MS) % LUNAR_CYCLE_MS
-  const fraction = cyclePos / LUNAR_CYCLE_MS // 0 = new, 0.5 = full, 1 = new again
+  const fraction = moonFraction(date)
 
   const dayOfCycle = Math.floor(fraction * 29.53) + 1
   const illumination = Math.round((1 - Math.cos(fraction * 2 * Math.PI)) / 2 * 100)
 
+  // Phase windows are centred on the exact moments (0, 0.25, 0.5, 0.75).
+  // Each named phase gets a ±2.5-day window (~0.085 of cycle) so short-lived
+  // transitions are still correctly named rather than defaulting to a crescent/gibbous.
   let phase: MoonPhase
   let phaseEmoji: string
-  if (fraction < 0.0337)       { phase = "New Moon";        phaseEmoji = "🌑" }
-  else if (fraction < 0.2500)  { phase = "Waxing Crescent"; phaseEmoji = "🌒" }
-  else if (fraction < 0.2837)  { phase = "First Quarter";   phaseEmoji = "🌓" }
-  else if (fraction < 0.5000)  { phase = "Waxing Gibbous";  phaseEmoji = "🌔" }
-  else if (fraction < 0.5337)  { phase = "Full Moon";       phaseEmoji = "🌕" }
-  else if (fraction < 0.7500)  { phase = "Waning Gibbous";  phaseEmoji = "🌖" }
-  else if (fraction < 0.7837)  { phase = "Last Quarter";    phaseEmoji = "🌗" }
-  else                         { phase = "Waning Crescent";  phaseEmoji = "🌘" }
+  if (fraction < 0.0423 || fraction >= 0.9577) { phase = "New Moon";        phaseEmoji = "🌑" }
+  else if (fraction < 0.2077)                  { phase = "Waxing Crescent"; phaseEmoji = "🌒" }
+  else if (fraction < 0.2923)                  { phase = "First Quarter";   phaseEmoji = "🌓" }
+  else if (fraction < 0.4577)                  { phase = "Waxing Gibbous";  phaseEmoji = "🌔" }
+  else if (fraction < 0.5423)                  { phase = "Full Moon";       phaseEmoji = "🌕" }
+  else if (fraction < 0.7077)                  { phase = "Waning Gibbous";  phaseEmoji = "🌖" }
+  else if (fraction < 0.7923)                  { phase = "Last Quarter";    phaseEmoji = "🌗" }
+  else                                         { phase = "Waning Crescent"; phaseEmoji = "🌘" }
 
   const daysToFull = fraction < 0.5
     ? Math.round((0.5 - fraction) * 29.53)
     : null
-  const daysToNew = Math.round((1 - fraction) * 29.53)
+  const daysToNew = fraction < 0.9577
+    ? Math.round((1 - fraction) * 29.53)
+    : 0
 
   return {
     phase,
