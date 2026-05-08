@@ -10,11 +10,13 @@ import LanguageSelector from "@/components/LanguageSelector"
 type CardDrawn = { name: string; suit: string; rank: string }
 type Message = { role: "user" | "galileo"; content: string; cards?: CardDrawn[] }
 
-const SUIT_COLOR: Record<string, string> = {
-  Hearts: "#e879a0", Diamonds: "#e879a0", Clubs: "#c8d4e8", Spades: "#c8d4e8"
-}
 const SUIT_SYMBOL: Record<string, string> = {
   Hearts: "♥", Diamonds: "♦", Clubs: "♣", Spades: "♠"
+}
+const RANK_ABBR: Record<string, string> = {
+  Ace: "A", Two: "2", Three: "3", Four: "4", Five: "5",
+  Six: "6", Seven: "7", Eight: "8", Nine: "9", Ten: "10",
+  Jack: "J", Queen: "Q", King: "K",
 }
 
 export default function CartomancyPage() {
@@ -123,21 +125,22 @@ export default function CartomancyPage() {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
               {allCards.map((card, i) => {
                 const isRed = card.suit === "Hearts" || card.suit === "Diamonds"
+                const rank = RANK_ABBR[card.rank] || card.rank
+                const sym = SUIT_SYMBOL[card.suit]
+                const color = isRed ? "#c41e3a" : "#111"
                 return (
-                  <div key={i} style={{ width: 72, height: 100, borderRadius: 6, background: "#fdfaf4", border: "1px solid rgba(255,255,255,0.3)", boxShadow: "0 4px 16px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "6px", position: "relative", flexShrink: 0 }}>
-                    {/* Top rank + suit */}
-                    <div style={{ fontFamily: "Georgia, serif", fontSize: 13, fontWeight: "bold", color: isRed ? "#c41e3a" : "#0a0a0a", lineHeight: 1 }}>
-                      {card.rank[0] === "1" ? "10" : card.rank[0]}
-                      <div style={{ fontSize: 11 }}>{SUIT_SYMBOL[card.suit]}</div>
+                  <div key={i} style={{ width: 76, height: 108, borderRadius: 7, background: "#fff", border: "1px solid #ddd", boxShadow: "0 6px 20px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "6px 7px", flexShrink: 0 }}>
+                    {/* Top-left */}
+                    <div style={{ fontFamily: "Georgia, serif", fontWeight: "bold", color, lineHeight: 1 }}>
+                      <div style={{ fontSize: rank.length > 1 ? 12 : 14 }}>{rank}</div>
+                      <div style={{ fontSize: 12 }}>{sym}</div>
                     </div>
-                    {/* Center suit */}
-                    <div style={{ textAlign: "center", fontSize: 22, color: isRed ? "#c41e3a" : "#0a0a0a", lineHeight: 1 }}>
-                      {SUIT_SYMBOL[card.suit]}
-                    </div>
-                    {/* Bottom rank + suit (rotated) */}
-                    <div style={{ fontFamily: "Georgia, serif", fontSize: 13, fontWeight: "bold", color: isRed ? "#c41e3a" : "#0a0a0a", lineHeight: 1, transform: "rotate(180deg)", alignSelf: "flex-end" }}>
-                      {card.rank[0] === "1" ? "10" : card.rank[0]}
-                      <div style={{ fontSize: 11 }}>{SUIT_SYMBOL[card.suit]}</div>
+                    {/* Center */}
+                    <div style={{ textAlign: "center", fontSize: 28, color, lineHeight: 1 }}>{sym}</div>
+                    {/* Bottom-right (rotated) */}
+                    <div style={{ fontFamily: "Georgia, serif", fontWeight: "bold", color, lineHeight: 1, transform: "rotate(180deg)", alignSelf: "flex-end" }}>
+                      <div style={{ fontSize: rank.length > 1 ? 12 : 14 }}>{rank}</div>
+                      <div style={{ fontSize: 12 }}>{sym}</div>
                     </div>
                   </div>
                 )
