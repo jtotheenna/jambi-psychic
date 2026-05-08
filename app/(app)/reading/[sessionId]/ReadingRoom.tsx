@@ -11,6 +11,7 @@ import ChatBubble from "@/components/ChatBubble"
 import { TAROT_DECK } from "@/lib/tarot"
 import { playBoxOpen, playCardReveal, playGalileoSpeak, playSessionEnd } from "@/lib/sounds"
 import { getSpreadLayout } from "@/lib/tarot"
+import SimliGalileo, { audioBlobToPCM } from "@/components/SimliGalileo"
 
 // Browser Speech Recognition (voice input)
 const SpeechRecognition =
@@ -93,6 +94,8 @@ export default function ReadingRoom({
 
   const voice = useGalileoVoice()
   const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
+  const [useSimli, setUseSimli] = useState(false)
+  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -141,10 +144,23 @@ export default function ReadingRoom({
     setAvatarState("speaking")
 
     const audio = await fetchTTS(text)
-    if (audio) {
+    if (audio && useSimli && simliSendRef.current) {
+      // Send to Simli — it handles playback via its own audio element
+      try {
+        const res = await fetch(audio)
+        const blob = await res.blob()
+        const pcm = await audioBlobToPCM(blob)
+        simliSendRef.current(pcm)
+        // Wait estimated duration based on text length
+        await new Promise((r) => setTimeout(r, Math.min(text.length * 50, 8000)))
+      } catch {
+        // Fallback to regular audio
+        const played = await playAudio(audio)
+        if (!played) await new Promise((r) => setTimeout(r, Math.min(text.length * 38, 5000)))
+      }
+    } else if (audio) {
       const played = await playAudio(audio)
       if (!played) {
-        // Audio blocked (Safari autoplay) — animate for text-length duration so it doesn't snap
         await new Promise((r) => setTimeout(r, Math.min(text.length * 38, 5000)))
       }
     } else {
@@ -432,17 +448,31 @@ export default function ReadingRoom({
           gap: 24,
         }}
       >
-        {/* Avatar row */}
-        <div className="reading-avatar" style={{ display: "flex", justifyContent: "center" }}>
-          <GalileoPanel
-            avatarState={hasStarted ? avatarState : "closed"}
-            hasStarted={hasStarted}
-            mode={voice.mode}
-            setMode={voice.setMode}
-            isListening={isListening}
-            interimTranscript={interimTranscript}
-            voiceSupported={voiceSupported}
-          />
+        {/* Avatar row — Simli or static */}
+        <div className="reading-avatar" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+          {useSimli ? (
+            <SimliGalileo
+              speaking={avatarState === "speaking"}
+              onSendAudio={(fn) => { simliSendRef.current = fn }}
+              onConnected={() => setAvatarState("idle")}
+              onDisconnected={() => setUseSimli(false)}
+            />
+          ) : (
+            <GalileoPanel
+              avatarState={hasStarted ? avatarState : "closed"}
+              hasStarted={hasStarted}
+              mode={voice.mode}
+              setMode={voice.setMode}
+              isListening={isListening}
+              interimTranscript={interimTranscript}
+              voiceSupported={voiceSupported}
+            />
+          )}
+          {hasStarted && !useSimli && (
+            <button onClick={() => setUseSimli(true)} style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.12em", color: "#4a3870", background: "none", border: "1px solid rgba(42,26,85,0.4)", borderRadius: 5, padding: "4px 10px", cursor: "pointer" }}>
+              TRY LIVE FACE ▶
+            </button>
+          )}
         </div>
 
         {/* Full-width card spread — sticky, laid out in spread shape */}
