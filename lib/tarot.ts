@@ -176,6 +176,53 @@ export const SPREADS: SpreadType[] = [
   },
 ]
 
+// Grid layout: [col, row] — 1-indexed. null = skip that position.
+export type SpreadLayout = { col: number; row: number; rotate?: boolean }[]
+
+export const SPREAD_LAYOUTS: Record<string, SpreadLayout> = {
+  "The Single Card":       [{ col: 1, row: 1 }],
+  "The Two Paths":         [{ col: 1, row: 1 }, { col: 2, row: 1 }],
+  "Past, Present, Future": [{ col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 }],
+  "The Heart's Truth":     [{ col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 }, { col: 4, row: 1 }],
+  "The Crossroads": [
+    { col: 2, row: 1 }, // Where you stand
+    { col: 1, row: 2 }, // Pulls left
+    { col: 3, row: 2 }, // Pulls right
+    { col: 2, row: 3 }, // Fear
+    { col: 2, row: 2 }, // Guide (center)
+  ],
+  "The Shadow and Light": [
+    { col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 },
+    { col: 1, row: 2 }, { col: 2, row: 2 }, { col: 3, row: 2 },
+  ],
+  "The Seven Stars": [
+    { col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 }, { col: 4, row: 1 },
+    { col: 1, row: 2 }, { col: 2, row: 2 }, { col: 3, row: 2 },
+  ],
+  "The Horseshoe": [
+    { col: 1, row: 2 }, { col: 2, row: 1 }, { col: 3, row: 1 },
+    { col: 4, row: 1 }, { col: 5, row: 1 }, { col: 6, row: 1 },
+    { col: 7, row: 2 }, { col: 4, row: 2 },
+  ],
+  "The Celtic Cross": [
+    { col: 2, row: 2 }, // Situation
+    { col: 2, row: 2, rotate: true }, // Crosses (overlaid)
+    { col: 2, row: 3 }, // Root
+    { col: 1, row: 2 }, // Recent past
+    { col: 2, row: 1 }, // What crowns
+    { col: 3, row: 2 }, // Coming
+    { col: 5, row: 4 }, // Your position
+    { col: 5, row: 3 }, // Outside
+    { col: 5, row: 2 }, // Hopes/fears
+    { col: 5, row: 1 }, // Outcome
+  ],
+}
+
+export function getSpreadLayout(spreadName: string | null): SpreadLayout | null {
+  if (!spreadName) return null
+  return SPREAD_LAYOUTS[spreadName] || null
+}
+
 export function drawCards(count: number): TarotCard[] {
   const shuffled = [...TAROT_DECK].sort(() => Math.random() - 0.5)
   return shuffled.slice(0, count)

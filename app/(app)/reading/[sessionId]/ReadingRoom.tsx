@@ -10,6 +10,7 @@ import TarotCard from "@/components/TarotCard"
 import ChatBubble from "@/components/ChatBubble"
 import { TAROT_DECK } from "@/lib/tarot"
 import { playBoxOpen, playCardReveal, playGalileoSpeak, playSessionEnd } from "@/lib/sounds"
+import { getSpreadLayout } from "@/lib/tarot"
 
 // Browser Speech Recognition (voice input)
 const SpeechRecognition =
@@ -444,39 +445,81 @@ export default function ReadingRoom({
           />
         </div>
 
-        {/* Full-width card spread — sticky so it stays visible while chatting */}
+        {/* Full-width card spread — sticky, laid out in spread shape */}
         {drawnCardData.length > 0 && (
           <div style={{ position: "sticky", top: 57, zIndex: 10, background: "rgba(4,2,14,0.92)", backdropFilter: "blur(12px)", borderRadius: 10, padding: "10px 8px 8px", border: "1px solid rgba(42,26,85,0.5)", marginBottom: 4 }}>
             <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.25em", color: "#7a8ba8", textAlign: "center", marginBottom: 10 }}>
               {spread ? spread.toUpperCase() : "THE CARDS"}
             </div>
-            <div className="cards-row" style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: 10, justifyContent: drawnCardData.length <= 5 ? "center" : "flex-start", alignItems: "flex-start", paddingBottom: 4 }}>
-              {messages
+            {(() => {
+              const allDealtCards = messages
                 .filter((m) => m.role === "galileo" && m.cards && m.cards.length > 0)
-                .flatMap((m, mi) =>
-                  (m.cards || []).map((card, ci) => {
-                    const cardData = findCardData(card.name)
-                    if (!cardData) return null
+                .flatMap((m, mi) => (m.cards || []).map((card, ci) => ({ card, mi, ci })))
+                .filter(({ card }) => findCardData(card.name))
+
+              const layout = getSpreadLayout(spread)
+              const clarifiers = allDealtCards.filter(({ card }) => card.position === "Clarifying")
+              const mainCards = allDealtCards.filter(({ card }) => card.position !== "Clarifying")
+
+              if (layout && mainCards.length === layout.length) {
+                // Compute grid dimensions
+                const maxCol = Math.max(...layout.map(p => p.col))
+                const maxRow = Math.max(...layout.map(p => p.row))
+                return (
+                  <div style={{ overflowX: "auto", paddingBottom: 4 }}>
+                    <div style={{
+                      display: "grid",
+                      gridTemplateColumns: `repeat(${maxCol}, 72px)`,
+                      gridTemplateRows: `repeat(${maxRow}, auto)`,
+                      gap: "8px 6px",
+                      justifyContent: "center",
+                      width: "fit-content",
+                      margin: "0 auto",
+                    }}>
+                      {mainCards.map(({ card, mi, ci }, idx) => {
+                        const pos = layout[idx]
+                        const cardData = findCardData(card.name)!
+                        return (
+                          <div key={`${mi}-${ci}`} style={{ gridColumn: pos.col, gridRow: pos.row, display: "flex", flexDirection: "column", alignItems: "center", transform: pos.rotate ? "rotate(90deg)" : "none" }}>
+                            <TarotCard card={cardData} position={card.position} revealDelay={idx * 200} isReversed={card.reversed} />
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {clarifiers.length > 0 && (
+                      <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 8 }}>
+                        {clarifiers.map(({ card, mi, ci }) => {
+                          const cardData = findCardData(card.name)!
+                          return (
+                            <div key={`${mi}-${ci}`} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", color: "#a5b4fc", marginBottom: 4 }}>✦ CLARIFYING</div>
+                              <TarotCard card={cardData} revealDelay={0} isReversed={card.reversed} />
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
+              // Fallback: wrap in rows of 5
+              return (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", overflowX: "auto", paddingBottom: 4 }}>
+                  {allDealtCards.map(({ card, mi, ci }, idx) => {
+                    const cardData = findCardData(card.name)!
                     const isClarifying = card.position === "Clarifying"
                     return (
                       <div key={`${mi}-${ci}`} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                        {isClarifying && (
-                          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", color: "#a5b4fc", marginBottom: 4 }}>
-                            ✦ CLARIFYING
-                          </div>
-                        )}
-                        <TarotCard
-                          card={cardData}
-                          position={isClarifying ? undefined : card.position}
-                          revealDelay={(mi * 3 + ci) * 250}
-                          isReversed={card.reversed}
-                        />
+                        {isClarifying && <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", color: "#a5b4fc", marginBottom: 4 }}>✦ CLARIFYING</div>}
+                        <TarotCard card={cardData} position={isClarifying ? undefined : card.position} revealDelay={idx * 200} isReversed={card.reversed} />
                       </div>
                     )
-                  })
-                )
-                .filter(Boolean)}
-            </div>
+                  })}
+                </div>
+              )
+            })()
+            }
           </div>
         )}
 
