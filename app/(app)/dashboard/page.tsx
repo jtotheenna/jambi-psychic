@@ -106,16 +106,9 @@ export default async function DashboardPage() {
                 </form>
               </>
             ) : (
-              <>
-                <a href={`${TAROT_LINK}?client_reference_id=${user.id}--tarot`} style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-                  BEGIN · $10
-                </a>
-                {true && (
-                  <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 10 } }); redirect(`/reading/${r.id}`) }}>
-                    <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "1px solid rgba(42,26,85,0.4)", borderRadius: 4, padding: "6px 12px", cursor: "pointer" }}>DEV: FREE TEST</button>
-                  </form>
-                )}
-              </>
+              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 10 } }); redirect(`/reading/${r.id}`) }}>
+                <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
+              </form>
             )}
           </div>
         </div>
@@ -144,16 +137,9 @@ export default async function DashboardPage() {
                 </form>
               </>
             ) : (
-              <>
-                <a href={`${MOON_LINK}?client_reference_id=${user.id}--moon`} style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.5)", background: "linear-gradient(135deg, rgba(165,180,252,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-                  BEGIN · $5
-                </a>
-                {true && (
-                  <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "moon", status: "active", exchangesTotal: 2 } }); redirect("/moon") }}>
-                    <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "1px solid rgba(42,26,85,0.4)", borderRadius: 4, padding: "6px 12px", cursor: "pointer" }}>DEV: FREE TEST</button>
-                  </form>
-                )}
-              </>
+              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "moon", status: "active", exchangesTotal: 2 } }); redirect("/moon") }}>
+                <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.5)", background: "linear-gradient(135deg, rgba(165,180,252,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
+              </form>
             )}
           </div>
         </div>
@@ -182,16 +168,9 @@ export default async function DashboardPage() {
                 </form>
               </>
             ) : (
-              <>
-                <a href={`${PALM_LINK}?client_reference_id=${user.id}--palm`} style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-                  BEGIN · $5
-                </a>
-                {true && (
-                  <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "palm", status: "active", exchangesTotal: 5 } }); redirect("/palm") }}>
-                    <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "1px solid rgba(42,26,85,0.4)", borderRadius: 4, padding: "6px 12px", cursor: "pointer" }}>DEV: FREE TEST</button>
-                  </form>
-                )}
-              </>
+              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "palm", status: "active", exchangesTotal: 5 } }); redirect("/palm") }}>
+                <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
+              </form>
             )}
           </div>
         </div>
@@ -220,16 +199,9 @@ export default async function DashboardPage() {
                 </form>
               </>
             ) : (
-              <>
-                <a href={`${CARTOMANCY_LINK}?client_reference_id=${user.id}--cartomancy`} style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(232,121,160,0.5)", background: "linear-gradient(135deg, rgba(232,121,160,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#e879a0", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-                  BEGIN · $10
-                </a>
-                {true && (
-                  <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 10 } }); redirect(`/cartomancy`) }}>
-                    <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "1px solid rgba(42,26,85,0.4)", borderRadius: 4, padding: "6px 12px", cursor: "pointer" }}>DEV: FREE TEST</button>
-                  </form>
-                )}
-              </>
+              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 10 } }); redirect("/cartomancy") }}>
+                <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(232,121,160,0.5)", background: "linear-gradient(135deg, rgba(232,121,160,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#e879a0", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
+              </form>
             )}
           </div>
         </div>
