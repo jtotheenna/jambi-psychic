@@ -109,11 +109,11 @@ Welcome them warmly in one sentence. Then ask: what question do they bring to th
     })
   }
 
-  // Draw cards after the first real question, using spread detection
+  // Draw cards on first real question — just check cardsAlreadyDealt, not isOpening
   type DrawnCartomancyCard = ReturnType<typeof shuffleCartomancy>[number] & { position: string }
   let drawnCards: DrawnCartomancyCard[] | undefined
   let spreadName = cartSession!.spread
-  if (!isOpening && !cardsAlreadyDealt) {
+  if (!cardsAlreadyDealt) {
     const allUserText = [
       ...transcript.filter((m: { role: string }) => m.role === "user").map((m: { content: string }) => m.content),
       message,
@@ -133,9 +133,7 @@ Welcome them warmly in one sentence. Then ask: what question do they bring to th
     anthropicMessages.push({ role: msg.role === "galileo" ? "assistant" : "user", content: msg.content })
   }
 
-  const userContent = isOpening
-    ? `[First real message after greeting. Listen carefully, then when they share their concern, draw the cards.]\n\n${message}`
-    : message
+  const userContent = message
 
   if (drawnCards) {
     anthropicMessages.push({
