@@ -34,13 +34,12 @@ type Props = {
 
 type AvatarState = "idle" | "thinking" | "speaking" | "closed"
 
-function playAudio(src: string): Promise<void> {
+function playAudio(src: string): Promise<boolean> {
   return new Promise((resolve) => {
     const audio = new Audio(src)
-    const done = () => { URL.revokeObjectURL(src); resolve() }
-    audio.onended = done
-    audio.onerror = done
-    audio.play().catch(done)
+    audio.onended = () => { URL.revokeObjectURL(src); resolve(true) }
+    audio.onerror = () => { URL.revokeObjectURL(src); resolve(false) }
+    audio.play().catch(() => { URL.revokeObjectURL(src); resolve(false) })
   })
 }
 
@@ -139,12 +138,16 @@ export default function ReadingRoom({
 
     const audio = await fetchTTS(text)
     if (audio) {
-      await playAudio(audio)
+      const played = await playAudio(audio)
+      if (!played) {
+        // Audio blocked (Safari autoplay) — animate for text-length duration so it doesn't snap
+        await new Promise((r) => setTimeout(r, Math.min(text.length * 38, 5000)))
+      }
     } else {
-      await new Promise((r) => setTimeout(r, Math.min(text.length * 40, 4000)))
+      await new Promise((r) => setTimeout(r, Math.min(text.length * 38, 5000)))
     }
     setAvatarState("idle")
-    if (voiceModeRef.current) setTimeout(() => startAutoListening(), 400)
+    if (voiceModeRef.current) setTimeout(() => startAutoListening(), 600)
   }
 
   function handleAvatarSpeakEnd() {

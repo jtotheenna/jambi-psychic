@@ -11,13 +11,12 @@ const SpeechRecognition =
     ? (window.SpeechRecognition || window.webkitSpeechRecognition || null)
     : null
 
-function playAudio(src: string): Promise<void> {
+function playAudio(src: string): Promise<boolean> {
   return new Promise((resolve) => {
     const audio = new Audio(src)
-    const done = () => { URL.revokeObjectURL(src); resolve() }
-    audio.onended = done
-    audio.onerror = done
-    audio.play().catch(done)
+    audio.onended = () => { URL.revokeObjectURL(src); resolve(true) }
+    audio.onerror = () => { URL.revokeObjectURL(src); resolve(false) }
+    audio.play().catch(() => { URL.revokeObjectURL(src); resolve(false) })
   })
 }
 
@@ -75,9 +74,12 @@ export function useGalileoVoice() {
     setAvatarState("speaking")
     const audio = await fetchTTS(text)
     if (audio) {
-      await playAudio(audio)
+      const played = await playAudio(audio)
+      if (!played) {
+        await new Promise((r) => setTimeout(r, Math.min(text.length * 38, 5000)))
+      }
     } else {
-      await new Promise((r) => setTimeout(r, Math.min(text.length * 35, 4000)))
+      await new Promise((r) => setTimeout(r, Math.min(text.length * 38, 5000)))
     }
     setAvatarState("idle")
 
