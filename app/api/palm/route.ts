@@ -79,7 +79,7 @@ export async function POST(req: Request) {
 
     const resp = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: voiceMode ? 800 : 1400,
+      max_tokens: voiceMode ? 900 : 1800,
       system: `${buildSystem(userName, palmSession!.exchangesTotal, language)}
 
 YOUR OPENING READING — deliver it now, fully and immediately. No preamble. No "I see your hand before me." Just begin reading.
