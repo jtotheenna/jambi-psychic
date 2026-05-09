@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import GalileoPanel from "@/components/GalileoPanel"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
@@ -12,6 +12,8 @@ import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
 type Message = { role: "user" | "galileo"; content: string }
 
 export default function LovePage() {
+  const [names, setNames] = useState("")
+  const [situation, setSituation] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -22,7 +24,6 @@ export default function LovePage() {
   const [hasStarted, setHasStarted] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
-  const prefetchedRef = useRef<{ response: string } | null>(null)
   const voice = useGalileoVoice()
   const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
 
@@ -30,23 +31,7 @@ export default function LovePage() {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
   }, [messages])
 
-  // Pre-fetch opening greeting
-  useEffect(() => {
-    let cancelled = false
-    fetch("/api/love", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "__OPENING__", language }),
-    }).then(r => r.json()).then(data => {
-      if (!cancelled && data.response) {
-        prefetchedRef.current = { response: data.response }
-        if (data.sessionId) setSessionId(data.sessionId)
-      }
-    }).catch(() => {})
-    return () => { cancelled = true }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const openReading = useCallback(async () => {
+  async function openReading() {
     const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
     sa.volume = 0; sa.play().catch(() => {})
     setHasStarted(true)
@@ -54,26 +39,26 @@ export default function LovePage() {
     setLoading(true)
     voice.setAvatarState("thinking")
 
-    let response = prefetchedRef.current?.response ?? null
-    if (!response) {
-      const res = await fetch("/api/love", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "__OPENING__", sessionId, language }),
-      })
-      const data = await res.json()
-      if (res.ok) { response = data.response; if (data.sessionId) setSessionId(data.sessionId) }
-    }
+    const context = [names.trim(), situation.trim()].filter(Boolean).join(" — ")
 
-    if (response) {
-      setMessages([{ role: "galileo", content: response }])
+    const res = await fetch("/api/love", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "__OPENING__", sessionId, context: context || undefined, language }),
+    })
+    const data = await res.json()
+    if (!res.ok) { setLoading(false); voice.setAvatarState("idle"); return }
+
+    if (data.sessionId) setSessionId(data.sessionId)
+    if (data.response) {
+      setMessages([{ role: "galileo", content: data.response }])
       setLoading(false)
       voice.setAvatarState("speaking")
-      await speakStreaming(response, simliSendRef.current)
+      await speakStreaming(data.response, simliSendRef.current)
     }
     voice.setAvatarState("idle")
     setLoading(false)
-  }, [sessionId, language, voice])
+  }
 
   async function sendMessage(text?: string) {
     const msg = (text ?? input).trim()
@@ -129,13 +114,38 @@ export default function LovePage() {
         </div>
 
         {!hasStarted ? (
-          <div style={{ textAlign: "center", marginTop: 8 }}>
-            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 18, color: "#8878a8", fontStyle: "italic", marginBottom: 24, lineHeight: 1.7 }}>
-              Something about the heart has brought you here. He is listening.
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 500, margin: "0 auto", width: "100%" }}>
+            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 18, color: "#8878a8", fontStyle: "italic", textAlign: "center", lineHeight: 1.7, marginBottom: 4 }}>
+              Tell him what you're carrying before he begins.
             </p>
+
+            <div style={{ background: "rgba(10,5,32,0.6)", borderRadius: 12, border: "1px solid rgba(232,121,160,0.2)", padding: "20px 20px 4px", backdropFilter: "blur(8px)", display: "flex", flexDirection: "column", gap: 4 }}>
+              <label style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.2em", color: "#7a5870" }}>
+                WHO IS INVOLVED? <span style={{ color: "#4a3870" }}>(optional)</span>
+              </label>
+              <input
+                value={names}
+                onChange={e => setNames(e.target.value)}
+                placeholder="e.g. Marcus, my ex, someone I met last month…"
+                style={{ background: "transparent", border: "none", borderBottom: "1px solid rgba(232,121,160,0.15)", outline: "none", color: "#ddd8f0", fontFamily: "'EB Garamond', serif", fontSize: 17, padding: "8px 0 12px", width: "100%" }}
+              />
+
+              <label style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.2em", color: "#7a5870", marginTop: 12 }}>
+                WHAT'S THE SITUATION? <span style={{ color: "#4a3870" }}>(optional)</span>
+              </label>
+              <textarea
+                value={situation}
+                onChange={e => setSituation(e.target.value)}
+                placeholder="A sentence or two about what's going on…"
+                rows={3}
+                style={{ background: "transparent", border: "none", outline: "none", resize: "none", color: "#ddd8f0", fontFamily: "'EB Garamond', serif", fontSize: 17, lineHeight: 1.6, padding: "8px 0 16px", width: "100%" }}
+              />
+            </div>
+
             <button
               onClick={openReading}
-              style={{ padding: "16px 48px", borderRadius: 8, border: "1px solid rgba(232,121,160,0.5)", background: "linear-gradient(135deg, rgba(232,121,160,0.12), rgba(124,58,237,0.12))", color: "#e879a0", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.2em", cursor: "pointer" }}
+              disabled={loading}
+              style={{ padding: "16px", borderRadius: 8, border: "1px solid rgba(232,121,160,0.5)", background: "linear-gradient(135deg, rgba(232,121,160,0.12), rgba(124,58,237,0.12))", color: "#e879a0", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.2em", cursor: "pointer" }}
             >
               OPEN THE ORACLE ♡
             </button>
@@ -144,10 +154,10 @@ export default function LovePage() {
           <div ref={scrollRef} style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16, maxHeight: "48vh", overflowY: "auto" }}>
             {messages.map((msg, i) => (
               <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", flexDirection: msg.role === "user" ? "row-reverse" : "row" }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, background: msg.role === "galileo" ? "radial-gradient(circle, #1a0d3f, #0a0520)" : "rgba(42,26,85,0.6)", border: msg.role === "galileo" ? "1px solid rgba(232,121,160,0.4)" : "1px solid rgba(232,121,160,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, background: msg.role === "galileo" ? "radial-gradient(circle, #1a0d3f, #0a0520)" : "rgba(42,26,85,0.6)", border: `1px solid rgba(232,121,160,${msg.role === "galileo" ? "0.4" : "0.2"})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>
                   {msg.role === "galileo" ? "♡" : "✦"}
                 </div>
-                <div style={{ maxWidth: "78%", padding: "14px 18px", borderRadius: msg.role === "galileo" ? "4px 16px 16px 16px" : "16px 4px 16px 16px", background: msg.role === "galileo" ? "linear-gradient(135deg, rgba(26,13,63,0.9), rgba(10,5,32,0.9))" : "rgba(42,26,85,0.5)", border: msg.role === "galileo" ? "1px solid rgba(232,121,160,0.15)" : "1px solid rgba(232,121,160,0.15)", fontFamily: "'EB Garamond', serif", fontSize: 17, lineHeight: 1.8, color: "#ddd8f0" }}>
+                <div style={{ maxWidth: "78%", padding: "14px 18px", borderRadius: msg.role === "galileo" ? "4px 16px 16px 16px" : "16px 4px 16px 16px", background: msg.role === "galileo" ? "linear-gradient(135deg, rgba(26,13,63,0.9), rgba(10,5,32,0.9))" : "rgba(42,26,85,0.5)", border: "1px solid rgba(232,121,160,0.15)", fontFamily: "'EB Garamond', serif", fontSize: 17, lineHeight: 1.8, color: "#ddd8f0" }}>
                   {msg.content}
                 </div>
               </div>
@@ -175,11 +185,7 @@ export default function LovePage() {
                 rows={2}
                 style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", color: "#ddd8f0", fontFamily: "'EB Garamond', serif", fontSize: 17, lineHeight: 1.6 }}
               />
-              <button
-                onClick={() => sendMessage()}
-                disabled={loading || !input.trim()}
-                style={{ padding: "10px 20px", borderRadius: 8, height: 40, border: "1px solid rgba(232,121,160,0.4)", background: loading || !input.trim() ? "rgba(42,26,85,0.3)" : "rgba(232,121,160,0.12)", color: loading || !input.trim() ? "#4a3870" : "#e879a0", fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.15em", cursor: loading || !input.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}
-              >
+              <button onClick={() => sendMessage()} disabled={loading || !input.trim()} style={{ padding: "10px 20px", borderRadius: 8, height: 40, border: "1px solid rgba(232,121,160,0.4)", background: loading || !input.trim() ? "rgba(42,26,85,0.3)" : "rgba(232,121,160,0.12)", color: loading || !input.trim() ? "#4a3870" : "#e879a0", fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.15em", cursor: loading || !input.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
                 {loading ? "♡" : "SEND ✦"}
               </button>
             </div>

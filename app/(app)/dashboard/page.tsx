@@ -93,15 +93,15 @@ export default async function DashboardPage() {
 
           {card("★", "TAROT READING", "rgba(201,168,76,0.3)", "rgba(201,168,76,0.2)",
             "Any question. A fully shuffled 78-card deck. He reads every card aloud.",
-            "$15 · 7 QUESTIONS · SPOKEN ALOUD",
-            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 7 } }); redirect(`/reading/${r.id}`) }}>{beginBtn("rgba(201,168,76,0.3)", "rgba(201,168,76,0.4)")}</form>,
+            "$15 · 5 QUESTIONS · SPOKEN ALOUD",
+            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 5 } }); redirect(`/reading/${r.id}`) }}>{beginBtn("rgba(201,168,76,0.3)", "rgba(201,168,76,0.4)")}</form>,
             activeTarot, activeTarot ? `/reading/${activeTarot.id}` : undefined, activeTarot ? abandonBtn(activeTarot.id) : undefined
           )}
 
           {card("♠", "CARTOMANCY", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.2)",
             "The old language of playing cards. Direct, sharp, and strangely accurate.",
-            "$15 · 7 QUESTIONS · SPOKEN ALOUD",
-            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 7 } }); redirect("/cartomancy") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>,
+            "$15 · 5 QUESTIONS · SPOKEN ALOUD",
+            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 5 } }); redirect("/cartomancy") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>,
             activeCartomancy, "/cartomancy", activeCartomancy ? abandonBtn(activeCartomancy.id) : undefined
           )}
 
@@ -151,6 +151,12 @@ export default async function DashboardPage() {
             <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "palm", status: "active", exchangesTotal: 5 } }); redirect("/palm") }}>{beginBtn("rgba(200,212,232,0.25)", "rgba(200,212,232,0.35)")}</form>,
             activePalm, "/palm", activePalm ? abandonBtn(activePalm.id) : undefined
           )}
+
+          {card("🌈", "AURA PHOTO READING", "rgba(129,140,248,0.3)", "rgba(129,140,248,0.2)",
+            "Upload a photo. Galileo reads the actual colors detected in your field — spoken aloud.",
+            "$12 · FULL AURA READING · SPOKEN ALOUD",
+            <Link href="/aura" style={{ padding: "9px 20px", borderRadius: 7, border: "1px solid rgba(129,140,248,0.4)", background: "rgba(129,140,248,0.08)", color: "#818cf8", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", textDecoration: "none", whiteSpace: "nowrap" }}>BEGIN ✦</Link>
+          )}
         </div>
       </div>
 
@@ -167,7 +173,7 @@ export default async function DashboardPage() {
 
           {card("🕯", "GUIDE MESSAGE", "rgba(167,139,250,0.3)", "rgba(167,139,250,0.2)",
             "No question needed. Receive a message for your current moment.",
-            "$9 · SHORT ORACLE READING · SPOKEN ALOUD",
+            "$2 · SHORT ORACLE READING · SPOKEN ALOUD",
             <Link href="/guide" style={{ padding: "9px 20px", borderRadius: 7, border: "1px solid rgba(167,139,250,0.4)", background: "rgba(167,139,250,0.08)", color: "#a78bfa", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", textDecoration: "none", whiteSpace: "nowrap" }}>BEGIN ✦</Link>
           )}
         </div>

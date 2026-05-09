@@ -14,5 +14,6 @@ export const config = {
     "/dream/:path*",
     "/guide/:path*",
     "/love/:path*",
+    "/aura/:path*",
   ],
 }

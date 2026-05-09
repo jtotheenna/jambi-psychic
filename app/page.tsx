@@ -19,7 +19,7 @@ const SECTIONS: { title: string; subtitle: string; readings: ReadingCard[] }[] =
     readings: [
       {
         icon: "★", name: "Tarot Reading", price: "$15", color: "#c9a84c", glow: "rgba(201,168,76,0.35)", border: "rgba(201,168,76,0.3)",
-        tagline: "Any question. A full 78-card deck. Up to 7 exchanges.",
+        tagline: "Any question. A full 78-card deck. Up to 5 exchanges.",
         desc: "Ask what you need to know, and Galileo draws from a fully shuffled tarot deck to speak your reading aloud. Each card is interpreted through your question, your energy, and the story unfolding across the spread.",
         btn: "CHOOSE TAROT", href: "/signup",
       },
@@ -81,7 +81,7 @@ const SECTIONS: { title: string; subtitle: string; readings: ReadingCard[] }[] =
         icon: "🌈", name: "Aura Photo Reading", price: "$12", color: "#818cf8", glow: "rgba(129,140,248,0.25)", border: "rgba(129,140,248,0.2)",
         tagline: "Upload a photo and receive a symbolic aura reading.",
         desc: "Galileo reads the colors, mood, expression, atmosphere, and emotional impression of the image as a creative reflection. Spoken aloud in his old, wise voice.",
-        btn: "CHOOSE AURA READING", href: "/signup", soon: true,
+        btn: "CHOOSE AURA READING", href: "/signup",
       },
     ],
   },
@@ -96,7 +96,7 @@ const SECTIONS: { title: string; subtitle: string; readings: ReadingCard[] }[] =
         btn: "CHOOSE DREAM READING", href: "/signup",
       },
       {
-        icon: "🕯", name: "Guide Message", price: "$9", color: "#a78bfa", glow: "rgba(167,139,250,0.25)", border: "rgba(167,139,250,0.2)",
+        icon: "🕯", name: "Guide Message", price: "$2", color: "#a78bfa", glow: "rgba(167,139,250,0.25)", border: "rgba(167,139,250,0.2)",
         tagline: "No question needed. Receive the message.",
         desc: "If you do not know what to ask, open this reading and let Galileo speak a message for your current moment. A short oracle reading for reflection, grounding, and clarity.",
         btn: "CHOOSE GUIDE MESSAGE", href: "/signup",
