@@ -175,23 +175,11 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
           transition: "box-shadow 0.5s ease, border-color 0.5s ease",
           background: "#04020e",
         }}>
-          {/* Portrait: always shown as base layer — Simli video fades over it once connected */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/galileo.jpg"
-            alt="Galileo"
-            style={{
-              position: "absolute", inset: 0, width: "100%", height: "100%",
-              objectFit: "cover", objectPosition: "center top",
-              zIndex: 0,
-            }}
-          />
-
           {/* Subtle pulse while Simli connects */}
           {!simliReady && (
             <div style={{
               position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none",
-              background: "radial-gradient(ellipse at center, rgba(124,58,237,0.08) 0%, transparent 70%)",
+              background: "radial-gradient(ellipse at center, rgba(124,58,237,0.12) 0%, transparent 70%)",
               animation: "moonPulse 2s ease-in-out infinite",
             }} />
           )}

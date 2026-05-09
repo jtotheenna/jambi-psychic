@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import GalileoCircle from "@/components/GalileoCircle"
+import { audioBlobToPCM } from "@/components/FloatingSimli"
 
 type ReadingCard = {
   icon: string; name: string; price: string; color: string; glow: string; border: string
@@ -172,21 +173,90 @@ function ReadingCard({ icon, name, price, color, glow, border, tagline, desc, bt
   )
 }
 
-export default function LandingPage() {
-  const [speaking, setSpeaking] = useState(false)
-  const audioRef     = useRef<HTMLAudioElement | null>(null)
-  const hasSpokenRef = useRef(false)
+// Shows pre-recorded video while speaking, then stays as live GalileoCircle
+function GalileoWelcome({ speaking, onSendAudio }: { speaking: boolean; onSendAudio: (fn: (pcm: Uint8Array) => void) => void }) {
+  const [hasVideo, setHasVideo] = useState(false)
+  const [videoPlaying, setVideoPlaying] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
-  // Pre-load the welcome audio on mount so it's ready instantly
   useEffect(() => {
-    const audio = new Audio("/galileo-welcome.mp3")
-    audio.preload = "auto"
-    audio.onended = () => setSpeaking(false)
-    audio.onerror  = () => setSpeaking(false)
-    audioRef.current = audio
+    // Check if the pre-recorded video exists
+    fetch("/galileo-speaking.webm", { method: "HEAD" })
+      .then(r => { if (r.ok) setHasVideo(true) })
+      .catch(() => {})
   }, [])
 
-  // On first interaction unlock audio context then play
+  useEffect(() => {
+    if (hasVideo && speaking && videoRef.current) {
+      videoRef.current.currentTime = 0
+      videoRef.current.play().catch(() => {})
+      setVideoPlaying(true)
+    }
+  }, [speaking, hasVideo])
+
+  const size = 300
+
+  return (
+    <div style={{ position: "relative", width: size, height: size }}>
+      {/* Pre-recorded video layer — shows only while welcome plays */}
+      {hasVideo && (
+        <video
+          ref={videoRef}
+          src="/galileo-speaking.webm"
+          playsInline
+          onEnded={() => setVideoPlaying(false)}
+          style={{
+            position: "absolute", inset: 0, width: "100%", height: "100%",
+            borderRadius: "50%", objectFit: "cover", objectPosition: "center top",
+            opacity: videoPlaying ? 1 : 0,
+            transition: "opacity 0.5s ease",
+            zIndex: 2,
+          }}
+        />
+      )}
+      {/* Live GalileoCircle underneath / after video ends */}
+      <GalileoCircle
+        state={!hasVideo && speaking ? "speaking" : "idle"}
+        size={size}
+        showName={false}
+        showStars={false}
+        onSendAudio={onSendAudio}
+      />
+    </div>
+  )
+}
+
+export default function LandingPage() {
+  const [speaking, setSpeaking]  = useState(false)
+  const simliSendRef   = useRef<((pcm: Uint8Array) => void) | null>(null)
+  const welcomePcmRef  = useRef<Uint8Array | null>(null)
+  const pendingSendRef = useRef(false)
+  const hasSpokenRef   = useRef(false)
+
+  // Pre-convert welcome MP3 → PCM on mount (no gesture needed)
+  useEffect(() => {
+    fetch("/galileo-welcome.mp3")
+      .then(r => r.blob())
+      .then(blob => audioBlobToPCM(blob))
+      .then(pcm => {
+        welcomePcmRef.current = pcm
+        if (pendingSendRef.current && simliSendRef.current) {
+          simliSendRef.current(pcm)
+          pendingSendRef.current = false
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  function handleSendAudio(fn: (pcm: Uint8Array) => void) {
+    simliSendRef.current = fn
+    if (pendingSendRef.current && welcomePcmRef.current) {
+      fn(welcomePcmRef.current)
+      pendingSendRef.current = false
+    }
+  }
+
+  // On first interaction: play MP3 through speakers + send PCM to Simli for mouth sync
   useEffect(() => {
     let fired = false
     const fire = () => {
@@ -195,14 +265,25 @@ export default function LandingPage() {
       window.removeEventListener("touchstart", fire)
       window.removeEventListener("scroll",     fire)
 
-      // Safari audio unlock — synchronous with gesture
       const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
       sa.volume = 0; sa.play().catch(() => {})
 
-      if (hasSpokenRef.current || !audioRef.current) return
+      if (hasSpokenRef.current) return
       hasSpokenRef.current = true
       setSpeaking(true)
-      audioRef.current.play().catch(() => setSpeaking(false))
+
+      // Speakers
+      const audio = new Audio("/galileo-welcome.mp3")
+      audio.onended = () => setSpeaking(false)
+      audio.onerror = () => setSpeaking(false)
+      audio.play().catch(() => setSpeaking(false))
+
+      // Simli lip sync
+      if (welcomePcmRef.current && simliSendRef.current) {
+        simliSendRef.current(welcomePcmRef.current)
+      } else {
+        pendingSendRef.current = true
+      }
     }
 
     window.addEventListener("click",      fire, { once: true })
@@ -224,12 +305,7 @@ export default function LandingPage() {
       {/* ── HERO ── */}
       <div style={{ width: "100%", maxWidth: 760, textAlign: "center", padding: "64px 24px 52px" }}>
         <div style={{ margin: "0 auto 32px" }}>
-          <GalileoCircle
-            state={speaking ? "speaking" : "idle"}
-            size={300}
-            showName={false}
-            showStars={false}
-          />
+          <GalileoWelcome speaking={speaking} onSendAudio={handleSendAudio} />
         </div>
         <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(44px, 9vw, 88px)", letterSpacing: "0.15em", marginBottom: 8, lineHeight: 1 }} className="text-shimmer">
           GALILEO
