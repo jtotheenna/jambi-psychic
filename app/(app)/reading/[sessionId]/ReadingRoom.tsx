@@ -6,11 +6,9 @@ import GemProgress from "@/components/GemProgress"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
 
 
-import TarotCard from "@/components/TarotCard"
 import ChatBubble from "@/components/ChatBubble"
 import { TAROT_DECK } from "@/lib/tarot"
 import { playBoxOpen, playCardReveal, playGalileoSpeak, playSessionEnd } from "@/lib/sounds"
-import { getSpreadLayout } from "@/lib/tarot"
 import { speakStreaming } from "@/lib/speak"
 
 // Browser Speech Recognition (voice input)
@@ -142,6 +140,9 @@ export default function ReadingRoom({
   const [voiceMode, setVoiceMode] = useState(false)
   const [interimTranscript, setInterimTranscript] = useState("")
 
+  const [expandedCard, setExpandedCard] = useState<ReturnType<typeof findCardData> | null>(null)
+  const [expandedCardMeta, setExpandedCardMeta] = useState<{ position?: string; reversed?: boolean } | null>(null)
+
   const voice = useGalileoVoice()
   const language = "en"
   const simliSendRef    = useRef<((pcm: Uint8Array) => void) | null>(null)
@@ -173,6 +174,7 @@ export default function ReadingRoom({
 
   const isVoiceMode = voiceMode
 
+  useEffect(() => { voice.open() }, []) // eslint-disable-line — immediate Simli connection on mount
   // Keep hook in sync with local state
   useEffect(() => { voice.setAvatarState(avatarState) }, [avatarState]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (hasStarted) voice.open() }, [hasStarted]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -562,81 +564,82 @@ export default function ReadingRoom({
           </div>
         )}
 
-        {/* Full-width card spread — sticky, laid out in spread shape */}
+        {/* Compact card thumbnails — tap any to see full detail */}
         {drawnCardData.length > 0 && (
-          <div style={{ background: "rgba(4,2,14,0.92)", backdropFilter: "blur(12px)", borderRadius: 10, padding: "10px 8px 8px", border: "1px solid rgba(42,26,85,0.5)", marginBottom: 4 }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.25em", color: "#7a8ba8", textAlign: "center", marginBottom: 10 }}>
-              {spread ? spread.toUpperCase() : "THE CARDS"}
+          <div style={{ background: "rgba(4,2,14,0.9)", borderRadius: 10, padding: "10px 12px 10px", border: "1px solid rgba(42,26,85,0.5)" }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#4a3870", textAlign: "center", marginBottom: 10 }}>
+              {spread ? spread.toUpperCase() : "THE CARDS"} · TAP ANY CARD TO READ IT
             </div>
-            {(() => {
-              const allDealtCards = messages
-                .filter((m) => m.role === "galileo" && m.cards && m.cards.length > 0)
-                .flatMap((m, mi) => (m.cards || []).map((card, ci) => ({ card, mi, ci })))
-                .filter(({ card }) => findCardData(card.name))
-
-              const layout = getSpreadLayout(spread)
-              const clarifiers = allDealtCards.filter(({ card }) => card.position === "Clarifying")
-              const mainCards = allDealtCards.filter(({ card }) => card.position !== "Clarifying")
-
-              if (layout && mainCards.length === layout.length) {
-                // Compute grid dimensions
-                const maxCol = Math.max(...layout.map(p => p.col))
-                const maxRow = Math.max(...layout.map(p => p.row))
-                return (
-                  <div style={{ overflowX: "auto", paddingBottom: 4 }}>
-                    <div style={{
-                      display: "grid",
-                      gridTemplateColumns: `repeat(${maxCol}, 72px)`,
-                      gridTemplateRows: `repeat(${maxRow}, auto)`,
-                      gap: "8px 6px",
-                      justifyContent: "center",
-                      width: "fit-content",
-                      margin: "0 auto",
-                    }}>
-                      {mainCards.map(({ card, mi, ci }, idx) => {
-                        const pos = layout[idx]
-                        const cardData = findCardData(card.name)!
-                        return (
-                          <div key={`${mi}-${ci}`} style={{ gridColumn: pos.col, gridRow: pos.row, display: "flex", flexDirection: "column", alignItems: "center", transform: pos.rotate ? "rotate(90deg)" : "none" }}>
-                            <TarotCard card={cardData} position={card.position} revealDelay={idx * 200} isReversed={card.reversed} />
-                          </div>
-                        )
-                      })}
+            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, justifyContent: drawnCardData.length <= 5 ? "center" : "flex-start" }}>
+              {messages
+                .filter(m => m.role === "galileo" && m.cards && m.cards.length > 0)
+                .flatMap(m => m.cards || [])
+                .filter(c => findCardData(c.name))
+                .map((c, idx) => {
+                  const cardData = findCardData(c.name)!
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => { setExpandedCard(cardData); setExpandedCardMeta({ position: c.position, reversed: c.reversed }) }}
+                      style={{ flexShrink: 0, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, animation: `fadeUp 0.4s ease-out ${idx * 150}ms both` }}
+                    >
+                      <div style={{ width: 52, height: 74, borderRadius: 5, overflow: "hidden", border: "1px solid rgba(201,168,76,0.35)", boxShadow: "0 2px 8px rgba(0,0,0,0.5)", transform: c.reversed ? "rotate(180deg)" : "none", transition: "transform 0.15s ease, box-shadow 0.15s ease" }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 16px rgba(201,168,76,0.4)"; (e.currentTarget as HTMLDivElement).style.transform = `translateY(-3px)${c.reversed ? " rotate(180deg)" : ""}` }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 8px rgba(0,0,0,0.5)"; (e.currentTarget as HTMLDivElement).style.transform = c.reversed ? "rotate(180deg)" : "none" }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`/cards/${cardData.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")}.jpg`} alt={cardData.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                      </div>
+                      {c.position && (
+                        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 6, letterSpacing: "0.1em", color: "#4a3870", maxWidth: 56, textAlign: "center", lineHeight: 1.3 }}>
+                          {c.position.toUpperCase()}
+                        </div>
+                      )}
                     </div>
-                    {clarifiers.length > 0 && (
-                      <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 8 }}>
-                        {clarifiers.map(({ card, mi, ci }) => {
-                          const cardData = findCardData(card.name)!
-                          return (
-                            <div key={`${mi}-${ci}`} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", color: "#a5b4fc", marginBottom: 4 }}>✦ CLARIFYING</div>
-                              <TarotCard card={cardData} revealDelay={0} isReversed={card.reversed} />
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              }
+                  )
+                })}
+            </div>
+          </div>
+        )}
 
-              // Fallback: wrap in rows of 5
-              return (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", overflowX: "auto", paddingBottom: 4 }}>
-                  {allDealtCards.map(({ card, mi, ci }, idx) => {
-                    const cardData = findCardData(card.name)!
-                    const isClarifying = card.position === "Clarifying"
-                    return (
-                      <div key={`${mi}-${ci}`} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                        {isClarifying && <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", color: "#a5b4fc", marginBottom: 4 }}>✦ CLARIFYING</div>}
-                        <TarotCard card={cardData} position={isClarifying ? undefined : card.position} revealDelay={idx * 200} isReversed={card.reversed} />
-                      </div>
-                    )
-                  })}
+        {/* Card detail modal */}
+        {expandedCard && (
+          <div
+            onClick={() => setExpandedCard(null)}
+            style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(4,2,14,0.88)", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{ background: "linear-gradient(135deg, #130930, #0a0520)", border: "1px solid rgba(201,168,76,0.35)", borderRadius: 16, padding: "24px", maxWidth: 380, width: "100%", display: "flex", gap: 20, alignItems: "flex-start", boxShadow: "0 0 60px rgba(201,168,76,0.1)" }}
+            >
+              <div style={{ flexShrink: 0, width: 90, height: 126, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(201,168,76,0.3)", transform: expandedCardMeta?.reversed ? "rotate(180deg)" : "none" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/cards/${expandedCard.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")}.jpg`} alt={expandedCard.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.15em", color: "#c9a84c", marginBottom: 4 }}>
+                  {expandedCard.name.toUpperCase()}
                 </div>
-              )
-            })()
-            }
+                {expandedCardMeta?.position && (
+                  <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.12em", color: "#4a3870", marginBottom: 10 }}>
+                    {expandedCardMeta.reversed ? "REVERSED · " : ""}{expandedCardMeta.position.toUpperCase()}
+                  </div>
+                )}
+                <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#8878a8", lineHeight: 1.65, marginBottom: 12 }}>
+                  {expandedCardMeta?.reversed ? expandedCard.reversedMeaning : expandedCard.uprightMeaning}
+                </p>
+                {expandedCard.keywords?.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 14 }}>
+                    {expandedCard.keywords.slice(0, 4).map((kw: string, i: number) => (
+                      <span key={i} style={{ fontFamily: "'Cinzel', serif", fontSize: 7, letterSpacing: "0.1em", color: "#4a3870", border: "1px solid rgba(42,26,85,0.6)", borderRadius: 3, padding: "2px 6px" }}>{kw.toUpperCase()}</span>
+                    ))}
+                  </div>
+                )}
+                <button onClick={() => setExpandedCard(null)} style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", color: "#4a3870", background: "none", border: "none", cursor: "pointer" }}>
+                  CLOSE ✦
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

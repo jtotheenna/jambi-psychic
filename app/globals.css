@@ -133,6 +133,10 @@ body::after {
   0%, 100% { opacity: 0.8; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.05); }
 }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 .animate-moon-pulse { animation: moonPulse 3s ease-in-out infinite; }
 .animate-glow-pulse { animation: glowPulse 4s ease-in-out infinite; }
 .animate-thinking { animation: thinkingGlow 1.5s ease-in-out infinite; }

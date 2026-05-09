@@ -91,7 +91,7 @@ const SECTIONS: { title: string; subtitle: string; readings: ReadingCard[] }[] =
         href: "/signup",
       },
       {
-        icon: "🕯", name: "Guide Message", price: "$7", color: "#a78bfa",
+        icon: "🕯", name: "Guide Message", price: "$5", color: "#a78bfa",
         glow: "rgba(167,139,250,0.25)", border: "rgba(167,139,250,0.2)",
         tagline: "No question needed. Receive the message.",
         desc: "If you do not know what to ask, open this reading and let Galileo speak a message for your current moment. A short oracle reading for reflection, grounding, and clarity.",
