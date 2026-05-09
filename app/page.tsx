@@ -173,21 +173,27 @@ function ReadingCard({ icon, name, price, color, glow, border, tagline, desc, bt
   )
 }
 
-// Shows pre-recorded video while speaking, then stays as live GalileoCircle
+// Shows pre-recorded video while speaking (plays once, no loop), then stays as live GalileoCircle
 function GalileoWelcome({ speaking, onSendAudio }: { speaking: boolean; onSendAudio: (fn: (pcm: Uint8Array) => void) => void }) {
-  const [hasVideo, setHasVideo] = useState(false)
+  const [hasVideo, setHasVideo]     = useState(false)
   const [videoPlaying, setVideoPlaying] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const [circleState, setCircleState]   = useState<"closed" | "idle" | "speaking">("closed")
+  const videoRef   = useRef<HTMLVideoElement>(null)
+  const spokenOnce = useRef(false)
 
   useEffect(() => {
-    // Check if the pre-recorded video exists
     fetch("/galileo-speaking.webm", { method: "HEAD" })
       .then(r => { if (r.ok) setHasVideo(true) })
       .catch(() => {})
+    // Trigger static reveal after brief pause
+    const t = setTimeout(() => setCircleState("idle"), 600)
+    return () => clearTimeout(t)
   }, [])
 
   useEffect(() => {
-    if (hasVideo && speaking && videoRef.current) {
+    if (!speaking || spokenOnce.current) return
+    spokenOnce.current = true
+    if (hasVideo && videoRef.current) {
       videoRef.current.currentTime = 0
       videoRef.current.play().catch(() => {})
       setVideoPlaying(true)
@@ -197,9 +203,10 @@ function GalileoWelcome({ speaking, onSendAudio }: { speaking: boolean; onSendAu
   const size = 300
 
   return (
-    <div style={{ position: "relative", width: size, height: size }}>
-      {/* Pre-recorded video layer — shows only while welcome plays */}
+    <div style={{ position: "relative", width: size, height: size, margin: "0 auto" }}>
+      {/* Pre-recorded welcome video — plays once only, no loop */}
       {hasVideo && (
+        // eslint-disable-next-line jsx-a11y/media-has-caption
         <video
           ref={videoRef}
           src="/galileo-speaking.webm"
@@ -210,13 +217,13 @@ function GalileoWelcome({ speaking, onSendAudio }: { speaking: boolean; onSendAu
             borderRadius: "50%", objectFit: "cover", objectPosition: "center top",
             opacity: videoPlaying ? 1 : 0,
             transition: "opacity 0.5s ease",
-            zIndex: 2,
+            zIndex: 10,
           }}
         />
       )}
-      {/* Live GalileoCircle underneath / after video ends */}
+      {/* Live GalileoCircle — static reveal then Simli idle */}
       <GalileoCircle
-        state={!hasVideo && speaking ? "speaking" : "idle"}
+        state={!hasVideo && speaking ? "speaking" : circleState}
         size={size}
         showName={false}
         showStars={false}
@@ -299,12 +306,9 @@ export default function LandingPage() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 1 }}>
 
-      <div style={{ position: "fixed", top: 16, right: 16, zIndex: 50 }}>
-      </div>
-
       {/* ── HERO ── */}
-      <div style={{ width: "100%", maxWidth: 760, textAlign: "center", padding: "64px 24px 52px" }}>
-        <div style={{ margin: "0 auto 32px" }}>
+      <div style={{ width: "100%", maxWidth: 760, textAlign: "center", padding: "64px 24px 52px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ marginBottom: 32 }}>
           <GalileoWelcome speaking={speaking} onSendAudio={handleSendAudio} />
         </div>
         <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(44px, 9vw, 88px)", letterSpacing: "0.15em", marginBottom: 8, lineHeight: 1 }} className="text-shimmer">

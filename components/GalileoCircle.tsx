@@ -117,10 +117,14 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
     }
     if (!hasOpenedRef.current) {
       hasOpenedRef.current = true
-      // No static — face revealed as soon as Simli connects
-      setFaceVisible(true)
-      setInternalState(state)
-      onReady?.()
+      // Static flickers on → face materialises through it → static fades
+      setStaticOpacity(1)
+      setTimeout(() => {
+        setFaceVisible(true)
+        setInternalState(state)
+        onReady?.()
+        setTimeout(() => setStaticOpacity(0), 400)
+      }, 1400)
     } else {
       setInternalState(state)
     }
@@ -175,14 +179,8 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
           transition: "box-shadow 0.5s ease, border-color 0.5s ease",
           background: "#04020e",
         }}>
-          {/* Subtle pulse while Simli connects */}
-          {!simliReady && (
-            <div style={{
-              position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none",
-              background: "radial-gradient(ellipse at center, rgba(124,58,237,0.12) 0%, transparent 70%)",
-              animation: "moonPulse 2s ease-in-out infinite",
-            }} />
-          )}
+          {/* TV static — shows during reveal, fades when face appears */}
+          <CircleStatic opacity={staticOpacity} />
 
           <video
             ref={videoRef}
