@@ -173,7 +173,7 @@ export default async function DashboardPage() {
 
           {card("🕯", "GUIDE MESSAGE", "rgba(167,139,250,0.3)", "rgba(167,139,250,0.2)",
             "No question needed. Receive a message for your current moment.",
-            "$3 · SHORT ORACLE READING · SPOKEN ALOUD",
+            "$7 · SHORT ORACLE READING · SPOKEN ALOUD",
             <Link href="/guide" style={{ padding: "9px 20px", borderRadius: 7, border: "1px solid rgba(167,139,250,0.4)", background: "rgba(167,139,250,0.08)", color: "#a78bfa", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", textDecoration: "none", whiteSpace: "nowrap" }}>BEGIN ✦</Link>
           )}
         </div>
@@ -185,7 +185,7 @@ export default async function DashboardPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {card("♡", "LOVE ORACLE", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.2)",
             "Ask about a relationship, a person, or your own heart. He speaks what needs to be seen.",
-            "$25 · 5 EXCHANGES · SPOKEN ALOUD",
+            "$15 · 5 EXCHANGES · SPOKEN ALOUD",
             <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "love", status: "active", exchangesTotal: 5 } }); redirect("/love") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>,
             activeLove, "/love", activeLove ? abandonBtn(activeLove.id) : undefined
           )}
