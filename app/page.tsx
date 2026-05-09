@@ -172,9 +172,9 @@ function ReadingCard({ icon, name, price, color, glow, border, tagline, desc, bt
   )
 }
 
-// Landing page circle: pre-recorded video plays once (no loop, no Simli cost),
-// then shows static glow circle. Fallback: MP3 audio + GalileoCircle if no video.
-function GalileoWelcome({ speaking }: { speaking: boolean }) {
+// Landing page circle: live Simli face (idle), pre-recorded video plays on button click,
+// then face returns to idle. Fallback: MP3 + idle circle if no video file.
+function GalileoWelcome({ speaking, onDone }: { speaking: boolean; onDone?: () => void }) {
   const [videoSrc, setVideoSrc]         = useState<string | null>(null)
   const [videoPlaying, setVideoPlaying] = useState(false)
   const [circleState, setCircleState]   = useState<"closed" | "idle" | "speaking">("closed")
@@ -195,20 +195,18 @@ function GalileoWelcome({ speaking }: { speaking: boolean }) {
   }, [])
 
   useEffect(() => {
-    if (!speaking || spokenOnce.current) return
-    spokenOnce.current = true
+    if (!speaking) return
+    spokenOnce.current = false // allow re-play on button re-click
     if (videoSrc && videoRef.current) {
-      // Video has embedded audio from the recording — let it handle playback
       videoRef.current.currentTime = 0
       videoRef.current.play().catch(() => {})
       setVideoPlaying(true)
-    } else if (!videoSrc) {
-      // No video yet — play the MP3 directly
+    } else {
       const audio = new Audio("/galileo-welcome.mp3")
-      audio.onended = () => setCircleState("idle")
-      audio.play().catch(() => {})
+      audio.onended = () => { setCircleState("idle"); onDone?.() }
+      audio.play().catch(() => onDone?.())
     }
-  }, [speaking, videoSrc])
+  }, [speaking, videoSrc, onDone])
 
   const size = 240
 
@@ -221,7 +219,7 @@ function GalileoWelcome({ speaking }: { speaking: boolean }) {
           ref={videoRef}
           src={videoSrc}
           playsInline
-          onEnded={() => { setVideoPlaying(false); setCircleState("idle") }}
+          onEnded={() => { setVideoPlaying(false); setCircleState("idle"); onDone?.() }}
           style={{
             position: "absolute", inset: 0, width: "100%", height: "100%",
             borderRadius: "50%", objectFit: "cover", objectPosition: "center top",
@@ -244,42 +242,41 @@ function GalileoWelcome({ speaking }: { speaking: boolean }) {
 
 export default function LandingPage() {
   const [speaking, setSpeaking] = useState(false)
-  const hasSpokenRef = useRef(false)
 
-  // First click or touch unlocks audio and triggers welcome
-  // Scroll is intentionally excluded — Safari doesn't count it as a gesture for audio
-  useEffect(() => {
-    let fired = false
-    const fire = () => {
-      if (fired) return; fired = true
-      window.removeEventListener("click",      fire)
-      window.removeEventListener("touchstart", fire)
-
-      // Safari audio context unlock
-      const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
-      sa.volume = 0; sa.play().catch(() => {})
-
-      if (hasSpokenRef.current) return
-      hasSpokenRef.current = true
-      setSpeaking(true)
-      // GalileoWelcome plays the video (with embedded audio) or MP3 fallback
-    }
-
-    window.addEventListener("click",      fire, { once: true })
-    window.addEventListener("touchstart", fire, { once: true })
-    return () => {
-      window.removeEventListener("click",      fire)
-      window.removeEventListener("touchstart", fire)
-    }
-  }, []) // eslint-disable-line
+  function hearGalileo() {
+    if (speaking) return
+    // Safari audio unlock
+    const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
+    sa.volume = 0; sa.play().catch(() => {})
+    setSpeaking(true)
+    // GalileoWelcome plays the video (with audio) or falls back to MP3
+  }
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 1 }}>
 
       {/* ── HERO ── */}
       <div style={{ width: "100%", maxWidth: 760, textAlign: "center", padding: "64px 24px 52px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div style={{ marginBottom: 32 }}>
-          <GalileoWelcome speaking={speaking} />
+        <div style={{ marginBottom: 20, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+          <GalileoWelcome speaking={speaking} onDone={() => setSpeaking(false)} />
+          <button
+            onClick={hearGalileo}
+            disabled={speaking}
+            style={{
+              padding: "11px 32px", borderRadius: 8, cursor: speaking ? "default" : "pointer",
+              border: `1px solid ${speaking ? "rgba(165,180,252,0.6)" : "rgba(165,180,252,0.3)"}`,
+              background: speaking ? "rgba(79,70,229,0.18)" : "rgba(79,70,229,0.06)",
+              color: speaking ? "#c8d4e8" : "#9a8ab8",
+              fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.22em",
+              transition: "all 0.25s ease", display: "flex", alignItems: "center", gap: 10,
+              boxShadow: speaking ? "0 0 24px rgba(165,180,252,0.15)" : "none",
+            }}
+          >
+            <span style={{ width: 20, height: 20, borderRadius: "50%", border: `1px solid ${speaking ? "rgba(165,180,252,0.6)" : "rgba(165,180,252,0.3)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, flexShrink: 0 }}>
+              {speaking ? "◼" : "▶"}
+            </span>
+            {speaking ? "GALILEO IS SPEAKING…" : "HEAR GALILEO"}
+          </button>
         </div>
         <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(44px, 9vw, 88px)", letterSpacing: "0.15em", marginBottom: 8, lineHeight: 1 }} className="text-shimmer">
           GALILEO

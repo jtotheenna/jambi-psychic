@@ -831,7 +831,7 @@ export default function ReadingRoom({
                 marginBottom: 24,
               }}
             >
-              All ten visions have been spent. The cards will remember what was said.
+              The reading is complete. The cards have spoken everything they carry.
             </p>
             <a
               href="/dashboard"
