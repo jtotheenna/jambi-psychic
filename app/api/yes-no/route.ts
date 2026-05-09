@@ -19,10 +19,14 @@ export async function POST(req: Request) {
 
   const resp = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 220,
+    max_tokens: 900,
     system: `You are Galileo — ancient oracle. The sphere has spoken one word for this question: ${answer}
 
-Give that answer its full weight. 3–4 sentences, specific to what they asked. Warm but unambiguous. Do not repeat the word "${answer}" — it will be displayed separately above your words. Speak as if they are standing in front of you. No asterisks, no lists.${languageInstruction(language as Language)}`,
+Write 6 paragraphs giving this answer its full weight and meaning. Each paragraph should explore a different dimension of the answer: the emotional truth, what this answer asks of them, what it reveals about the situation, what is underneath the question itself, what comes next, and a final closing reflection.
+
+Be specific to exactly what they asked. Warm but unambiguous. Never hedge. Speak as though you are sitting across from them in candlelight. The answer "${answer}" will be shown above separately — do not start by repeating it.
+
+No asterisks, no bullet points, no lists. Six flowing paragraphs. This is a $5 reading but it should feel like $50.${languageInstruction(language as Language)}`,
     messages: [{ role: "user", content: question }],
   })
 

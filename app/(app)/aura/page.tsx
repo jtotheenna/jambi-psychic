@@ -124,13 +124,13 @@ export default function AuraPage() {
     const src = URL.createObjectURL(file)
     setImagePreview(src)
 
-    // Extract colors once image loads
+    // Extract colors — keep src alive, it's also used as imagePreview
     const img = new Image()
     img.onload = () => {
       const colors = extractColors(img)
       setDetectedColors(colors)
       setAuraGlow(buildAuraGlow(colors))
-      URL.revokeObjectURL(src)
+      // Don't revoke src here — imagePreview still holds this URL for display
     }
     img.src = src
   }
