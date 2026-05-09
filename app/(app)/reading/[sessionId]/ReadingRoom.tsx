@@ -440,7 +440,9 @@ export default function ReadingRoom({
 
   async function sendMessageText(text: string) {
     if (!text.trim() || loadingRef.current || isComplete) return
-
+    // Unlock audio within user gesture
+    const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
+    sa.volume = 0; sa.play().catch(() => {})
     setInput("")
     setLoading(true)
 

@@ -110,6 +110,9 @@ export default function CartomancyPage() {
   async function sendMessage(text?: string) {
     const msg = (text ?? input).trim()
     if (!msg || loading || isComplete) return
+    // Unlock audio within user gesture before async API call
+    const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
+    sa.volume = 0; sa.play().catch(() => {})
     setInput("")
     setLoading(true)
     voice.setAvatarState("thinking")
