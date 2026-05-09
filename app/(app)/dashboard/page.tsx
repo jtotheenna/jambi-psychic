@@ -240,7 +240,7 @@ export default async function DashboardPage() {
               Your complete birth chart — every planet, every aspect, every pattern. The sky at the exact moment you arrived. Galileo reads it all.
             </p>
             <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              $10 · FULL NATAL CHART · 3 FOLLOW-UP QUESTIONS · SPOKEN ALOUD
+              $7 · FULL NATAL CHART · SPOKEN ALOUD
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>

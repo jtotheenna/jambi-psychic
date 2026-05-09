@@ -76,7 +76,7 @@ export default function LandingPage() {
       btn: "CHOOSE CARTOMANCY",
     },
     {
-      icon: "✦", name: "Natal Chart", price: "$10", color: "#fbbf24", glow: "rgba(251,191,36,0.3)", border: "rgba(251,191,36,0.25)",
+      icon: "✦", name: "Natal Chart", price: "$7", color: "#fbbf24", glow: "rgba(251,191,36,0.3)", border: "rgba(251,191,36,0.25)",
       tagline: "Your complete birth chart. Every planet. Every aspect. The whole sky.",
       desc: "Enter your birth date, time, and city. Galileo calculates your real planetary positions and delivers a full natal chart reading — Sun, Moon, Rising, all planets, aspects, and the overarching story of your chart.",
       btn: "CHOOSE NATAL CHART",

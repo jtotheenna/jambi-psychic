@@ -144,9 +144,12 @@ export default function AstrologyPage() {
     setChart(data.chart)
     setLoading(false)
 
-    // Speak the first paragraph automatically
-    const firstPara = data.reading.split("\n\n")[0] || data.reading.slice(0, 400)
-    await speakText(firstPara)
+    // Speak the full reading paragraph by paragraph
+    const paras = data.reading.split("\n\n").filter((p: string) => p.trim().length > 20)
+    for (const para of paras) {
+      await speakText(para)
+      await new Promise(r => setTimeout(r, 300))
+    }
   }
 
   const canSubmit = name.trim() && birthDate && birthCity.trim() && !loading
@@ -255,7 +258,10 @@ export default function AstrologyPage() {
                 ✦ NATAL CHART READING — {name.toUpperCase()}
               </div>
               <button
-                onClick={() => speakText(reading.split("\n\n")[0] || reading.slice(0, 400))}
+                onClick={async () => {
+                  const paras = reading.split("\n\n").filter(p => p.trim().length > 20)
+                  for (const para of paras) { await speakText(para); await new Promise(r => setTimeout(r, 300)) }
+                }}
                 disabled={speaking}
                 style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", color: speaking ? "#a5b4fc" : "#7a8ba8", background: "none", border: `1px solid ${speaking ? "rgba(165,180,252,0.4)" : "rgba(42,26,85,0.5)"}`, borderRadius: 6, padding: "5px 12px", cursor: speaking ? "default" : "pointer" }}
               >

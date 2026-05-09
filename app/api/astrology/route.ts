@@ -102,9 +102,11 @@ Write a comprehensive natal chart reading for ${name}. This is a one-time sacred
 
 11. THE NORTH NODE — Their soul's evolutionary direction. Where they came from (South Node), what they are growing toward, the invitation this lifetime carries.
 
-12. THE THEME — Close with a synthesis: what is the central story of this chart? What is ${name.split(" ")[0]} here to do, experience, and give to the world?
+12. THE CHINESE ZODIAC — Calculate their Chinese zodiac animal from their birth year and interpret it: the animal's core nature, its shadow, how it interacts with their Western chart. If the two systems agree, say so. If they create tension, explore it.
 
-Write at least 1,000 words. Use ${name.split(" ")[0]}'s name throughout. Be specific to their actual placements — never generic. This reading should feel like a letter written from the stars directly to them. Begin immediately without preamble.`
+13. THE THEME — Close with a synthesis: what is the central story of this chart? What is ${name.split(" ")[0]} here to do, experience, and give to the world?
+
+Write at least 1,200 words. Use ${name.split(" ")[0]}'s name throughout. Be specific to their actual placements — never generic. This reading should feel like a letter written from the stars directly to them. Begin immediately without preamble.`
 }
 
 export async function POST(req: Request) {
