@@ -2,10 +2,8 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
-
-
 import GalileoCircle from "@/components/GalileoCircle"
-import { playBoxOpen } from "@/lib/sounds"
+import { audioBlobToPCM } from "@/components/FloatingSimli"
 
 type ReadingCard = {
   icon: string; name: string; price: string; color: string; glow: string; border: string
@@ -176,46 +174,58 @@ function ReadingCard({ icon, name, price, color, glow, border, tagline, desc, bt
 }
 
 export default function LandingPage() {
-  const [playing, setPlaying] = useState(false)
-  const [glowing, setGlowing] = useState(false)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [speaking, setSpeaking] = useState(false)
+  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
+  const hasSpokenRef = useRef(false)
 
-  useEffect(() => {
-    audioRef.current = new Audio("/galileo-welcome.mp3")
-    audioRef.current.onended = () => { setPlaying(false); setGlowing(false) }
-    return () => { audioRef.current?.pause() }
-  }, [])
-
+  // On first interaction, unlock audio and have Galileo speak the welcome
   useEffect(() => {
     let fired = false
-    const fire = () => {
+    const fire = async () => {
       if (fired) return; fired = true
-      playBoxOpen()
-      window.removeEventListener("mousemove", fire); window.removeEventListener("touchstart", fire)
-      window.removeEventListener("click", fire); window.removeEventListener("keydown", fire)
+      window.removeEventListener("click", fire)
+      window.removeEventListener("touchstart", fire)
+      window.removeEventListener("scroll", fire)
+
+      // Safari audio unlock
+      const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
+      sa.volume = 0; sa.play().catch(() => {})
+
+      if (hasSpokenRef.current) return
+      hasSpokenRef.current = true
+
+      try {
+        const res = await fetch("/galileo-welcome.mp3")
+        const blob = await res.blob()
+        const pcm = await audioBlobToPCM(blob)
+        setSpeaking(true)
+        if (simliSendRef.current) {
+          simliSendRef.current(pcm)
+          const durationMs = Math.max((pcm.length / 32000) * 1000 + 1500, 3000)
+          await new Promise(r => setTimeout(r, durationMs))
+        } else {
+          // Simli not yet connected — play directly
+          const src = URL.createObjectURL(blob)
+          await new Promise<void>(resolve => {
+            const audio = new Audio(src)
+            audio.onended = () => { URL.revokeObjectURL(src); resolve() }
+            audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
+            audio.play().catch(() => resolve())
+          })
+        }
+      } catch { /* silent */ }
+      setSpeaking(false)
     }
-    const t = setTimeout(() => {
-      window.addEventListener("mousemove", fire, { once: true }); window.addEventListener("touchstart", fire, { once: true })
-      window.addEventListener("click", fire, { once: true }); window.addEventListener("keydown", fire, { once: true })
-    }, 3200)
+
+    window.addEventListener("click",      fire, { once: true })
+    window.addEventListener("touchstart", fire, { once: true })
+    window.addEventListener("scroll",     fire, { once: true })
     return () => {
-      clearTimeout(t)
-      window.removeEventListener("mousemove", fire); window.removeEventListener("touchstart", fire)
-      window.removeEventListener("click", fire); window.removeEventListener("keydown", fire)
+      window.removeEventListener("click",      fire)
+      window.removeEventListener("touchstart", fire)
+      window.removeEventListener("scroll",     fire)
     }
-  }, [])
-
-  function hearGalileo() {
-    if (!audioRef.current) return
-    if (playing) {
-      audioRef.current.pause(); audioRef.current.currentTime = 0
-      setPlaying(false); setGlowing(false)
-    } else {
-      audioRef.current.play().catch(() => {}); setPlaying(true); setGlowing(true)
-    }
-  }
-
-  void glowing
+  }, []) // eslint-disable-line
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 1 }}>
@@ -226,7 +236,13 @@ export default function LandingPage() {
       {/* ── HERO ── */}
       <div style={{ width: "100%", maxWidth: 760, textAlign: "center", padding: "64px 24px 52px" }}>
         <div style={{ margin: "0 auto 32px" }}>
-          <GalileoCircle state={playing ? "speaking" : "idle"} size={300} showName={false} showStars={false} />
+          <GalileoCircle
+            state={speaking ? "speaking" : "idle"}
+            size={300}
+            showName={false}
+            showStars={false}
+            onSendAudio={(fn) => { simliSendRef.current = fn }}
+          />
         </div>
         <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(44px, 9vw, 88px)", letterSpacing: "0.15em", marginBottom: 8, lineHeight: 1 }} className="text-shimmer">
           GALILEO
@@ -244,13 +260,7 @@ export default function LandingPage() {
           <Link href="/signup" style={{ padding: "20px 64px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.7)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.28em", textDecoration: "none", display: "inline-block", boxShadow: "0 0 60px rgba(201,168,76,0.12), 0 4px 24px rgba(0,0,0,0.5)" }}>
             START MY READING ✦
           </Link>
-          <button onClick={hearGalileo} style={{ padding: "13px 36px", borderRadius: 8, cursor: "pointer", border: `1px solid ${playing ? "rgba(165,180,252,0.7)" : "rgba(165,180,252,0.3)"}`, background: playing ? "rgba(79,70,229,0.2)" : "rgba(79,70,229,0.06)", color: playing ? "#c8d4e8" : "#9a8ab8", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.22em", transition: "all 0.25s ease", display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ width: 22, height: 22, borderRadius: "50%", border: `1px solid ${playing ? "rgba(165,180,252,0.6)" : "rgba(165,180,252,0.3)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10 }}>
-              {playing ? "◼" : "▶"}
-            </span>
-            {playing ? "GALILEO IS SPEAKING..." : "HEAR GALILEO FIRST"}
-          </button>
-          <Link href="/login" style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#6a5a8a", textDecoration: "none", fontStyle: "italic", marginTop: 4 }}>
+          <Link href="/login" style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#6a5a8a", textDecoration: "none", fontStyle: "italic" }}>
             I have been here before
           </Link>
         </div>
