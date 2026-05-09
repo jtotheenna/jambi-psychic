@@ -1,9 +1,10 @@
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID
-
+// Set ELEVENLABS_ENABLED=false in .env.local to skip TTS during development
+const ELEVENLABS_ENABLED = process.env.ELEVENLABS_ENABLED !== "false"
 
 export async function textToSpeech(text: string): Promise<ReadableStream | null> {
-  if (!ELEVENLABS_API_KEY || !ELEVENLABS_VOICE_ID) return null
+  if (!ELEVENLABS_API_KEY || !ELEVENLABS_VOICE_ID || !ELEVENLABS_ENABLED) return null
 
   const response = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`,

@@ -50,7 +50,7 @@ CARDS_DRAWN: ${JSON.stringify(preDrawnCards)}
 The cards drawn are:
 ${preDrawnCards.map((c, i) => `  ${i + 1}. ${c.position}: ${c.name}${c.reversed ? " (REVERSED)" : " (upright)"}`).join("\n")}
 
-THIS IS THE FULL READING. Read every single card — all ${preDrawnCards.length} of them. For each card: 1-2 sentences maximum. Lead with one sharp image detail from the card, then land it directly on their situation. No preamble. No "this card represents" or "the imagery here shows." Just: image → their life. Read every position. No bullet points. No card list at the end. End with one question only this spread could have produced.`
+THIS IS THE FULL READING. Read every single card now — all ${preDrawnCards.length} of them. For each card: name it, describe a specific detail from the actual card image, then connect that image directly to this person's situation. Read every position. Do not summarize at the end with a list of card names — the reading IS the prose. No bullet points. No card list at the bottom. End with one question that only this exact spread could have produced.`
     : `THE SPREAD IS CLOSED. Never output CARDS_DRAWN. Never invent new cards. Interpret the existing cards deeply in response to whatever they share.
 
 CLARIFYING CARD RULE — read carefully:
@@ -62,10 +62,10 @@ CLARIFYING CARD RULE — read carefully:
   const dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" })
 
   const lengthGuide = voiceMode
-    ? `VOICE — 2-3 vivid spoken sentences. No lists.`
+    ? `VOICE — 3-4 rich spoken sentences. No lists.`
     : preDrawnCards
-      ? `TEXT — Full card reading. Every card gets 1-2 tight sentences. No filler, no setup phrases. Total length scales with card count — a 3-card spread is 3-6 sentences, a 10-card spread is 10-20 sentences. Dense, specific, no wasted words.`
-      : `TEXT — Follow-up. 3-4 sentences max. Dense and specific. No summarizing what you just said.`
+      ? `TEXT — This is the full card reading. Be complete and specific. Read every card. 5-8 sentences minimum. Worth reading twice.`
+      : `TEXT — Follow-up exchange. 4-6 sentences. Dense and specific. No summaries of what you just said.`
 
   const closingArc = exchangesLeft >= 4
     ? ""
@@ -229,7 +229,7 @@ You have just appeared. Welcome them by name, warmly and briefly — one sentenc
 
   const resp = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: voiceMode ? 200 : preDrawnCards ? 1200 : 500,
+    max_tokens: voiceMode ? 300 : preDrawnCards ? 1800 : 700,
     system: systemPrompt,
     messages: anthropicMessages,
   })
