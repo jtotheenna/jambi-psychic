@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { useRef, useState } from "react"
 import GalileoCircle from "@/components/GalileoCircle"
-import { speakStreaming } from "@/lib/speak"
 
 // ── Reading data ──────────────────────────────────────────────────────────────
 
@@ -148,19 +147,33 @@ function ReadingCard({ icon, name, price, color, glow, border, tagline, desc, hr
 
 // ── Landing page ──────────────────────────────────────────────────────────────
 
-const GALILEO_INTRO = "Ahhh. There you are. I am Galileo — the Celestial Oracle. Bring me what you are carrying. The cards do not shout. They reveal."
-
 export default function LandingPage() {
   const [speaking, setSpeaking] = useState(false)
-  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
-  async function hearGalileo() {
+  // Pre-load on mount so the button fires instantly
+  useState(() => {
+    if (typeof window !== "undefined") {
+      const a = new Audio("/galileo-welcome.mp3")
+      a.preload = "auto"
+      a.onended = () => setSpeaking(false)
+      a.onerror = () => setSpeaking(false)
+      audioRef.current = a
+    }
+  })
+
+  function hearGalileo() {
     if (speaking) return
+    // Safari audio unlock
     const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
     sa.volume = 0; sa.play().catch(() => {})
     setSpeaking(true)
-    await speakStreaming(GALILEO_INTRO, simliSendRef.current)
-    setSpeaking(false)
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0
+      audioRef.current.play().catch(() => setSpeaking(false))
+    } else {
+      setSpeaking(false)
+    }
   }
 
   return (
@@ -176,7 +189,6 @@ export default function LandingPage() {
             size={220}
             showName={false}
             showStars={false}
-            onSendAudio={fn => { simliSendRef.current = fn }}
           />
         </div>
 
