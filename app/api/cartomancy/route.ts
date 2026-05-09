@@ -43,7 +43,7 @@ ${cards.length > 0 ? `CARDS IN THIS READING: ${cards.join(", ")}` : ""}
 Questions remaining: ${exchangesLeft}.
 ${exchangesLeft === 1 ? "FINAL QUESTION. Give them everything you have left. No question at the end — close it completely." : ""}
 ${exchangesLeft === 0 ? "Last words. Make them real." : ""}
-${voiceMode ? "VOICE: 3-4 dense spoken sentences." : "TEXT: Be generous — 4-6 sentences. These cards deserve a full reading."}${languageInstruction(language as Language)}`
+${voiceMode ? "VOICE: 2-3 vivid spoken sentences." : "TEXT: Read every card. 1-2 tight sentences per card — lead with the card itself, land on their life. No preamble, no padding. Scale with card count: a 3-card spread gets 3-6 sentences, a 7-card spread gets 7-14 sentences."}${languageInstruction(language as Language)}`
 }
 
 export async function POST(req: Request) {
@@ -138,7 +138,7 @@ Welcome them warmly in one sentence. Then ask: what question do they bring to th
   if (drawnCards) {
     anthropicMessages.push({
       role: "user",
-      content: `${userContent}\n\n[THE ${spreadName?.toUpperCase() || "SPREAD"} HAS BEEN DEALT:\n${drawnCards.map(c => `  ${c.position}: ${c.name} (${c.suit}) — ${c.uprightMeaning}`).join("\n")}]\n\nThis is the full reading. Only 7 exchanges total exist — so read ALL of it now, completely. Name every card, interpret every position specifically for this person and their question. Don't hold anything back for later. Give them a complete, rich reading in this response.`
+      content: `${userContent}\n\n[THE ${spreadName?.toUpperCase() || "SPREAD"} HAS BEEN DEALT:\n${drawnCards.map(c => `  ${c.position}: ${c.name} (${c.suit}) — ${c.uprightMeaning}`).join("\n")}]\n\nFull reading now. Every card, every position — 1-2 sentences each, no filler. Image first, their life second. End with one question.`
     })
   } else {
     anthropicMessages.push({ role: "user", content: userContent })
@@ -146,7 +146,7 @@ Welcome them warmly in one sentence. Then ask: what question do they bring to th
 
   const resp = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: voiceMode ? 300 : drawnCards ? 1600 : 700,
+    max_tokens: voiceMode ? 200 : drawnCards ? 1000 : 450,
     system: systemPrompt,
     messages: anthropicMessages,
   })
