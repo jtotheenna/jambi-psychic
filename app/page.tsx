@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import GalileoCircle from "@/components/GalileoCircle"
-import { audioBlobToPCM } from "@/components/FloatingSimli"
 
 type ReadingCard = {
   icon: string; name: string; price: string; color: string; glow: string; border: string
@@ -175,46 +174,35 @@ function ReadingCard({ icon, name, price, color, glow, border, tagline, desc, bt
 
 export default function LandingPage() {
   const [speaking, setSpeaking] = useState(false)
-  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
+  const audioRef     = useRef<HTMLAudioElement | null>(null)
   const hasSpokenRef = useRef(false)
 
-  // On first interaction, unlock audio and have Galileo speak the welcome
+  // Pre-load the welcome audio on mount so it's ready instantly
+  useEffect(() => {
+    const audio = new Audio("/galileo-welcome.mp3")
+    audio.preload = "auto"
+    audio.onended = () => setSpeaking(false)
+    audio.onerror  = () => setSpeaking(false)
+    audioRef.current = audio
+  }, [])
+
+  // On first interaction unlock audio context then play
   useEffect(() => {
     let fired = false
-    const fire = async () => {
+    const fire = () => {
       if (fired) return; fired = true
-      window.removeEventListener("click", fire)
+      window.removeEventListener("click",      fire)
       window.removeEventListener("touchstart", fire)
-      window.removeEventListener("scroll", fire)
+      window.removeEventListener("scroll",     fire)
 
-      // Safari audio unlock
+      // Safari audio unlock — synchronous with gesture
       const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
       sa.volume = 0; sa.play().catch(() => {})
 
-      if (hasSpokenRef.current) return
+      if (hasSpokenRef.current || !audioRef.current) return
       hasSpokenRef.current = true
-
-      try {
-        const res = await fetch("/galileo-welcome.mp3")
-        const blob = await res.blob()
-        const pcm = await audioBlobToPCM(blob)
-        setSpeaking(true)
-        if (simliSendRef.current) {
-          simliSendRef.current(pcm)
-          const durationMs = Math.max((pcm.length / 32000) * 1000 + 1500, 3000)
-          await new Promise(r => setTimeout(r, durationMs))
-        } else {
-          // Simli not yet connected — play directly
-          const src = URL.createObjectURL(blob)
-          await new Promise<void>(resolve => {
-            const audio = new Audio(src)
-            audio.onended = () => { URL.revokeObjectURL(src); resolve() }
-            audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
-            audio.play().catch(() => resolve())
-          })
-        }
-      } catch { /* silent */ }
-      setSpeaking(false)
+      setSpeaking(true)
+      audioRef.current.play().catch(() => setSpeaking(false))
     }
 
     window.addEventListener("click",      fire, { once: true })
@@ -241,7 +229,6 @@ export default function LandingPage() {
             size={300}
             showName={false}
             showStars={false}
-            onSendAudio={(fn) => { simliSendRef.current = fn }}
           />
         </div>
         <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(44px, 9vw, 88px)", letterSpacing: "0.15em", marginBottom: 8, lineHeight: 1 }} className="text-shimmer">
