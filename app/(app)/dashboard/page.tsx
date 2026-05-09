@@ -173,7 +173,7 @@ export default async function DashboardPage() {
               Every planet. Every house. Every aspect. Your complete birth chart interpreted by Galileo — a sacred document of who you are and what you are here to do.
             </p>
             <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              $10 · ONE-TIME FULL CHART · SPOKEN ALOUD
+              $7 · ONE-TIME FULL CHART · SPOKEN ALOUD
             </p>
             {pastAstrology.length > 0 && (
               <p style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#4a3870", letterSpacing: "0.1em", marginTop: 6 }}>
