@@ -45,7 +45,7 @@ const SECTIONS: { title: string; subtitle: string; readings: ReadingCard[] }[] =
         btn: "CHOOSE MOON", href: "/signup",
       },
       {
-        icon: "✦", name: "Natal Chart", price: "$7", color: "#fbbf24", glow: "rgba(251,191,36,0.3)", border: "rgba(251,191,36,0.25)",
+        icon: "✦", name: "Natal Chart", price: "$10", color: "#fbbf24", glow: "rgba(251,191,36,0.3)", border: "rgba(251,191,36,0.25)",
         tagline: "Your complete birth chart. Every planet. Every aspect.",
         desc: "Enter your birth date, time, and city. Galileo calculates your real planetary positions and delivers a full natal chart reading — Sun, Moon, Rising, all planets, aspects, and the overarching story of your chart.",
         btn: "CHOOSE NATAL CHART", href: "/signup",
@@ -69,7 +69,7 @@ const SECTIONS: { title: string; subtitle: string; readings: ReadingCard[] }[] =
     subtitle: "What the physical carries that the mind doesn't say.",
     readings: [
       {
-        icon: "✋", name: "Palm Reading", price: "$5", color: "#c8d4e8", glow: "rgba(200,212,232,0.25)", border: "rgba(200,212,232,0.2)",
+        icon: "✋", name: "Palm Reading", price: "$10", color: "#c8d4e8", glow: "rgba(200,212,232,0.25)", border: "rgba(200,212,232,0.2)",
         tagline: "Upload your palm. Hear what the lines reveal.",
         desc: "Take a photo of your dominant hand, and Galileo reads the lines, mounts, shape, and symbols. Your reading is spoken aloud in full — a complete palm reading in his old, wise voice.",
         btn: "CHOOSE PALM", href: "/signup",
@@ -93,7 +93,7 @@ const SECTIONS: { title: string; subtitle: string; readings: ReadingCard[] }[] =
         btn: "CHOOSE DREAM READING", href: "/signup",
       },
       {
-        icon: "🕯", name: "Guide Message", price: "$2", color: "#a78bfa", glow: "rgba(167,139,250,0.25)", border: "rgba(167,139,250,0.2)",
+        icon: "🕯", name: "Guide Message", price: "$3", color: "#a78bfa", glow: "rgba(167,139,250,0.25)", border: "rgba(167,139,250,0.2)",
         tagline: "No question needed. Receive the message.",
         desc: "If you do not know what to ask, open this reading and let Galileo speak a message for your current moment. A short oracle reading for reflection, grounding, and clarity.",
         btn: "CHOOSE GUIDE MESSAGE", href: "/signup",
@@ -123,7 +123,7 @@ const SECTIONS: { title: string; subtitle: string; readings: ReadingCard[] }[] =
     subtitle: "For love, connection, longing, and the truth beneath relationships.",
     readings: [
       {
-        icon: "♡", name: "Love Oracle", price: "$15", color: "#e879a0", glow: "rgba(232,121,160,0.3)", border: "rgba(232,121,160,0.25)",
+        icon: "♡", name: "Love Oracle", price: "$25", color: "#e879a0", glow: "rgba(232,121,160,0.3)", border: "rgba(232,121,160,0.25)",
         tagline: "A spoken reading for love, connection, and the heart.",
         desc: "Ask about a relationship, a person, a pattern, or your own heart. Galileo reads the emotional energy around the situation and speaks what needs to be seen — clearly, gently, and honestly. Up to 5 exchanges.",
         btn: "CHOOSE LOVE ORACLE", href: "/signup",

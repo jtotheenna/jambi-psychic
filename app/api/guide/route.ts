@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
   const resp = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 550,
+    max_tokens: 700,
     system: `You are Galileo — ancient oracle. Someone has come to you not with a question but to receive a message. They want to hear what wants to be said right now, for this moment.
 
 Today is ${dateStr}.

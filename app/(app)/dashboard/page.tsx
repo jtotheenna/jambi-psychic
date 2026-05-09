@@ -132,7 +132,7 @@ export default async function DashboardPage() {
                   Every planet. Every house. Every aspect. Your complete birth chart, spoken aloud.
                 </p>
                 <p style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#7a8ba8", letterSpacing: "0.1em" }}>
-                  $7 · ONE-TIME FULL CHART · SPOKEN ALOUD{pastAstrology.length > 0 ? ` · ${pastAstrology.length} ALREADY READ` : ""}
+                  $10 · ONE-TIME FULL CHART · SPOKEN ALOUD{pastAstrology.length > 0 ? ` · ${pastAstrology.length} ALREADY READ` : ""}
                 </p>
               </div>
               <Link href="/astrology" style={{ padding: "9px 20px", borderRadius: 7, border: "1px solid rgba(251,191,36,0.4)", background: "rgba(251,191,36,0.08)", color: "#fbbf24", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", textDecoration: "none", whiteSpace: "nowrap" }}>BEGIN ✦</Link>
@@ -147,7 +147,7 @@ export default async function DashboardPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {card("✋", "PALM READING", "rgba(200,212,232,0.25)", "rgba(200,212,232,0.2)",
             "Upload a photo of your palm. Galileo reads your lines, mounts, and soul — spoken aloud.",
-            "$5 · FULL HAND READING · SPOKEN ALOUD",
+            "$10 · FULL HAND READING · SPOKEN ALOUD",
             <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "palm", status: "active", exchangesTotal: 5 } }); redirect("/palm") }}>{beginBtn("rgba(200,212,232,0.25)", "rgba(200,212,232,0.35)")}</form>,
             activePalm, "/palm", activePalm ? abandonBtn(activePalm.id) : undefined
           )}
@@ -173,7 +173,7 @@ export default async function DashboardPage() {
 
           {card("🕯", "GUIDE MESSAGE", "rgba(167,139,250,0.3)", "rgba(167,139,250,0.2)",
             "No question needed. Receive a message for your current moment.",
-            "$2 · SHORT ORACLE READING · SPOKEN ALOUD",
+            "$3 · SHORT ORACLE READING · SPOKEN ALOUD",
             <Link href="/guide" style={{ padding: "9px 20px", borderRadius: 7, border: "1px solid rgba(167,139,250,0.4)", background: "rgba(167,139,250,0.08)", color: "#a78bfa", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", textDecoration: "none", whiteSpace: "nowrap" }}>BEGIN ✦</Link>
           )}
         </div>
@@ -185,7 +185,7 @@ export default async function DashboardPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {card("♡", "LOVE ORACLE", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.2)",
             "Ask about a relationship, a person, or your own heart. He speaks what needs to be seen.",
-            "$15 · 5 EXCHANGES · SPOKEN ALOUD",
+            "$25 · 5 EXCHANGES · SPOKEN ALOUD",
             <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "love", status: "active", exchangesTotal: 5 } }); redirect("/love") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>,
             activeLove, "/love", activeLove ? abandonBtn(activeLove.id) : undefined
           )}

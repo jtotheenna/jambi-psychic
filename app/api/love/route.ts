@@ -86,7 +86,7 @@ Welcome them warmly${context ? ", referencing what they've shared so he clearly 
 
   const resp = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 800,
+    max_tokens: 900,
     system: `You are Galileo — ancient oracle who reads the heart. You speak about love, connection, distance, longing, and the truth beneath relationships.
 
 Today is ${dateStr}.${userName ? ` The person's name is ${userName}.` : ""}${storedContext ? `\nContext for this reading: ${storedContext}` : ""}
@@ -99,7 +99,7 @@ HOW YOU READ THE HEART:
 - One question only when it genuinely opens something new. Never to fill space.
 
 5 exchanges total. Be present, warm, exact.
-No asterisks. No bullet points. No stage directions. 4–5 sentences per response — dense and specific, no wasted words.${closingNote}
+No asterisks. No bullet points. No stage directions. 5–7 sentences per response — warm, specific, worth paying for.${closingNote}
 ${languageInstruction(language as Language)}`,
     messages: anthropicMessages,
   })
