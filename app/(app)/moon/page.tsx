@@ -8,7 +8,7 @@ import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { getMoonData, type MoonData } from "@/lib/moon"
 import { getStoredLanguage } from "@/lib/language"
 import LanguageSelector from "@/components/LanguageSelector"
-import { audioBlobToPCM } from "@/components/FloatingSimli"
+import { speakStreaming } from "@/lib/speak"
 
 function useDraggable() {
   const [pos, setPos] = useState({ x: 0, y: 0 })
@@ -88,40 +88,8 @@ export default function MoonPage() {
     voice.setLoading(false)
     setLoading(false)
 
-    // Speak opening hook only — saves TTS credits, full reading shown as text
-    const firstPara = data.reading.slice(0, 300).replace(/\s\S+$/, "…")
     voice.setAvatarState("speaking")
-    try {
-      const res2 = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: firstPara }) })
-      if (res2.ok && res2.status !== 204) {
-        const blob = await res2.blob()
-        if (simliSendRef.current) {
-          try {
-            const pcm = await audioBlobToPCM(blob)
-            simliSendRef.current(pcm)
-            // Simli IS the speaker — wait for duration, don't double-play
-            const durationMs = Math.max((pcm.length / 32000) * 1000 + 1500, 2000)
-            await new Promise<void>(r => setTimeout(r, durationMs))
-          } catch {
-            const src = URL.createObjectURL(blob)
-            await new Promise<void>((resolve) => {
-              const audio = new Audio(src)
-              audio.onended = () => { URL.revokeObjectURL(src); resolve() }
-              audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
-              audio.play().catch(() => resolve())
-            })
-          }
-        } else {
-          const src = URL.createObjectURL(blob)
-          await new Promise<void>((resolve) => {
-            const audio = new Audio(src)
-            audio.onended = () => { URL.revokeObjectURL(src); resolve() }
-            audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
-            audio.play().catch(() => resolve())
-          })
-        }
-      }
-    } catch { /* silent fail */ }
+    await speakStreaming(data.reading, simliSendRef.current)
     voice.setAvatarState("idle")
   }
 

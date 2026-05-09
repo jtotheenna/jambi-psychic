@@ -11,7 +11,7 @@ import ChatBubble from "@/components/ChatBubble"
 import { TAROT_DECK } from "@/lib/tarot"
 import { playBoxOpen, playCardReveal, playGalileoSpeak, playSessionEnd } from "@/lib/sounds"
 import { getSpreadLayout } from "@/lib/tarot"
-import { audioBlobToPCM } from "@/components/FloatingSimli"
+import { speakStreaming } from "@/lib/speak"
 
 // Browser Speech Recognition (voice input)
 const SpeechRecognition =
@@ -38,29 +38,6 @@ type Props = {
 
 type AvatarState = "idle" | "thinking" | "speaking" | "closed"
 
-function playAudio(src: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const audio = new Audio(src)
-    audio.onended = () => { URL.revokeObjectURL(src); resolve(true) }
-    audio.onerror = () => { URL.revokeObjectURL(src); resolve(false) }
-    audio.play().catch(() => { URL.revokeObjectURL(src); resolve(false) })
-  })
-}
-
-async function fetchTTS(text: string): Promise<string | null> {
-  try {
-    const res = await fetch("/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    })
-    if (!res.ok || res.status === 204) return null
-    const blob = await res.blob()
-    return URL.createObjectURL(blob)
-  } catch {
-    return null
-  }
-}
 
 function findCardData(name: string) {
   return TAROT_DECK.find((c) => c.name === name)
@@ -71,13 +48,11 @@ function GalileoAnchor({
   hasStarted,
   avatarState,
   simliSendRef,
-  pendingPcmRef,
   simliActiveRef,
 }: {
   hasStarted: boolean
   avatarState: AvatarState
   simliSendRef: React.MutableRefObject<((pcm: Uint8Array) => void) | null>
-  pendingPcmRef: React.MutableRefObject<Uint8Array | null>
   simliActiveRef: React.MutableRefObject<boolean>
 }) {
   const [pos, setPos] = useState({ x: 0, y: 0 })
@@ -133,13 +108,7 @@ function GalileoAnchor({
           size={200}
           showName={false}
           showStars={false}
-          onSendAudio={(fn) => {
-            simliSendRef.current = fn
-            if (pendingPcmRef.current) {
-              fn(pendingPcmRef.current)
-              pendingPcmRef.current = null
-            }
-          }}
+          onSendAudio={(fn) => { simliSendRef.current = fn }}
           onSimliConnected={(yes) => { simliActiveRef.current = yes }}
         />
       </div>
@@ -177,8 +146,7 @@ export default function ReadingRoom({
   const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
   const simliSendRef    = useRef<((pcm: Uint8Array) => void) | null>(null)
   const simliActiveRef  = useRef(false)
-  const pendingPcmRef   = useRef<Uint8Array | null>(null)   // PCM buffered before Simli connects
-  const prefetchedRef   = useRef<{ response: string; audioSrc: string | null } | null>(null)
+  const prefetchedRef   = useRef<{ response: string } | null>(null)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -209,7 +177,7 @@ export default function ReadingRoom({
   useEffect(() => { voice.setAvatarState(avatarState) }, [avatarState]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (hasStarted) voice.open() }, [hasStarted]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Pre-fetch opening greeting + TTS while the page loads so voice is instant on first tap
+  // Pre-fetch opening greeting text while page loads — TTS streams on tap so no decode delay
   useEffect(() => {
     if (initialTranscript.length > 0) return
     let cancelled = false
@@ -223,9 +191,7 @@ export default function ReadingRoom({
         if (cancelled || !res.ok) return
         const data = await res.json()
         if (cancelled || !data.response) return
-        const audioSrc = await fetchTTS(data.response)
-        if (cancelled) { if (audioSrc) URL.revokeObjectURL(audioSrc); return }
-        prefetchedRef.current = { response: data.response, audioSrc }
+        prefetchedRef.current = { response: data.response }
       } catch { /* silent — handleBeginReading will fall back */ }
     }
     prefetch()
@@ -270,54 +236,21 @@ export default function ReadingRoom({
     }
     setAvatarState("speaking")
 
-    const audioUrl = await fetchTTS(text)
-    if (audioUrl) {
-      try {
-        const blob = await fetch(audioUrl).then(r => r.blob())
-        const pcm  = await audioBlobToPCM(blob)
-        if (simliSendRef.current) {
-          // Simli IS the speaker — skip separate playback to avoid double audio
-          simliSendRef.current(pcm)
-          const durationMs = Math.max((pcm.length / 32000) * 1000 + 1500, 2000)
-          await new Promise(r => setTimeout(r, durationMs))
-          URL.revokeObjectURL(audioUrl)
-        } else {
-          pendingPcmRef.current = pcm
-          const played = await playAudio(audioUrl)
-          if (!played) await new Promise(r => setTimeout(r, Math.min(text.length * 38, 5000)))
-        }
-      } catch {
-        const played = await playAudio(audioUrl)
-        if (!played) await new Promise(r => setTimeout(r, Math.min(text.length * 38, 5000)))
-      }
-    } else {
-      await new Promise((r) => setTimeout(r, Math.min(text.length * 38, 5000)))
-    }
+    await speakStreaming(text, simliSendRef.current)
     setAvatarState("idle")
     if (voiceModeRef.current) setTimeout(() => startAutoListening(), 600)
   }
 
-  function handleAvatarSpeakEnd() {
-    setAvatarState("idle")
-    if (voiceModeRef.current) setTimeout(() => startAutoListening(), 400)
-  }
-
   async function handleBeginReading() {
-    // Unlock HTML5 audio for Safari — must call .play() on an Audio element in the user gesture
     const silentAudio = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
     silentAudio.volume = 0
     silentAudio.play().catch(() => {})
-
     setHasStarted(true)
     setAvatarState("thinking")
     playBoxOpen()
     setLoading(true)
 
-    // Use pre-fetched greeting if ready, otherwise fetch now
-    const prefetched = prefetchedRef.current
-    let response: string | null = prefetched?.response ?? null
-    let audioSrc: string | null = prefetched?.audioSrc ?? null
-
+    let response = prefetchedRef.current?.response ?? null
     if (!response) {
       try {
         const res = await fetch(`/api/reading/${sessionId}/chat`, {
@@ -326,36 +259,15 @@ export default function ReadingRoom({
           body: JSON.stringify({ message: "__OPENING__", language }),
         })
         const data = await res.json()
-        if (res.ok && data.response) {
-          response = data.response
-          audioSrc = await fetchTTS(data.response)
-        }
-      } catch { /* fall through to idle */ }
+        if (res.ok) response = data.response ?? null
+      } catch { /* fall through */ }
     }
 
     if (response) {
       setMessages([{ role: "galileo", content: response }])
       setLoading(false)
       setAvatarState("speaking")
-      if (audioSrc) {
-        try {
-          const blob = await fetch(audioSrc).then(r => r.blob())
-          const pcm  = await audioBlobToPCM(blob)
-          if (simliSendRef.current) {
-            simliSendRef.current(pcm)
-            const durationMs = Math.max((pcm.length / 32000) * 1000 + 1500, 2000)
-            await new Promise(r => setTimeout(r, durationMs))
-            URL.revokeObjectURL(audioSrc)
-          } else {
-            pendingPcmRef.current = pcm
-            await playAudio(audioSrc)
-          }
-        } catch {
-          await playAudio(audioSrc!)
-        }
-      } else {
-        await new Promise((r) => setTimeout(r, Math.min(response!.length * 38, 6000)))
-      }
+      await speakStreaming(response, simliSendRef.current)
     }
     setAvatarState("idle")
     setLoading(false)
@@ -607,7 +519,6 @@ export default function ReadingRoom({
           hasStarted={hasStarted}
           avatarState={avatarState}
           simliSendRef={simliSendRef}
-          pendingPcmRef={pendingPcmRef}
           simliActiveRef={simliActiveRef}
         />
 

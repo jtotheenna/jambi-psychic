@@ -4,6 +4,7 @@ import { useState, useRef } from "react"
 import Link from "next/link"
 import { getStoredLanguage } from "@/lib/language"
 import LanguageSelector from "@/components/LanguageSelector"
+import { speakStreaming } from "@/lib/speak"
 import type { NatalChart, PlanetPos } from "@/lib/astroCalc"
 
 const PLANET_SYMBOLS: Record<string, string> = {
@@ -98,19 +99,7 @@ export default function AstrologyPage() {
 
   async function speakText(text: string) {
     setSpeaking(true)
-    try {
-      const res = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) })
-      if (res.ok && res.status !== 204) {
-        const blob = await res.blob()
-        const src = URL.createObjectURL(blob)
-        await new Promise<void>((resolve) => {
-          const audio = new Audio(src)
-          audio.onended = () => { URL.revokeObjectURL(src); resolve() }
-          audio.onerror = () => { URL.revokeObjectURL(src); resolve() }
-          audio.play().catch(() => resolve())
-        })
-      }
-    } catch { /* silent */ }
+    await speakStreaming(text, null)
     setSpeaking(false)
   }
 

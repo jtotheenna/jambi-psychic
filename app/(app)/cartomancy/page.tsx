@@ -9,7 +9,7 @@ import LanguageSelector from "@/components/LanguageSelector"
 import GemProgress from "@/components/GemProgress"
 import CartomancyCard from "@/components/CartomancyCard"
 import { playBoxOpen, playCardReveal, playSessionEnd } from "@/lib/sounds"
-import { audioBlobToPCM } from "@/components/FloatingSimli"
+import { speakStreaming } from "@/lib/speak"
 
 type CardDrawn = { name: string; suit: string; rank: string; position?: string }
 type Message = { role: "user" | "galileo"; content: string; cards?: CardDrawn[] }
@@ -40,41 +40,7 @@ export default function CartomancyPage() {
 
   const speakWithSimli = useCallback(async (text: string) => {
     voice.setAvatarState("speaking")
-    try {
-      const res = await fetch("/api/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      })
-      if (res.ok && res.status !== 204) {
-        const blob = await res.blob()
-        if (simliSendRef.current) {
-          try {
-            const pcm = await audioBlobToPCM(blob)
-            simliSendRef.current(pcm)
-            // Simli IS the speaker — wait for duration, don't double-play
-            const durationMs = Math.max((pcm.length / 32000) * 1000 + 1500, 2000)
-            await new Promise<void>(r => setTimeout(r, durationMs))
-          } catch {
-            const src = URL.createObjectURL(blob)
-            await new Promise<void>((resolve) => {
-              const audio = new Audio(src)
-              audio.onended = () => { URL.revokeObjectURL(src); resolve() }
-              audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
-              audio.play().catch(() => resolve())
-            })
-          }
-        } else {
-          const src = URL.createObjectURL(blob)
-          await new Promise<void>((resolve) => {
-            const audio = new Audio(src)
-            audio.onended = () => { URL.revokeObjectURL(src); resolve() }
-            audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
-            audio.play().catch(() => resolve())
-          })
-        }
-      }
-    } catch { /* silent */ }
+    await speakStreaming(text, simliSendRef.current)
     voice.setAvatarState("idle")
   }, [voice])
 

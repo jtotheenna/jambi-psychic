@@ -6,7 +6,7 @@ import GalileoPanel from "@/components/GalileoPanel"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { getStoredLanguage } from "@/lib/language"
 import LanguageSelector from "@/components/LanguageSelector"
-import { audioBlobToPCM } from "@/components/FloatingSimli"
+import { speakStreaming } from "@/lib/speak"
 
 async function compressImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -42,37 +42,7 @@ export default function PalmPage() {
 
   const speakWithSimli = useCallback(async (text: string) => {
     voice.setAvatarState("speaking")
-    try {
-      const res = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) })
-      if (res.ok && res.status !== 204) {
-        const blob = await res.blob()
-        if (simliSendRef.current) {
-          try {
-            const pcm = await audioBlobToPCM(blob)
-            simliSendRef.current(pcm)
-            // Simli IS the speaker — wait for duration, don't double-play
-            const durationMs = Math.max((pcm.length / 32000) * 1000 + 1500, 2000)
-            await new Promise<void>(r => setTimeout(r, durationMs))
-          } catch {
-            const src = URL.createObjectURL(blob)
-            await new Promise<void>((resolve) => {
-              const audio = new Audio(src)
-              audio.onended = () => { URL.revokeObjectURL(src); resolve() }
-              audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
-              audio.play().catch(() => resolve())
-            })
-          }
-        } else {
-          const src = URL.createObjectURL(blob)
-          await new Promise<void>((resolve) => {
-            const audio = new Audio(src)
-            audio.onended = () => { URL.revokeObjectURL(src); resolve() }
-            audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
-            audio.play().catch(() => resolve())
-          })
-        }
-      }
-    } catch { /* silent */ }
+    await speakStreaming(text, simliSendRef.current)
     voice.setAvatarState("idle")
   }, [voice])
 
@@ -113,10 +83,7 @@ export default function PalmPage() {
     voice.setLoading(false)
     setLoading(false)
 
-    // Speak first paragraph immediately
-    // Speak opening hook only — saves TTS credits, full reading shown as text
-    const hook = data.reading.slice(0, 300).replace(/\s\S+$/, "…")
-    await speakWithSimli(hook)
+    await speakWithSimli(data.reading)
   }
 
   return (

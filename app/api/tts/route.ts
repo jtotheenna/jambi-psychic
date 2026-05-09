@@ -12,6 +12,6 @@ export async function POST(req: Request) {
   if (!stream) return new Response(null, { status: 204 })
 
   return new Response(stream, {
-    headers: { "Content-Type": "audio/mpeg" },
+    headers: { "Content-Type": "audio/pcm" },
   })
 }
