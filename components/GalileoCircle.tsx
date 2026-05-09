@@ -186,6 +186,7 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
             ref={videoRef}
             autoPlay
             playsInline
+            muted
             style={{
               position: "absolute", top: "-10%", left: 0,
               width: "100%", height: "120%",

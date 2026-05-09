@@ -173,19 +173,24 @@ function ReadingCard({ icon, name, price, color, glow, border, tagline, desc, bt
   )
 }
 
-// Shows pre-recorded video while speaking (plays once, no loop), then stays as live GalileoCircle
+// Landing page circle: pre-recorded video plays once (no loop, no Simli cost),
+// then shows static glow circle. Only uses Simli if no video file exists yet.
 function GalileoWelcome({ speaking, onSendAudio }: { speaking: boolean; onSendAudio: (fn: (pcm: Uint8Array) => void) => void }) {
-  const [hasVideo, setHasVideo]     = useState(false)
+  const [videoSrc, setVideoSrc]         = useState<string | null>(null)
   const [videoPlaying, setVideoPlaying] = useState(false)
   const [circleState, setCircleState]   = useState<"closed" | "idle" | "speaking">("closed")
   const videoRef   = useRef<HTMLVideoElement>(null)
   const spokenOnce = useRef(false)
 
   useEffect(() => {
-    fetch("/galileo-speaking.webm", { method: "HEAD" })
-      .then(r => { if (r.ok) setHasVideo(true) })
+    // Prefer mp4, fall back to webm
+    fetch("/galileo-speaking.mp4", { method: "HEAD" })
+      .then(r => { if (r.ok) setVideoSrc("/galileo-speaking.mp4") })
       .catch(() => {})
-    // Trigger static reveal after brief pause
+    fetch("/galileo-speaking.webm", { method: "HEAD" })
+      .then(r => { if (r.ok) setVideoSrc(v => v ?? "/galileo-speaking.webm") })
+      .catch(() => {})
+    // Trigger static reveal
     const t = setTimeout(() => setCircleState("idle"), 600)
     return () => clearTimeout(t)
   }, [])
@@ -193,23 +198,23 @@ function GalileoWelcome({ speaking, onSendAudio }: { speaking: boolean; onSendAu
   useEffect(() => {
     if (!speaking || spokenOnce.current) return
     spokenOnce.current = true
-    if (hasVideo && videoRef.current) {
+    if (videoSrc && videoRef.current) {
       videoRef.current.currentTime = 0
       videoRef.current.play().catch(() => {})
       setVideoPlaying(true)
     }
-  }, [speaking, hasVideo])
+  }, [speaking, videoSrc])
 
-  const size = 300
+  const size = 240
 
   return (
     <div style={{ position: "relative", width: size, height: size, margin: "0 auto" }}>
-      {/* Pre-recorded welcome video — plays once only, no loop */}
-      {hasVideo && (
+      {/* Pre-recorded video — plays once, no Simli session, zero cost per visit */}
+      {videoSrc && (
         // eslint-disable-next-line jsx-a11y/media-has-caption
         <video
           ref={videoRef}
-          src="/galileo-speaking.webm"
+          src={videoSrc}
           playsInline
           onEnded={() => setVideoPlaying(false)}
           style={{
@@ -221,14 +226,34 @@ function GalileoWelcome({ speaking, onSendAudio }: { speaking: boolean; onSendAu
           }}
         />
       )}
-      {/* Live GalileoCircle — static reveal then Simli idle */}
-      <GalileoCircle
-        state={!hasVideo && speaking ? "speaking" : circleState}
-        size={size}
-        showName={false}
-        showStars={false}
-        onSendAudio={onSendAudio}
-      />
+      {/* GalileoCircle: static reveal + Simli idle (only when no video file) */}
+      {!videoSrc && (
+        <GalileoCircle
+          state={speaking ? "speaking" : circleState}
+          size={size}
+          showName={false}
+          showStars={false}
+          onSendAudio={onSendAudio}
+        />
+      )}
+      {/* When video exists: just show the glow ring + static circle after video */}
+      {videoSrc && (
+        <div style={{
+          position: "absolute", inset: 0, borderRadius: "50%",
+          border: "2px solid rgba(201,168,76,0.45)",
+          boxShadow: "0 0 30px rgba(201,168,76,0.3), 0 8px 40px rgba(0,0,0,0.7)",
+          background: "#04020e",
+          zIndex: videoPlaying ? -1 : 1,
+        }}>
+          {/* Spinning glow ring */}
+          <div style={{
+            position: "absolute", inset: -10, borderRadius: "50%",
+            background: "conic-gradient(from 0deg, rgba(201,168,76,0.3), rgba(165,180,252,0.12), rgba(201,168,76,0.3))",
+            animation: "spin 8s linear infinite",
+            filter: "blur(3px)",
+          }} />
+        </div>
+      )}
     </div>
   )
 }
