@@ -95,7 +95,13 @@ Welcome them warmly in one sentence. Then ask: what question do they bring to th
     // Save greeting to transcript so first real message knows cards haven't been dealt yet
     await prisma.readingSession.update({
       where: { id: cartSession!.id },
-      data: { transcript: JSON.stringify([{ role: "galileo", content: greeting }]) },
+      data: {
+        transcript: JSON.stringify([{ role: "galileo", content: greeting }]),
+        cardsDrawn: null,
+        spread: null,
+        question: null,
+        exchangesUsed: 0,
+      },
     })
 
     return Response.json({
@@ -138,7 +144,7 @@ Welcome them warmly in one sentence. Then ask: what question do they bring to th
   if (drawnCards) {
     anthropicMessages.push({
       role: "user",
-      content: `${userContent}\n\n[THE ${spreadName?.toUpperCase() || "SPREAD"} HAS BEEN DEALT:\n${drawnCards.map(c => `  ${c.position}: ${c.name} (${c.suit}) — ${c.uprightMeaning}`).join("\n")}]\n\nThis is the full reading. Only 7 exchanges total exist — so read ALL of it now, completely. Name every card, interpret every position specifically for this person and their question. Don't hold anything back for later. Give them a complete, rich reading in this response.`
+      content: `${userContent}\n\n[THE ${spreadName?.toUpperCase() || "SPREAD"} HAS BEEN DEALT:\n${drawnCards.map(c => `  ${c.position}: ${c.name} (${c.suit}) — ${c.uprightMeaning}`).join("\n")}]\n\nThis is the full reading. Only 5 exchanges total — read ALL the cards now, completely. Name every card, interpret every position specifically for this person and their question. Give everything now.`
     })
   } else {
     anthropicMessages.push({ role: "user", content: userContent })

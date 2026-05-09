@@ -29,7 +29,7 @@ export default function CartomancyPage() {
   const [loading, setLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [exchangesUsed, setExchangesUsed] = useState(0)
-  const [exchangesTotal] = useState(7)
+  const [exchangesTotal, setExchangesTotal] = useState(5)
   const [isComplete, setIsComplete] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
   const [allCards, setAllCards] = useState<CardDrawn[]>([])
@@ -93,6 +93,7 @@ export default function CartomancyPage() {
     if (!res.ok) { setLoading(false); voice.setLoading(false); return }
 
     if (!sessionId && data.sessionId) setSessionId(data.sessionId)
+    if (data.exchangesTotal) setExchangesTotal(data.exchangesTotal)
     if (data.cards?.length > 0) {
       setAllCards(prev => [...prev, ...data.cards])
       // Chime for each card dealt
@@ -135,6 +136,7 @@ export default function CartomancyPage() {
             isListening={voice.isListening}
             interimTranscript={voice.interimTranscript}
             voiceSupported={voice.voiceSupported}
+            onSendAudio={(fn) => { simliSendRef.current = fn }}
           />
         </div>
 
