@@ -93,6 +93,7 @@ export default function AstrologyPage() {
   const [chart, setChart] = useState<NatalChart | null>(null)
   const [error, setError] = useState("")
   const [speaking, setSpeaking] = useState(false)
+  const [hasBeenRead, setHasBeenRead] = useState(false)
   const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
 
   async function speakText(text: string) {
@@ -144,11 +145,14 @@ export default function AstrologyPage() {
     setChart(data.chart)
     setLoading(false)
 
-    // Speak the full reading paragraph by paragraph
-    const paras = data.reading.split("\n\n").filter((p: string) => p.trim().length > 20)
-    for (const para of paras) {
-      await speakText(para)
-      await new Promise(r => setTimeout(r, 300))
+    // Speak the full reading paragraph by paragraph — once only
+    if (!hasBeenRead) {
+      setHasBeenRead(true)
+      const paras = data.reading.split("\n\n").filter((p: string) => p.trim().length > 20)
+      for (const para of paras) {
+        await speakText(para)
+        await new Promise(r => setTimeout(r, 80))
+      }
     }
   }
 
@@ -257,16 +261,12 @@ export default function AstrologyPage() {
               <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a8ba8" }}>
                 ✦ NATAL CHART READING — {name.toUpperCase()}
               </div>
-              <button
-                onClick={async () => {
-                  const paras = reading.split("\n\n").filter(p => p.trim().length > 20)
-                  for (const para of paras) { await speakText(para); await new Promise(r => setTimeout(r, 300)) }
-                }}
-                disabled={speaking}
-                style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", color: speaking ? "#a5b4fc" : "#7a8ba8", background: "none", border: `1px solid ${speaking ? "rgba(165,180,252,0.4)" : "rgba(42,26,85,0.5)"}`, borderRadius: 6, padding: "5px 12px", cursor: speaking ? "default" : "pointer" }}
-              >
-                {speaking ? "SPEAKING..." : "HEAR ▶"}
-              </button>
+              {!hasBeenRead && !speaking && (
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", color: "#4a3870" }}>SPOKEN ONCE</div>
+              )}
+              {speaking && (
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", color: "#a5b4fc" }}>SPEAKING...</div>
+              )}
             </div>
             {reading.split("\n\n").map((para, i) => (
               <p key={i} style={{ fontFamily: "'EB Garamond', serif", fontSize: 18, lineHeight: 1.9, color: "#ddd8f0", marginBottom: i < reading.split("\n\n").length - 1 ? 22 : 0 }}>
