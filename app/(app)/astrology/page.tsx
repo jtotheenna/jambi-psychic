@@ -187,28 +187,30 @@ export default function AstrologyPage() {
         <LanguageSelector compact />
       </div>
 
-      {/* Galileo — sticky at top */}
-      <div style={{ display: "flex", justifyContent: "center", position: "sticky", top: 57, zIndex: 30, background: "rgba(4,2,14,0.93)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(42,26,85,0.4)", padding: "10px 0" }}>
-        <GalileoPanel
-          avatarState={hasStarted ? voice.avatarState : "closed"}
-          hasStarted={hasStarted}
-          mode={voice.mode}
-          setMode={voice.setMode}
-          isListening={voice.isListening}
-          interimTranscript={voice.interimTranscript}
-          voiceSupported={voice.voiceSupported}
-        />
-      </div>
+      {/* Galileo — only shown after reading starts */}
+      {hasStarted && (
+        <div style={{ display: "flex", justifyContent: "center", padding: "16px 0", borderBottom: "1px solid rgba(42,26,85,0.4)" }}>
+          <GalileoPanel
+            avatarState={voice.avatarState}
+            hasStarted={true}
+            mode={voice.mode}
+            setMode={voice.setMode}
+            isListening={voice.isListening}
+            interimTranscript={voice.interimTranscript}
+            voiceSupported={voice.voiceSupported}
+          />
+        </div>
+      )}
 
       <div style={{ flex: 1, maxWidth: 760, width: "100%", margin: "0 auto", padding: "28px 16px 48px", display: "flex", flexDirection: "column", gap: 24 }}>
 
         {!hasStarted && (
           <>
-            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 18, color: "#c8d4e8", fontStyle: "italic", textAlign: "center", maxWidth: 520, margin: "0 auto" }}>
-              The sky remembers exactly where every planet stood at the moment you arrived. Enter your birth details and Galileo will read your complete natal chart.
+            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", textAlign: "center", maxWidth: 520, margin: "0 auto" }}>
+              Enter your birth details and Galileo will read your complete natal chart.
             </p>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 480, margin: "0 auto", width: "100%" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 480, margin: "0 auto", width: "100%" }}>
               {/* Name */}
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <label style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#7a8ba8" }}>FULL NAME</label>
@@ -216,7 +218,7 @@ export default function AstrologyPage() {
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="Your full name"
-                  style={{ background: "rgba(10,5,32,0.6)", border: "1px solid rgba(42,26,85,0.7)", borderRadius: 8, padding: "12px 16px", color: "#ddd8f0", fontFamily: "'EB Garamond', serif", fontSize: 17, outline: "none", width: "100%" }}
+                  style={{ background: "rgba(10,5,32,0.6)", border: "1px solid rgba(42,26,85,0.7)", borderRadius: 8, padding: "10px 14px", color: "#ddd8f0", fontFamily: "'EB Garamond', serif", fontSize: 16, outline: "none", width: "100%", boxSizing: "border-box" }}
                 />
               </div>
 
@@ -227,7 +229,7 @@ export default function AstrologyPage() {
                   type="date"
                   value={birthDate}
                   onChange={e => setBirthDate(e.target.value)}
-                  style={{ background: "rgba(10,5,32,0.6)", border: "1px solid rgba(42,26,85,0.7)", borderRadius: 8, padding: "12px 16px", color: "#ddd8f0", fontFamily: "'EB Garamond', serif", fontSize: 17, outline: "none", width: "100%", colorScheme: "dark" }}
+                  style={{ background: "rgba(10,5,32,0.6)", border: "1px solid rgba(42,26,85,0.7)", borderRadius: 8, padding: "10px 14px", color: "#ddd8f0", fontFamily: "'EB Garamond', serif", fontSize: 16, outline: "none", width: "100%", colorScheme: "dark", boxSizing: "border-box" }}
                 />
               </div>
 
@@ -240,7 +242,7 @@ export default function AstrologyPage() {
                   type="time"
                   value={birthTime}
                   onChange={e => setBirthTime(e.target.value)}
-                  style={{ background: "rgba(10,5,32,0.6)", border: "1px solid rgba(42,26,85,0.7)", borderRadius: 8, padding: "12px 16px", color: "#ddd8f0", fontFamily: "'EB Garamond', serif", fontSize: 17, outline: "none", width: "100%", colorScheme: "dark" }}
+                  style={{ background: "rgba(10,5,32,0.6)", border: "1px solid rgba(42,26,85,0.7)", borderRadius: 8, padding: "10px 14px", color: "#ddd8f0", fontFamily: "'EB Garamond', serif", fontSize: 16, outline: "none", width: "100%", colorScheme: "dark", boxSizing: "border-box" }}
                 />
               </div>
 
@@ -251,7 +253,7 @@ export default function AstrologyPage() {
                   value={birthCity}
                   onChange={e => setBirthCity(e.target.value)}
                   placeholder="e.g. Nashville, TN"
-                  style={{ background: "rgba(10,5,32,0.6)", border: "1px solid rgba(42,26,85,0.7)", borderRadius: 8, padding: "12px 16px", color: "#ddd8f0", fontFamily: "'EB Garamond', serif", fontSize: 17, outline: "none", width: "100%" }}
+                  style={{ background: "rgba(10,5,32,0.6)", border: "1px solid rgba(42,26,85,0.7)", borderRadius: 8, padding: "10px 14px", color: "#ddd8f0", fontFamily: "'EB Garamond', serif", fontSize: 16, outline: "none", width: "100%", boxSizing: "border-box" }}
                 />
               </div>
 
