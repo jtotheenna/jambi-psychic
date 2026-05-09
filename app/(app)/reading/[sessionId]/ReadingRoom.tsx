@@ -178,6 +178,7 @@ export default function ReadingRoom({
   const simliSendRef    = useRef<((pcm: Uint8Array) => void) | null>(null)
   const simliActiveRef  = useRef(false)
   const pendingPcmRef   = useRef<Uint8Array | null>(null)   // PCM buffered before Simli connects
+  const prefetchedRef   = useRef<{ response: string; audioSrc: string | null } | null>(null)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -207,6 +208,29 @@ export default function ReadingRoom({
   // Keep hook in sync with local state
   useEffect(() => { voice.setAvatarState(avatarState) }, [avatarState]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (hasStarted) voice.open() }, [hasStarted]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Pre-fetch opening greeting + TTS while the page loads so voice is instant on first tap
+  useEffect(() => {
+    if (initialTranscript.length > 0) return
+    let cancelled = false
+    async function prefetch() {
+      try {
+        const res = await fetch(`/api/reading/${sessionId}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: "__OPENING__", language }),
+        })
+        if (cancelled || !res.ok) return
+        const data = await res.json()
+        if (cancelled || !data.response) return
+        const audioSrc = await fetchTTS(data.response)
+        if (cancelled) { if (audioSrc) URL.revokeObjectURL(audioSrc); return }
+        prefetchedRef.current = { response: data.response, audioSrc }
+      } catch { /* silent — handleBeginReading will fall back */ }
+    }
+    prefetch()
+    return () => { cancelled = true }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-start the reading on first user interaction — no button tap needed
   // Browsers require a gesture before audio plays, so we wait for the first touch/click
@@ -287,49 +311,54 @@ export default function ReadingRoom({
     setHasStarted(true)
     setAvatarState("thinking")
     playBoxOpen()
-
     setLoading(true)
-    try {
-      const res = await fetch(`/api/reading/${sessionId}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "__OPENING__", language }),
-      })
-      const data = await res.json()
-      if (res.ok && data.response) {
-        // Fetch TTS immediately — no static delay anymore
-        const audioSrc = await fetchTTS(data.response)
-        setMessages([{ role: "galileo", content: data.response }])
-        setLoading(false)
-        setAvatarState("speaking")
-        if (audioSrc) {
-          try {
-            const blob = await fetch(audioSrc).then(r => r.blob())
-            const pcm  = await audioBlobToPCM(blob)
-            if (simliSendRef.current) {
-              simliSendRef.current(pcm)
-              const durationMs = Math.max((pcm.length / 32000) * 1000 + 1500, 2000)
-              await new Promise(r => setTimeout(r, durationMs))
-              URL.revokeObjectURL(audioSrc)
-            } else {
-              pendingPcmRef.current = pcm
-              await playAudio(audioSrc)
-            }
-          } catch {
+
+    // Use pre-fetched greeting if ready, otherwise fetch now
+    const prefetched = prefetchedRef.current
+    let response: string | null = prefetched?.response ?? null
+    let audioSrc: string | null = prefetched?.audioSrc ?? null
+
+    if (!response) {
+      try {
+        const res = await fetch(`/api/reading/${sessionId}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: "__OPENING__", language }),
+        })
+        const data = await res.json()
+        if (res.ok && data.response) {
+          response = data.response
+          audioSrc = await fetchTTS(data.response)
+        }
+      } catch { /* fall through to idle */ }
+    }
+
+    if (response) {
+      setMessages([{ role: "galileo", content: response }])
+      setLoading(false)
+      setAvatarState("speaking")
+      if (audioSrc) {
+        try {
+          const blob = await fetch(audioSrc).then(r => r.blob())
+          const pcm  = await audioBlobToPCM(blob)
+          if (simliSendRef.current) {
+            simliSendRef.current(pcm)
+            const durationMs = Math.max((pcm.length / 32000) * 1000 + 1500, 2000)
+            await new Promise(r => setTimeout(r, durationMs))
+            URL.revokeObjectURL(audioSrc)
+          } else {
+            pendingPcmRef.current = pcm
             await playAudio(audioSrc)
           }
-        } else {
-          await new Promise((r) => setTimeout(r, Math.min(data.response.length * 38, 6000)))
+        } catch {
+          await playAudio(audioSrc!)
         }
-        setAvatarState("idle")
       } else {
-        setAvatarState("idle")
-        setLoading(false)
+        await new Promise((r) => setTimeout(r, Math.min(response!.length * 38, 6000)))
       }
-    } catch {
-      setAvatarState("idle")
-      setLoading(false)
     }
+    setAvatarState("idle")
+    setLoading(false)
   }
 
   // ── Conversational voice mode ──────────────────────────────────────────────

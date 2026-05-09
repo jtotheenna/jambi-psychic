@@ -64,13 +64,13 @@ export default function LandingPage() {
 
   const readings = [
     {
-      icon: "★", name: "Tarot Reading", price: "$10", color: "#c9a84c", glow: "rgba(201,168,76,0.35)", border: "rgba(201,168,76,0.3)",
+      icon: "★", name: "Tarot Reading", price: "$15", color: "#c9a84c", glow: "rgba(201,168,76,0.35)", border: "rgba(201,168,76,0.3)",
       tagline: "Any question. A full 78-card deck. Up to 7 exchanges.",
       desc: "Ask what you need to know, and Galileo will draw from a fully shuffled tarot deck to speak your reading aloud. Each card is interpreted through your question, your energy, and the story unfolding across the spread.",
       btn: "CHOOSE TAROT",
     },
     {
-      icon: "♠", name: "Cartomancy", price: "$10", color: "#e879a0", glow: "rgba(232,121,160,0.3)", border: "rgba(232,121,160,0.25)",
+      icon: "♠", name: "Cartomancy", price: "$15", color: "#e879a0", glow: "rgba(232,121,160,0.3)", border: "rgba(232,121,160,0.25)",
       tagline: "The old language of playing cards. Direct, sharp, and strangely accurate.",
       desc: "Galileo draws from a shuffled 52-card deck of hearts, spades, diamonds, and clubs. Older in spirit, blunt in tone, and grounded in everyday fate, this reading speaks plainly about the question in front of you.",
       btn: "CHOOSE CARTOMANCY",

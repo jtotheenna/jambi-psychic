@@ -93,7 +93,7 @@ export default async function DashboardPage() {
               </p>
             )}
             <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              {activeTarot ? `${activeTarot.exchangesTotal - activeTarot.exchangesUsed} QUESTIONS REMAINING` : "$10 · 7 QUESTIONS · SPOKEN ALOUD"}
+              {activeTarot ? `${activeTarot.exchangesTotal - activeTarot.exchangesUsed} QUESTIONS REMAINING` : "$15 · 7 QUESTIONS · SPOKEN ALOUD"}
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
@@ -196,7 +196,7 @@ export default async function DashboardPage() {
               {activeCartomancy ? "Your cartomancy reading is open." : "The old language of playing cards. Direct, sharp, and strangely accurate. Galileo reads a full 52-card deck, spoken aloud."}
             </p>
             <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              {activeCartomancy ? `${activeCartomancy.exchangesTotal - activeCartomancy.exchangesUsed} QUESTIONS REMAINING` : "$10 · 7 QUESTIONS · SPOKEN ALOUD"}
+              {activeCartomancy ? `${activeCartomancy.exchangesTotal - activeCartomancy.exchangesUsed} QUESTIONS REMAINING` : "$15 · 7 QUESTIONS · SPOKEN ALOUD"}
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
