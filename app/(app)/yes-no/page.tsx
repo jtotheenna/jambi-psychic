@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
-
 import { speakStreaming } from "@/lib/speak"
+import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
 import GalileoPanel from "@/components/GalileoPanel"
 
 const ANSWER_COLORS: Record<string, string> = {
@@ -24,12 +24,13 @@ export default function YesNoPage() {
   const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const voice = useGalileoVoice()
   const language = "en"
+  useEffect(() => { voice.open() }, []) // eslint-disable-line
 
   async function consult() {
     if (!question.trim() || loading) return
     const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
     sa.volume = 0; sa.play().catch(() => {})
-
+    playBoxOpen()
     setHasStarted(true)
     setLoading(true)
     voice.setAvatarState("thinking")
@@ -45,6 +46,7 @@ export default function YesNoPage() {
     setAnswer(data.answer)
     setReading(data.reading)
     setLoading(false)
+    playSessionEnd()
     voice.setAvatarState("speaking")
     await speakStreaming(data.reading, simliSendRef.current)
     voice.setAvatarState("idle")
@@ -64,7 +66,7 @@ export default function YesNoPage() {
 
         <div style={{ display: "flex", justifyContent: "center" }}>
           <GalileoPanel
-            avatarState={hasStarted ? voice.avatarState : "closed"}
+            avatarState={voice.avatarState}
             hasStarted={hasStarted}
             mode={voice.mode}
             setMode={voice.setMode}

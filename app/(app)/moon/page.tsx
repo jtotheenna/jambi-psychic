@@ -8,6 +8,7 @@ import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { getMoonData, type MoonData } from "@/lib/moon"
 
 import { speakStreaming } from "@/lib/speak"
+import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
 
 function useDraggable() {
   const [pos, setPos] = useState({ x: 0, y: 0 })
@@ -70,6 +71,7 @@ export default function MoonPage() {
 
     setHasEntered(true)
     voice.open()
+    playBoxOpen()
     setLoading(true)
     voice.setLoading(true)
 
@@ -87,6 +89,7 @@ export default function MoonPage() {
     voice.setLoading(false)
     setLoading(false)
 
+    playSessionEnd()
     voice.setAvatarState("speaking")
     await speakStreaming(data.reading, simliSendRef.current)
     voice.setAvatarState("idle")

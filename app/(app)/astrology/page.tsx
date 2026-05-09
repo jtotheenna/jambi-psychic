@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
-
+import GalileoPanel from "@/components/GalileoPanel"
+import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { speakStreaming } from "@/lib/speak"
+import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
 import type { NatalChart, PlanetPos } from "@/lib/astroCalc"
 
 const PLANET_SYMBOLS: Record<string, string> = {
@@ -92,15 +94,11 @@ export default function AstrologyPage() {
   const [reading, setReading] = useState("")
   const [chart, setChart] = useState<NatalChart | null>(null)
   const [error, setError] = useState("")
-  const [speaking, setSpeaking] = useState(false)
   const [hasBeenRead, setHasBeenRead] = useState(false)
+  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
+  const voice = useGalileoVoice()
   const language = "en"
-
-  async function speakText(text: string) {
-    setSpeaking(true)
-    await speakStreaming(text, null)
-    setSpeaking(false)
-  }
+  useEffect(() => { voice.open() }, []) // eslint-disable-line
 
   async function generateChart() {
     if (!name.trim() || !birthDate || !birthCity.trim()) {
@@ -112,9 +110,10 @@ export default function AstrologyPage() {
     const silentAudio = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
     silentAudio.volume = 0
     silentAudio.play().catch(() => {})
-
+    playBoxOpen()
     setHasStarted(true)
     setLoading(true)
+    voice.setAvatarState("thinking")
 
     const res = await fetch("/api/astrology", {
       method: "POST",
@@ -133,14 +132,12 @@ export default function AstrologyPage() {
     setChart(data.chart)
     setLoading(false)
 
-    // Speak the full reading paragraph by paragraph — once only
     if (!hasBeenRead) {
       setHasBeenRead(true)
-      const paras = data.reading.split("\n\n").filter((p: string) => p.trim().length > 20)
-      for (const para of paras) {
-        await speakText(para)
-        await new Promise(r => setTimeout(r, 80))
-      }
+      playSessionEnd()
+      voice.setAvatarState("speaking")
+      await speakStreaming(data.reading, simliSendRef.current)
+      voice.setAvatarState("idle")
     }
   }
 
@@ -239,17 +236,18 @@ export default function AstrologyPage() {
           </div>
         )}
 
-        {/* Galileo portrait — glows while speaking */}
-        {hasStarted && (
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <div style={{ position: "relative", width: 160, height: 160, borderRadius: "50%", overflow: "hidden", border: `2px solid ${speaking ? "rgba(201,168,76,0.8)" : "rgba(201,168,76,0.3)"}`, boxShadow: speaking ? "0 0 50px rgba(201,168,76,0.5), 0 0 100px rgba(165,180,252,0.25)" : "0 0 20px rgba(201,168,76,0.15)", transition: "all 0.5s ease" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/galileo.jpg" alt="Galileo" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }} />
-              {speaking && <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "radial-gradient(circle, transparent 50%, rgba(201,168,76,0.15) 100%)", animation: "moonPulse 1.2s ease-in-out infinite" }} />}
-              {loading && !speaking && <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "rgba(4,2,14,0.5)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>{[0,1,2].map(i=><div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: "#c9a84c", animation: "moonPulse 1.2s ease-in-out infinite", animationDelay: `${i*0.3}s` }} />)}</div>}
-            </div>
-          </div>
-        )}
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <GalileoPanel
+            avatarState={voice.avatarState}
+            hasStarted={hasStarted}
+            mode="aloud"
+            setMode={() => {}}
+            isListening={false}
+            interimTranscript=""
+            voiceSupported={false}
+            onSendAudio={(fn) => { simliSendRef.current = fn }}
+          />
+        </div>
 
         {chart && !loading && (
           <ChartWheel chart={chart} />
@@ -261,10 +259,7 @@ export default function AstrologyPage() {
               <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a8ba8" }}>
                 ✦ NATAL CHART READING — {name.toUpperCase()}
               </div>
-              {!hasBeenRead && !speaking && (
-                <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", color: "#4a3870" }}>SPOKEN ONCE</div>
-              )}
-              {speaking && (
+              {voice.avatarState === "speaking" && (
                 <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", color: "#a5b4fc" }}>SPEAKING...</div>
               )}
             </div>

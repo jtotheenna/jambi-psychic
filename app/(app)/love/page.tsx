@@ -26,6 +26,7 @@ export default function LovePage() {
   const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const voice = useGalileoVoice()
   const language = "en"
+  useEffect(() => { voice.open() }, []) // eslint-disable-line
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -102,7 +103,7 @@ export default function LovePage() {
 
         <div style={{ display: "flex", justifyContent: "center" }}>
           <GalileoPanel
-            avatarState={hasStarted ? voice.avatarState : "closed"}
+            avatarState={voice.avatarState}
             hasStarted={hasStarted}
             mode={voice.mode}
             setMode={voice.setMode}

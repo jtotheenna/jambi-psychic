@@ -133,7 +133,7 @@ export default function ReadingRoom({
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [avatarState, setAvatarState] = useState<AvatarState>(
-    initialTranscript.length > 0 ? "idle" : "closed"
+    initialTranscript.length > 0 ? "idle" : "idle"
   )
   const [hasStarted, setHasStarted] = useState(initialTranscript.length > 0)
   const [spread, setSpread] = useState(initialSpread)

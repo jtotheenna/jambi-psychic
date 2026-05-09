@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import Link from "next/link"
 import GalileoPanel from "@/components/GalileoPanel"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
-
 import { speakStreaming } from "@/lib/speak"
+import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
 
 async function compressImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -39,6 +39,8 @@ export default function PalmPage() {
   const voice = useGalileoVoice()
   const language = "en"
 
+  useEffect(() => { voice.open() }, []) // eslint-disable-line
+
   const speakWithSimli = useCallback(async (text: string) => {
     voice.setAvatarState("speaking")
     await speakStreaming(text, simliSendRef.current)
@@ -62,7 +64,7 @@ export default function PalmPage() {
     silentAudio.play().catch(() => {})
 
     setHasStarted(true)
-    voice.open()
+    playBoxOpen()
     setLoading(true)
     voice.setLoading(true)
 
@@ -81,7 +83,7 @@ export default function PalmPage() {
     setIsComplete(true)
     voice.setLoading(false)
     setLoading(false)
-
+    playSessionEnd()
     await speakWithSimli(data.reading)
   }
 
@@ -97,7 +99,7 @@ export default function PalmPage() {
 
         <div style={{ display: "flex", justifyContent: "center", position: "sticky", top: 57, zIndex: 30, background: "rgba(4,2,14,0.93)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(42,26,85,0.4)", padding: "10px 0" }}>
           <GalileoPanel
-            avatarState={hasStarted ? voice.avatarState : "closed"}
+            avatarState={voice.avatarState}
             hasStarted={hasStarted}
             mode={voice.mode}
             setMode={voice.setMode}

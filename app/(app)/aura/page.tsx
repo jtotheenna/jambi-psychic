@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
-
 import { speakStreaming } from "@/lib/speak"
+import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
 import GalileoPanel from "@/components/GalileoPanel"
 
 // ── Color extraction ────────────────────────────────────────────────────────
@@ -110,6 +110,7 @@ export default function AuraPage() {
   const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const voice = useGalileoVoice()
   const language = "en"
+  useEffect(() => { voice.open() }, []) // eslint-disable-line
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -139,9 +140,9 @@ export default function AuraPage() {
     const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
     sa.volume = 0; sa.play().catch(() => {})
 
+    playBoxOpen()
     setHasStarted(true)
     setLoading(true)
-    voice.open()
     voice.setAvatarState("thinking")
 
     // Compress image
@@ -172,6 +173,7 @@ export default function AuraPage() {
     setReading(data.reading)
     setIsComplete(true)
     setLoading(false)
+    playSessionEnd()
     voice.setAvatarState("speaking")
     await speakStreaming(data.reading, simliSendRef.current)
     voice.setAvatarState("idle")
@@ -189,7 +191,7 @@ export default function AuraPage() {
 
         <div style={{ display: "flex", justifyContent: "center" }}>
           <GalileoPanel
-            avatarState={hasStarted ? voice.avatarState : "closed"}
+            avatarState={voice.avatarState}
             hasStarted={hasStarted}
             mode={voice.mode}
             setMode={voice.setMode}

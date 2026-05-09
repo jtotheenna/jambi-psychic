@@ -37,6 +37,7 @@ export default function CartomancyPage() {
   const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const voice = useGalileoVoice()
   const language = "en"
+  useEffect(() => { voice.open() }, []) // eslint-disable-line
 
   const speakWithSimli = useCallback(async (text: string) => {
     voice.setAvatarState("speaking")
@@ -126,7 +127,7 @@ export default function CartomancyPage() {
         {/* Galileo — normal flow, not sticky */}
         <div style={{ display: "flex", justifyContent: "center" }}>
           <GalileoPanel
-            avatarState={hasStarted ? voice.avatarState : "closed"}
+            avatarState={voice.avatarState}
             hasStarted={hasStarted}
             mode={voice.mode}
             setMode={voice.setMode}
