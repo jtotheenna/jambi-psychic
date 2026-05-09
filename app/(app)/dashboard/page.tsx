@@ -93,7 +93,7 @@ export default async function DashboardPage() {
               </p>
             )}
             <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              {activeTarot ? `${activeTarot.exchangesTotal - activeTarot.exchangesUsed} QUESTIONS REMAINING` : "$15 · 5 QUESTIONS · SPOKEN ALOUD"}
+              {activeTarot ? `${activeTarot.exchangesTotal - activeTarot.exchangesUsed} QUESTIONS REMAINING` : "$10 · 7 QUESTIONS · SPOKEN ALOUD"}
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
                 </form>
               </>
             ) : (
-              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 5 } }); redirect(`/reading/${r.id}`) }}>
+              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 7 } }); redirect(`/reading/${r.id}`) }}>
                 <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
               </form>
             )}
@@ -196,7 +196,7 @@ export default async function DashboardPage() {
               {activeCartomancy ? "Your cartomancy reading is open." : "The old language of playing cards. Direct, sharp, and strangely accurate. Galileo reads a full 52-card deck, spoken aloud."}
             </p>
             <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              {activeCartomancy ? `${activeCartomancy.exchangesTotal - activeCartomancy.exchangesUsed} QUESTIONS REMAINING` : "$15 · 5 QUESTIONS · SPOKEN ALOUD"}
+              {activeCartomancy ? `${activeCartomancy.exchangesTotal - activeCartomancy.exchangesUsed} QUESTIONS REMAINING` : "$10 · 7 QUESTIONS · SPOKEN ALOUD"}
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
@@ -210,7 +210,7 @@ export default async function DashboardPage() {
                 </form>
               </>
             ) : (
-              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 5 } }); redirect("/cartomancy") }}>
+              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 7 } }); redirect("/cartomancy") }}>
                 <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(232,121,160,0.5)", background: "linear-gradient(135deg, rgba(232,121,160,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#e879a0", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
               </form>
             )}

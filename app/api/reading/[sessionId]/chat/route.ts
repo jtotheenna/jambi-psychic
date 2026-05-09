@@ -148,16 +148,13 @@ export async function POST(
     : []
 
   const allCards: string[] = reading.cardsDrawn ? JSON.parse(reading.cardsDrawn) : []
-  const isOpening = transcript.length === 0
   const cardsAlreadyDealt = allCards.length > 0
 
   // --- True random draw: server decides cards before AI is called ---
   let preDrawnCards: DrawnCard[] | undefined
   let spreadName = reading.spread
 
-  if (!isOpening && !cardsAlreadyDealt) {
-    // Check ALL user messages (not just current) so "7 card draw" from exchange 1
-    // is still honoured when cards are drawn on exchange 2
+  if (!cardsAlreadyDealt) {
     const allUserText = [
       ...transcript.filter((m) => m.role === "user").map((m) => m.content),
       message,
@@ -226,9 +223,7 @@ You have just appeared. Welcome them by name, warmly and briefly — one sentenc
     })
   }
 
-  const userContent = isOpening
-    ? `[First real message after greeting. Respond naturally, then when they share their concern draw the cards.]\n\n${message}`
-    : message
+  const userContent = message
 
   anthropicMessages.push({ role: "user", content: userContent })
 

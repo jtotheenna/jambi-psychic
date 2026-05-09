@@ -29,7 +29,7 @@ export default function CartomancyPage() {
   const [loading, setLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [exchangesUsed, setExchangesUsed] = useState(0)
-  const [exchangesTotal] = useState(5)
+  const [exchangesTotal] = useState(7)
   const [isComplete, setIsComplete] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
   const [allCards, setAllCards] = useState<CardDrawn[]>([])

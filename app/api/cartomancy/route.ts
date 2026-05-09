@@ -66,7 +66,7 @@ export async function POST(req: Request) {
   if (!cartSession) {
     // TESTING: free session for all — remove before launch
     cartSession = await prisma.readingSession.create({
-      data: { userId: session.user.id, type: "cartomancy", status: "active", exchangesTotal: 5 },
+      data: { userId: session.user.id, type: "cartomancy", status: "active", exchangesTotal: 7 },
       include: { user: { include: { details: true } } },
     }) as unknown as typeof cartSession
   }

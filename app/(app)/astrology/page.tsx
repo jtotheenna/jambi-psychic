@@ -4,7 +4,6 @@ import { useState, useRef } from "react"
 import Link from "next/link"
 import { getStoredLanguage } from "@/lib/language"
 import LanguageSelector from "@/components/LanguageSelector"
-import GalileoAvatar from "@/components/GalileoAvatar"
 import type { NatalChart, PlanetPos } from "@/lib/astroCalc"
 
 const PLANET_SYMBOLS: Record<string, string> = {
@@ -252,10 +251,15 @@ export default function AstrologyPage() {
           </div>
         )}
 
-        {/* Galileo reads it — shows while speaking */}
+        {/* Galileo portrait — glows while speaking */}
         {hasStarted && (
           <div style={{ display: "flex", justifyContent: "center" }}>
-            <GalileoAvatar state={speaking ? "speaking" : reading ? "idle" : "thinking"} />
+            <div style={{ position: "relative", width: 160, height: 160, borderRadius: "50%", overflow: "hidden", border: `2px solid ${speaking ? "rgba(201,168,76,0.8)" : "rgba(201,168,76,0.3)"}`, boxShadow: speaking ? "0 0 50px rgba(201,168,76,0.5), 0 0 100px rgba(165,180,252,0.25)" : "0 0 20px rgba(201,168,76,0.15)", transition: "all 0.5s ease" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/galileo.jpg" alt="Galileo" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }} />
+              {speaking && <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "radial-gradient(circle, transparent 50%, rgba(201,168,76,0.15) 100%)", animation: "moonPulse 1.2s ease-in-out infinite" }} />}
+              {loading && !speaking && <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "rgba(4,2,14,0.5)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>{[0,1,2].map(i=><div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: "#c9a84c", animation: "moonPulse 1.2s ease-in-out infinite", animationDelay: `${i*0.3}s` }} />)}</div>}
+            </div>
           </div>
         )}
 

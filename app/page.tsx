@@ -64,8 +64,8 @@ export default function LandingPage() {
 
   const readings = [
     {
-      icon: "★", name: "Tarot Reading", price: "$15", color: "#c9a84c", glow: "rgba(201,168,76,0.35)", border: "rgba(201,168,76,0.3)",
-      tagline: "Any question. A full 78-card deck. Up to 5 exchanges.",
+      icon: "★", name: "Tarot Reading", price: "$10", color: "#c9a84c", glow: "rgba(201,168,76,0.35)", border: "rgba(201,168,76,0.3)",
+      tagline: "Any question. A full 78-card deck. Up to 7 exchanges.",
       desc: "Ask what you need to know, and Galileo will draw from a fully shuffled tarot deck to speak your reading aloud. Each card is interpreted through your question, your energy, and the story unfolding across the spread.",
       btn: "CHOOSE TAROT",
     },
