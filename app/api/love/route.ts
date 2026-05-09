@@ -99,7 +99,7 @@ HOW YOU READ THE HEART:
 - One question only when it genuinely opens something new. Never to fill space.
 
 5 exchanges total. Be present, warm, exact.
-No asterisks. No bullet points. No stage directions. 6–8 sentences per response — be generous with depth. This reading costs $15. Give them something real.${closingNote}
+No asterisks. No bullet points. No stage directions. 4–5 sentences per response — dense and specific, no wasted words.${closingNote}
 ${languageInstruction(language as Language)}`,
     messages: anthropicMessages,
   })

@@ -14,8 +14,9 @@ function pcmToWav(pcm: Uint8Array, sampleRate = 16000): Blob {
   return new Blob([buf, new Uint8Array(pcm).buffer as ArrayBuffer], { type: "audio/wav" })
 }
 
-// Stream PCM from /api/tts → Simli in real time (mouth moves on first chunk).
-// Falls back to WAV playback when Simli is not connected.
+// Stream PCM from /api/tts:
+// - Always plays audio through speakers (Simli audio element is muted — Simli is lip sync only)
+// - Sends PCM chunks to Simli in real time for mouth animation when connected
 // Returns when playback is done.
 export async function speakStreaming(
   text: string,
@@ -38,26 +39,21 @@ export async function speakStreaming(
     if (!value?.byteLength) continue
     chunks.push(value)
     totalBytes += value.byteLength
-    if (sendToSimli) sendToSimli(value)
+    if (sendToSimli) sendToSimli(value)  // lip sync — non-blocking
   }
 
   if (!totalBytes) return
 
-  if (sendToSimli) {
-    // Simli handles audio output — wait for estimated playback duration
-    const durationMs = Math.max((totalBytes / 32000) * 1000 + 1500, 2000)
-    await new Promise(r => setTimeout(r, durationMs))
-  } else {
-    // No Simli — assemble PCM and play as WAV
-    const all = new Uint8Array(totalBytes)
-    let offset = 0
-    for (const chunk of chunks) { all.set(chunk, offset); offset += chunk.byteLength }
-    const src = URL.createObjectURL(pcmToWav(all))
-    await new Promise<void>(resolve => {
-      const audio = new Audio(src)
-      audio.onended  = () => { URL.revokeObjectURL(src); resolve() }
-      audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
-      audio.play().catch(() => { URL.revokeObjectURL(src); resolve() })
-    })
-  }
+  // Always play through speakers — Simli's audio element is muted so it
+  // only drives the mouth animation, not the audio output
+  const all = new Uint8Array(totalBytes)
+  let offset = 0
+  for (const chunk of chunks) { all.set(chunk, offset); offset += chunk.byteLength }
+  const src = URL.createObjectURL(pcmToWav(all))
+  await new Promise<void>(resolve => {
+    const audio = new Audio(src)
+    audio.onended = () => { URL.revokeObjectURL(src); resolve() }
+    audio.onerror = () => { URL.revokeObjectURL(src); resolve() }
+    audio.play().catch(() => { URL.revokeObjectURL(src); resolve() })
+  })
 }
