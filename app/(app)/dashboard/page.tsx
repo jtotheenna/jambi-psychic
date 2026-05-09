@@ -116,33 +116,20 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── MOON ── */}
-      <div style={{ marginBottom: 20, padding: 24, borderRadius: 12, border: `1px solid ${activeMoon ? "rgba(165,180,252,0.4)" : "rgba(165,180,252,0.2)"}`, background: "rgba(10,5,32,0.5)" }}>
+      <div style={{ marginBottom: 20, padding: 24, borderRadius: 12, border: "1px solid rgba(165,180,252,0.2)", background: "rgba(10,5,32,0.5)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#a5b4fc", marginBottom: 8 }}>☽ MOON READING</div>
             <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
-              {activeMoon ? "Your moon reading is open." : "Tonight's live moon phase and Sun Bear's Medicine Wheel. Galileo reads immediately — the full sky, spoken aloud."}
+              Tonight's live moon phase and Sun Bear's Medicine Wheel. Galileo reads the full sky immediately — spoken aloud.
             </p>
             <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              {activeMoon ? `${activeMoon.exchangesTotal - activeMoon.exchangesUsed} QUESTIONS REMAINING` : "$5 · FULL INSTANT READING + 2 QUESTIONS · SPOKEN ALOUD"}
+              $5 · ONE COMPLETE READING · SPOKEN ALOUD
             </p>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
-            {activeMoon ? (
-              <>
-                <Link href="/moon" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(165,180,252,0.08)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-                  RETURN ✦
-                </Link>
-                <form action={async () => { "use server"; await prisma.readingSession.update({ where: { id: activeMoon.id }, data: { status: "complete", completedAt: new Date() } }); redirect("/dashboard") }}>
-                  <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>abandon</button>
-                </form>
-              </>
-            ) : (
-              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "moon", status: "active", exchangesTotal: 2 } }); redirect("/moon") }}>
-                <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.5)", background: "linear-gradient(135deg, rgba(165,180,252,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
-              </form>
-            )}
-          </div>
+          <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "moon", status: "active", exchangesTotal: 1 } }); redirect("/moon") }}>
+            <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.5)", background: "linear-gradient(135deg, rgba(165,180,252,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
+          </form>
         </div>
       </div>
 
@@ -231,25 +218,6 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* ── ASTROLOGY ── */}
-      <div style={{ marginBottom: 32, padding: 24, borderRadius: 12, border: "1px solid rgba(250,204,21,0.2)", background: "rgba(10,5,32,0.5)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#fbbf24", marginBottom: 8 }}>✦ NATAL CHART</div>
-            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
-              Your complete birth chart — every planet, every aspect, every pattern. The sky at the exact moment you arrived. Galileo reads it all.
-            </p>
-            <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              $7 · FULL NATAL CHART · SPOKEN ALOUD
-            </p>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
-            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "astrology", status: "active", exchangesTotal: 4 } }); redirect("/astrology") }}>
-              <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(250,204,21,0.5)", background: "linear-gradient(135deg, rgba(250,204,21,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#fbbf24", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
-            </form>
-          </div>
-        </div>
-      </div>
 
       {/* Past readings */}
       {completedSessions.length > 0 && (

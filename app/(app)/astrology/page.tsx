@@ -4,6 +4,7 @@ import { useState, useRef } from "react"
 import Link from "next/link"
 import { getStoredLanguage } from "@/lib/language"
 import LanguageSelector from "@/components/LanguageSelector"
+import GalileoAvatar from "@/components/GalileoAvatar"
 import type { NatalChart, PlanetPos } from "@/lib/astroCalc"
 
 const PLANET_SYMBOLS: Record<string, string> = {
@@ -248,6 +249,13 @@ export default function AstrologyPage() {
             <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#4a3870" }}>
               GALILEO IS READING THE SKY…
             </div>
+          </div>
+        )}
+
+        {/* Galileo reads it — shows while speaking */}
+        {hasStarted && (
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <GalileoAvatar state={speaking ? "speaking" : reading ? "idle" : "thinking"} />
           </div>
         )}
 
