@@ -1,12 +1,9 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef } from "react"
 import Link from "next/link"
-import GalileoPanel from "@/components/GalileoPanel"
-import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { getStoredLanguage } from "@/lib/language"
 import LanguageSelector from "@/components/LanguageSelector"
-import { audioBlobToPCM } from "@/components/FloatingSimli"
 import type { NatalChart, PlanetPos } from "@/lib/astroCalc"
 
 const PLANET_SYMBOLS: Record<string, string> = {
@@ -95,48 +92,26 @@ export default function AstrologyPage() {
   const [reading, setReading] = useState("")
   const [chart, setChart] = useState<NatalChart | null>(null)
   const [error, setError] = useState("")
-  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
-  const voice = useGalileoVoice()
+  const [speaking, setSpeaking] = useState(false)
   const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
 
-  const speakWithSimli = useCallback(async (text: string) => {
-    voice.setAvatarState("speaking")
+  async function speakText(text: string) {
+    setSpeaking(true)
     try {
-      const res = await fetch("/api/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      })
+      const res = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) })
       if (res.ok && res.status !== 204) {
         const blob = await res.blob()
-        if (simliSendRef.current) {
-          try {
-            const pcm = await audioBlobToPCM(blob)
-            simliSendRef.current(pcm)
-            const durationMs = Math.max((pcm.length / 32000) * 1000 + 1500, 2000)
-            await new Promise<void>(r => setTimeout(r, durationMs))
-          } catch {
-            const src = URL.createObjectURL(blob)
-            await new Promise<void>((resolve) => {
-              const audio = new Audio(src)
-              audio.onended = () => { URL.revokeObjectURL(src); resolve() }
-              audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
-              audio.play().catch(() => resolve())
-            })
-          }
-        } else {
-          const src = URL.createObjectURL(blob)
-          await new Promise<void>((resolve) => {
-            const audio = new Audio(src)
-            audio.onended = () => { URL.revokeObjectURL(src); resolve() }
-            audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
-            audio.play().catch(() => resolve())
-          })
-        }
+        const src = URL.createObjectURL(blob)
+        await new Promise<void>((resolve) => {
+          const audio = new Audio(src)
+          audio.onended = () => { URL.revokeObjectURL(src); resolve() }
+          audio.onerror = () => { URL.revokeObjectURL(src); resolve() }
+          audio.play().catch(() => resolve())
+        })
       }
     } catch { /* silent */ }
-    voice.setAvatarState("idle")
-  }, [voice])
+    setSpeaking(false)
+  }
 
   async function generateChart() {
     if (!name.trim() || !birthDate || !birthCity.trim()) {
@@ -151,7 +126,6 @@ export default function AstrologyPage() {
 
     setHasStarted(true)
     setLoading(true)
-    voice.setAvatarState("thinking")
 
     const res = await fetch("/api/astrology", {
       method: "POST",
@@ -163,7 +137,6 @@ export default function AstrologyPage() {
     if (!res.ok) {
       setError(data.error || "Something went wrong.")
       setLoading(false)
-      voice.setAvatarState("idle")
       return
     }
 
@@ -171,9 +144,9 @@ export default function AstrologyPage() {
     setChart(data.chart)
     setLoading(false)
 
-    // Speak the first paragraph
-    const hook = data.reading.slice(0, 320).replace(/\s\S+$/, "…")
-    await speakWithSimli(hook)
+    // Speak the first paragraph automatically
+    const firstPara = data.reading.split("\n\n")[0] || data.reading.slice(0, 400)
+    await speakText(firstPara)
   }
 
   const canSubmit = name.trim() && birthDate && birthCity.trim() && !loading
@@ -187,20 +160,6 @@ export default function AstrologyPage() {
         <LanguageSelector compact />
       </div>
 
-      {/* Galileo — only shown after reading starts */}
-      {hasStarted && (
-        <div style={{ display: "flex", justifyContent: "center", padding: "16px 0", borderBottom: "1px solid rgba(42,26,85,0.4)" }}>
-          <GalileoPanel
-            avatarState={voice.avatarState}
-            hasStarted={true}
-            mode={voice.mode}
-            setMode={voice.setMode}
-            isListening={voice.isListening}
-            interimTranscript={voice.interimTranscript}
-            voiceSupported={voice.voiceSupported}
-          />
-        </div>
-      )}
 
       <div style={{ flex: 1, maxWidth: 760, width: "100%", margin: "0 auto", padding: "28px 16px 48px", display: "flex", flexDirection: "column", gap: 24 }}>
 
@@ -291,8 +250,17 @@ export default function AstrologyPage() {
 
         {reading && !loading && (
           <div style={{ padding: "32px", borderRadius: 12, border: "1px solid rgba(201,168,76,0.15)", background: "linear-gradient(135deg, rgba(26,13,63,0.9), rgba(10,5,32,0.9))", backdropFilter: "blur(8px)" }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a8ba8", marginBottom: 20 }}>
-              ✦ NATAL CHART READING — {name.toUpperCase()}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a8ba8" }}>
+                ✦ NATAL CHART READING — {name.toUpperCase()}
+              </div>
+              <button
+                onClick={() => speakText(reading.split("\n\n")[0] || reading.slice(0, 400))}
+                disabled={speaking}
+                style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", color: speaking ? "#a5b4fc" : "#7a8ba8", background: "none", border: `1px solid ${speaking ? "rgba(165,180,252,0.4)" : "rgba(42,26,85,0.5)"}`, borderRadius: 6, padding: "5px 12px", cursor: speaking ? "default" : "pointer" }}
+              >
+                {speaking ? "SPEAKING..." : "HEAR ▶"}
+              </button>
             </div>
             {reading.split("\n\n").map((para, i) => (
               <p key={i} style={{ fontFamily: "'EB Garamond', serif", fontSize: 18, lineHeight: 1.9, color: "#ddd8f0", marginBottom: i < reading.split("\n\n").length - 1 ? 22 : 0 }}>
