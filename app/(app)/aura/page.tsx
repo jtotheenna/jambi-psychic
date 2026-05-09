@@ -3,7 +3,7 @@
 import { useState, useRef } from "react"
 import Link from "next/link"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
-import { getStoredLanguage } from "@/lib/language"
+
 import { speakStreaming } from "@/lib/speak"
 import GalileoPanel from "@/components/GalileoPanel"
 
@@ -109,7 +109,7 @@ export default function AuraPage() {
   const imgRef = useRef<HTMLImageElement>(null)
   const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const voice = useGalileoVoice()
-  const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
+  const language = "en"
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]

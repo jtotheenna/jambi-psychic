@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
-import LanguageSelector from "@/components/LanguageSelector"
-import { type Language } from "@/lib/language"
+
+
 import GalileoCircle from "@/components/GalileoCircle"
 import { playBoxOpen } from "@/lib/sounds"
 
@@ -178,7 +178,6 @@ function ReadingCard({ icon, name, price, color, glow, border, tagline, desc, bt
 export default function LandingPage() {
   const [playing, setPlaying] = useState(false)
   const [glowing, setGlowing] = useState(false)
-  const [, setLanguage] = useState<Language>("en")
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
@@ -222,7 +221,6 @@ export default function LandingPage() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 1 }}>
 
       <div style={{ position: "fixed", top: 16, right: 16, zIndex: 50 }}>
-        <LanguageSelector onChange={setLanguage} />
       </div>
 
       {/* ── HERO ── */}

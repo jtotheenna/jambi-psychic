@@ -3,7 +3,7 @@
 import { useState, useRef } from "react"
 import Link from "next/link"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
-import { getStoredLanguage } from "@/lib/language"
+
 import { speakStreaming } from "@/lib/speak"
 import GalileoPanel from "@/components/GalileoPanel"
 
@@ -15,7 +15,7 @@ export default function GuidePage() {
   const [isComplete, setIsComplete] = useState(false)
   const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const voice = useGalileoVoice()
-  const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
+  const language = "en"
 
   async function receiveMessage() {
     const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")

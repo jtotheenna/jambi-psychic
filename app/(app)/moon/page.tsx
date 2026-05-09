@@ -6,8 +6,7 @@ import GalileoCircle from "@/components/GalileoCircle"
 import MoonWheel from "@/components/MoonWheel"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { getMoonData, type MoonData } from "@/lib/moon"
-import { getStoredLanguage } from "@/lib/language"
-import LanguageSelector from "@/components/LanguageSelector"
+
 import { speakStreaming } from "@/lib/speak"
 
 function useDraggable() {
@@ -49,7 +48,7 @@ export default function MoonPage() {
   const [hasEntered, setHasEntered] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
   const voice = useGalileoVoice()
-  const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
+  const language = "en"
   const scrollRef = useRef<HTMLDivElement>(null)
   const wheelDrag = useDraggable()
   const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
@@ -98,9 +97,6 @@ export default function MoonPage() {
       <Link href="/dashboard" style={{ position: "absolute", top: 24, left: 24, fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#7a8ba8", textDecoration: "none", zIndex: 2 }}>
         ← RETURN
       </Link>
-      <div style={{ position: "absolute", top: 20, right: 16, zIndex: 2 }}>
-        <LanguageSelector compact />
-      </div>
 
       {/* Galileo — fixed top-right, always visible while scrolling, draggable */}
       <div

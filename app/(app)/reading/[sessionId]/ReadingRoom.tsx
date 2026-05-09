@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import GalileoCircle from "@/components/GalileoCircle"
 import GemProgress from "@/components/GemProgress"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
-import { getStoredLanguage } from "@/lib/language"
-import LanguageSelector from "@/components/LanguageSelector"
+
+
 import TarotCard from "@/components/TarotCard"
 import ChatBubble from "@/components/ChatBubble"
 import { TAROT_DECK } from "@/lib/tarot"
@@ -143,7 +143,7 @@ export default function ReadingRoom({
   const [interimTranscript, setInterimTranscript] = useState("")
 
   const voice = useGalileoVoice()
-  const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
+  const language = "en"
   const simliSendRef    = useRef<((pcm: Uint8Array) => void) | null>(null)
   const simliActiveRef  = useRef(false)
   const prefetchedRef   = useRef<{ response: string } | null>(null)
@@ -496,7 +496,6 @@ export default function ReadingRoom({
         </div>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
-          <LanguageSelector compact />
           <GemProgress total={exchangesTotal} used={exchangesUsed} />
         </div>
       </div>

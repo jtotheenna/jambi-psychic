@@ -3,7 +3,7 @@
 import { useState, useRef } from "react"
 import Link from "next/link"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
-import { getStoredLanguage } from "@/lib/language"
+
 import { speakStreaming } from "@/lib/speak"
 import GalileoPanel from "@/components/GalileoPanel"
 
@@ -23,7 +23,7 @@ export default function YesNoPage() {
   const [hasStarted, setHasStarted] = useState(false)
   const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const voice = useGalileoVoice()
-  const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
+  const language = "en"
 
   async function consult() {
     if (!question.trim() || loading) return

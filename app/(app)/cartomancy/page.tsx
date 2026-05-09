@@ -4,8 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import GalileoPanel from "@/components/GalileoPanel"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
-import { getStoredLanguage } from "@/lib/language"
-import LanguageSelector from "@/components/LanguageSelector"
+
+
 import GemProgress from "@/components/GemProgress"
 import CartomancyCard from "@/components/CartomancyCard"
 import { playBoxOpen, playCardReveal, playSessionEnd } from "@/lib/sounds"
@@ -36,7 +36,7 @@ export default function CartomancyPage() {
   const scrollRef    = useRef<HTMLDivElement>(null)
   const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const voice = useGalileoVoice()
-  const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
+  const language = "en"
 
   const speakWithSimli = useCallback(async (text: string) => {
     voice.setAvatarState("speaking")
@@ -118,10 +118,7 @@ export default function CartomancyPage() {
       <div style={{ padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(42,26,85,0.5)" }}>
         <Link href="/dashboard" style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#7a8ba8", textDecoration: "none" }}>← RETURN</Link>
         <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#e879a0" }}>♠ CARTOMANCY</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <LanguageSelector compact />
-          <GemProgress total={exchangesTotal} used={exchangesUsed} />
-        </div>
+        <GemProgress total={exchangesTotal} used={exchangesUsed} />
       </div>
 
       <div style={{ flex: 1, maxWidth: 720, width: "100%", margin: "0 auto", padding: "24px 16px", display: "flex", flexDirection: "column", gap: 20 }}>

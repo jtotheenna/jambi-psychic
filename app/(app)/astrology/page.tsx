@@ -2,8 +2,7 @@
 
 import { useState, useRef } from "react"
 import Link from "next/link"
-import { getStoredLanguage } from "@/lib/language"
-import LanguageSelector from "@/components/LanguageSelector"
+
 import { speakStreaming } from "@/lib/speak"
 import type { NatalChart, PlanetPos } from "@/lib/astroCalc"
 
@@ -95,7 +94,7 @@ export default function AstrologyPage() {
   const [error, setError] = useState("")
   const [speaking, setSpeaking] = useState(false)
   const [hasBeenRead, setHasBeenRead] = useState(false)
-  const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
+  const language = "en"
 
   async function speakText(text: string) {
     setSpeaking(true)
@@ -153,7 +152,7 @@ export default function AstrologyPage() {
       <div style={{ padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(42,26,85,0.5)" }}>
         <Link href="/dashboard" style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#7a8ba8", textDecoration: "none" }}>← RETURN</Link>
         <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#c9a84c" }}>✦ NATAL CHART</div>
-        <LanguageSelector compact />
+        <div style={{ width: 60 }} />
       </div>
 
 
