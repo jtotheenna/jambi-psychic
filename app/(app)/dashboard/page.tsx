@@ -2,12 +2,6 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import PayButton from "./PayButton"
-
-const TAROT_LINK        = process.env.STRIPE_TAROT_LINK!
-const PALM_LINK         = process.env.STRIPE_PALM_LINK!
-const MOON_LINK         = process.env.STRIPE_MOON_LINK!
-const CARTOMANCY_LINK   = process.env.STRIPE_CARTOMANCY_LINK!
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -17,263 +11,199 @@ export default async function DashboardPage() {
     where: { id: session.user.id },
     include: {
       details: true,
-      sessions: {
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        include: { purchase: true },
-      },
+      sessions: { orderBy: { createdAt: "desc" }, take: 20, include: { purchase: true } },
     },
   })
-
   if (!user) redirect("/login")
 
-  const activeTarot      = user.sessions.find((s) => s.status === "active" && s.type === "tarot")
-  const activePalm       = user.sessions.find((s) => s.status === "active" && s.type === "palm")
-  const activeMoon       = user.sessions.find((s) => s.status === "active" && s.type === "moon")
-  const activeCartomancy = user.sessions.find((s) => s.status === "active" && s.type === "cartomancy")
-  const completedSessions = user.sessions.filter((s) => s.status === "complete")
-  const pastAstrology = user.sessions.filter((s) => s.type === "astrology" && s.status === "complete")
+  const active = (type: string) => user.sessions.find(s => s.status === "active" && s.type === type)
+  const activeTarot      = active("tarot")
+  const activePalm       = active("palm")
+  const activeMoon       = active("moon")
+  const activeCartomancy = active("cartomancy")
+  const activeLove       = active("love")
+  const pastAstrology    = user.sessions.filter(s => s.type === "astrology" && s.status === "complete")
+  const completedSessions = user.sessions.filter(s => s.status === "complete")
+
+  const card = (
+    icon: string, label: string, color: string, border: string,
+    desc: string, meta: string, action: React.ReactNode, activeSession?: { id: string; question?: string | null; exchangesTotal: number; exchangesUsed: number } | null,
+    returnHref?: string, abandonAction?: React.ReactNode
+  ) => (
+    <div style={{ padding: "20px 22px", borderRadius: 10, border: `1px solid ${activeSession ? color.replace("0.3", "0.4") : border}`, background: activeSession ? `linear-gradient(135deg, ${color.replace("0.3", "0.08")}, rgba(10,5,32,0.6))` : "rgba(10,5,32,0.5)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: activeSession ? "#a5b4fc" : color, marginBottom: 6 }}>{icon} {label}</div>
+          <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 16, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4, lineHeight: 1.5 }}>
+            {activeSession?.question ? `"${activeSession.question.substring(0, 65)}${activeSession.question.length > 65 ? "…" : ""}"` : desc}
+          </p>
+          <p style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#7a8ba8", letterSpacing: "0.1em" }}>
+            {activeSession ? `${activeSession.exchangesTotal - activeSession.exchangesUsed} EXCHANGES REMAINING` : meta}
+          </p>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", flexShrink: 0 }}>
+          {activeSession ? (
+            <>
+              <Link href={returnHref ?? "#"} style={{ padding: "9px 20px", borderRadius: 7, border: `1px solid ${color.replace("0.3","0.4")}`, background: color.replace("0.3","0.1"), color: "#ddd8f0", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", textDecoration: "none", whiteSpace: "nowrap" }}>RETURN ✦</Link>
+              {abandonAction}
+            </>
+          ) : action}
+        </div>
+      </div>
+    </div>
+  )
+
+  const beginBtn = (color: string, border: string) => (
+    <button type="submit" style={{ padding: "9px 20px", borderRadius: 7, border: `1px solid ${border}`, background: `linear-gradient(135deg, ${color.replace("0.3","0.1")}, rgba(79,70,229,0.1))`, color: color.replace(/rgba\([^,]+,[^,]+,[^,]+,/, "rgba(").replace(/[\d.]+\)$/, "1)"), fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
+  )
+
+  const abandonBtn = (id: string) => (
+    <form action={async () => { "use server"; await prisma.readingSession.update({ where: { id }, data: { status: "complete", completedAt: new Date() } }); redirect("/dashboard") }}>
+      <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>abandon</button>
+    </form>
+  )
+
+  const sectionHeader = (title: string, subtitle: string) => (
+    <div style={{ marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid rgba(42,26,85,0.5)" }}>
+      <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.28em", color: "#c9a84c", marginBottom: 2 }}>{title}</div>
+      <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#4a3870", fontStyle: "italic" }}>{subtitle}</div>
+    </div>
+  )
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        padding: "40px 24px",
-        maxWidth: 800,
-        margin: "0 auto",
-        position: "relative",
-        zIndex: 1,
-      }}
-    >
+    <div style={{ minHeight: "100vh", padding: "36px 20px", maxWidth: 780, margin: "0 auto", position: "relative", zIndex: 1 }}>
+
       {/* Header */}
-      <div style={{ marginBottom: 48, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+      <div style={{ marginBottom: 44, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
         <div>
-          <h1
-            style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 22, letterSpacing: "0.1em" }}
-            className="text-shimmer"
-          >
-            GALILEO
-          </h1>
+          <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 20, letterSpacing: "0.1em" }} className="text-shimmer">GALILEO</h1>
           <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.25em", color: "#a5b4fc", marginTop: 2 }}>
             {user.name ? `WELCOME BACK, ${user.name.toUpperCase()}` : "YOUR READINGS"}
           </div>
         </div>
         <form action="/api/auth/signout" method="POST">
-          <button
-            type="submit"
-            style={{
-              fontFamily: "'Cinzel', serif",
-              fontSize: 9,
-              letterSpacing: "0.2em",
-              color: "#4a3870",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            LEAVE ✦
-          </button>
+          <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#4a3870", background: "none", border: "none", cursor: "pointer" }}>LEAVE ✦</button>
         </form>
       </div>
 
-      {/* ── TAROT ── */}
-      <div style={{ marginBottom: 20, padding: 24, borderRadius: 12, border: `1px solid ${activeTarot ? "rgba(165,180,252,0.4)" : "rgba(201,168,76,0.25)"}`, background: activeTarot ? "linear-gradient(135deg, rgba(79,70,229,0.1) 0%, rgba(10,5,32,0.6) 100%)" : "rgba(10,5,32,0.5)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: activeTarot ? "#a5b4fc" : "#c9a84c", marginBottom: 8 }}>
-              ★ TAROT READING
+      {/* ── THE CARDS ── */}
+      <div style={{ marginBottom: 40 }}>
+        {sectionHeader("THE CARDS", "Drawn, shuffled, and read aloud.")}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+          {card("★", "TAROT READING", "rgba(201,168,76,0.3)", "rgba(201,168,76,0.2)",
+            "Any question. A fully shuffled 78-card deck. He reads every card aloud.",
+            "$15 · 7 QUESTIONS · SPOKEN ALOUD",
+            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 7 } }); redirect(`/reading/${r.id}`) }}>{beginBtn("rgba(201,168,76,0.3)", "rgba(201,168,76,0.4)")}</form>,
+            activeTarot, activeTarot ? `/reading/${activeTarot.id}` : undefined, activeTarot ? abandonBtn(activeTarot.id) : undefined
+          )}
+
+          {card("♠", "CARTOMANCY", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.2)",
+            "The old language of playing cards. Direct, sharp, and strangely accurate.",
+            "$15 · 7 QUESTIONS · SPOKEN ALOUD",
+            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 7 } }); redirect("/cartomancy") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>,
+            activeCartomancy, "/cartomancy", activeCartomancy ? abandonBtn(activeCartomancy.id) : undefined
+          )}
+
+          {card("◎", "YES OR NO ORACLE", "rgba(165,180,252,0.3)", "rgba(165,180,252,0.2)",
+            "One question. One clear answer. Yes, no, perhaps, not yet, or look deeper.",
+            "$5 · SHORT SPOKEN READING",
+            <Link href="/yes-no" style={{ padding: "9px 20px", borderRadius: 7, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(165,180,252,0.08)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", textDecoration: "none", whiteSpace: "nowrap" }}>BEGIN ✦</Link>
+          )}
+        </div>
+      </div>
+
+      {/* ── THE SKY ── */}
+      <div style={{ marginBottom: 40 }}>
+        {sectionHeader("THE SKY", "Planetary positions, lunar cycles, and the map of your birth.")}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+          {card("☽", "MOON READING", "rgba(165,180,252,0.3)", "rgba(165,180,252,0.2)",
+            "The live moon phase, read through the Medicine Wheel. The sky is already set.",
+            "$5 · ONE COMPLETE READING · SPOKEN ALOUD",
+            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "moon", status: "active", exchangesTotal: 1 } }); redirect("/moon") }}>{beginBtn("rgba(165,180,252,0.3)", "rgba(165,180,252,0.4)")}</form>
+          )}
+
+          <div style={{ padding: "20px 22px", borderRadius: 10, border: "1px solid rgba(251,191,36,0.2)", background: "rgba(10,5,32,0.5)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#fbbf24", marginBottom: 6 }}>✦ NATAL CHART READING</div>
+                <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 16, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4, lineHeight: 1.5 }}>
+                  Every planet. Every house. Every aspect. Your complete birth chart, spoken aloud.
+                </p>
+                <p style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#7a8ba8", letterSpacing: "0.1em" }}>
+                  $7 · ONE-TIME FULL CHART · SPOKEN ALOUD{pastAstrology.length > 0 ? ` · ${pastAstrology.length} ALREADY READ` : ""}
+                </p>
+              </div>
+              <Link href="/astrology" style={{ padding: "9px 20px", borderRadius: 7, border: "1px solid rgba(251,191,36,0.4)", background: "rgba(251,191,36,0.08)", color: "#fbbf24", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", textDecoration: "none", whiteSpace: "nowrap" }}>BEGIN ✦</Link>
             </div>
-            {activeTarot ? (
-              <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
-                {activeTarot.question ? `"${activeTarot.question.substring(0, 70)}${activeTarot.question.length > 70 ? "..." : ""}"` : "Your reading is open."}
-              </p>
-            ) : (
-              <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
-                Any question. Any spread. He reads the cards and remembers you forever.
-              </p>
-            )}
-            <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              {activeTarot ? `${activeTarot.exchangesTotal - activeTarot.exchangesUsed} QUESTIONS REMAINING` : "$15 · 7 QUESTIONS · SPOKEN ALOUD"}
-            </p>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
-            {activeTarot ? (
-              <>
-                <Link href={`/reading/${activeTarot.id}`} style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(79,70,229,0.12)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-                  RETURN ✦
-                </Link>
-                <form action={async () => { "use server"; await prisma.readingSession.update({ where: { id: activeTarot.id }, data: { status: "complete", completedAt: new Date() } }); redirect("/dashboard") }}>
-                  <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>abandon</button>
-                </form>
-              </>
-            ) : (
-              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 7 } }); redirect(`/reading/${r.id}`) }}>
-                <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
-              </form>
-            )}
           </div>
         </div>
       </div>
 
-      {/* ── MOON ── */}
-      <div style={{ marginBottom: 20, padding: 24, borderRadius: 12, border: "1px solid rgba(165,180,252,0.2)", background: "rgba(10,5,32,0.5)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#a5b4fc", marginBottom: 8 }}>☽ MOON READING</div>
-            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
-              Tonight's live moon phase and Sun Bear's Medicine Wheel. Galileo reads the full sky immediately — spoken aloud.
-            </p>
-            <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              $5 · ONE COMPLETE READING · SPOKEN ALOUD
-            </p>
-          </div>
-          <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "moon", status: "active", exchangesTotal: 1 } }); redirect("/moon") }}>
-            <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.5)", background: "linear-gradient(135deg, rgba(165,180,252,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
-          </form>
+      {/* ── THE BODY ── */}
+      <div style={{ marginBottom: 40 }}>
+        {sectionHeader("THE BODY", "What the physical carries that the mind doesn't say.")}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {card("✋", "PALM READING", "rgba(200,212,232,0.25)", "rgba(200,212,232,0.2)",
+            "Upload a photo of your palm. Galileo reads your lines, mounts, and soul — spoken aloud.",
+            "$5 · FULL HAND READING · SPOKEN ALOUD",
+            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "palm", status: "active", exchangesTotal: 5 } }); redirect("/palm") }}>{beginBtn("rgba(200,212,232,0.25)", "rgba(200,212,232,0.35)")}</form>,
+            activePalm, "/palm", activePalm ? abandonBtn(activePalm.id) : undefined
+          )}
         </div>
       </div>
 
-      {/* ── PALM ── */}
-      <div style={{ marginBottom: 32, padding: 24, borderRadius: 12, border: `1px solid ${activePalm ? "rgba(201,168,76,0.4)" : "rgba(201,168,76,0.2)"}`, background: "rgba(10,5,32,0.5)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#c9a84c", marginBottom: 8 }}>✋ PALM READING</div>
-            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
-              {activePalm ? "Your palm reading is open." : "Upload a photo of your hand. Galileo reads your lines, your mounts, your soul — several paragraphs, spoken aloud."}
-            </p>
-            <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              {activePalm ? `${activePalm.exchangesTotal - activePalm.exchangesUsed} QUESTIONS REMAINING` : "$5 · FULL HAND READING · SPOKEN ALOUD"}
-            </p>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
-            {activePalm ? (
-              <>
-                <Link href="/palm" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.4)", background: "rgba(201,168,76,0.08)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-                  RETURN ✦
-                </Link>
-                <form action={async () => { "use server"; await prisma.readingSession.update({ where: { id: activePalm.id }, data: { status: "complete", completedAt: new Date() } }); redirect("/dashboard") }}>
-                  <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>abandon</button>
-                </form>
-              </>
-            ) : (
-              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "palm", status: "active", exchangesTotal: 5 } }); redirect("/palm") }}>
-                <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
-              </form>
-            )}
-          </div>
+      {/* ── THE VEIL ── */}
+      <div style={{ marginBottom: 40 }}>
+        {sectionHeader("THE VEIL", "What is hidden, approaching, or asking to be seen.")}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+          {card("☁", "DREAM INTERPRETATION", "rgba(165,180,252,0.3)", "rgba(165,180,252,0.2)",
+            "Describe your dream. Galileo reads the symbols, the emotion, and what lies beneath it.",
+            "$12 · ONE COMPLETE READING · SPOKEN ALOUD",
+            <Link href="/dream" style={{ padding: "9px 20px", borderRadius: 7, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(165,180,252,0.08)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", textDecoration: "none", whiteSpace: "nowrap" }}>BEGIN ✦</Link>
+          )}
+
+          {card("🕯", "GUIDE MESSAGE", "rgba(167,139,250,0.3)", "rgba(167,139,250,0.2)",
+            "No question needed. Receive a message for your current moment.",
+            "$9 · SHORT ORACLE READING · SPOKEN ALOUD",
+            <Link href="/guide" style={{ padding: "9px 20px", borderRadius: 7, border: "1px solid rgba(167,139,250,0.4)", background: "rgba(167,139,250,0.08)", color: "#a78bfa", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", textDecoration: "none", whiteSpace: "nowrap" }}>BEGIN ✦</Link>
+          )}
         </div>
       </div>
 
-      {/* ── NATAL CHART ── */}
-      <div style={{ marginBottom: 20, padding: 24, borderRadius: 12, border: "1px solid rgba(201,168,76,0.2)", background: "rgba(10,5,32,0.5)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#c9a84c", marginBottom: 8 }}>✦ NATAL CHART READING</div>
-            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
-              Every planet. Every house. Every aspect. Your complete birth chart interpreted by Galileo — a sacred document of who you are and what you are here to do.
-            </p>
-            <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              $7 · ONE-TIME FULL CHART · SPOKEN ALOUD
-            </p>
-            {pastAstrology.length > 0 && (
-              <p style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#4a3870", letterSpacing: "0.1em", marginTop: 6 }}>
-                {pastAstrology.length} CHART{pastAstrology.length > 1 ? "S" : ""} ALREADY READ
-              </p>
-            )}
-          </div>
-          <Link href="/astrology" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-            BEGIN ✦
-          </Link>
+      {/* ── THE HEART ── */}
+      <div style={{ marginBottom: 48 }}>
+        {sectionHeader("THE HEART", "For love, connection, longing, and the truth beneath relationships.")}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {card("♡", "LOVE ORACLE", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.2)",
+            "Ask about a relationship, a person, or your own heart. He speaks what needs to be seen.",
+            "$15 · 5 EXCHANGES · SPOKEN ALOUD",
+            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "love", status: "active", exchangesTotal: 5 } }); redirect("/love") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>,
+            activeLove, "/love", activeLove ? abandonBtn(activeLove.id) : undefined
+          )}
         </div>
       </div>
-
-      {/* ── CARTOMANCY ── */}
-      <div style={{ marginBottom: 32, padding: 24, borderRadius: 12, border: `1px solid ${activeCartomancy ? "rgba(232,121,160,0.4)" : "rgba(232,121,160,0.2)"}`, background: "rgba(10,5,32,0.5)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#e879a0", marginBottom: 8 }}>♠ CARTOMANCY</div>
-            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
-              {activeCartomancy ? "Your cartomancy reading is open." : "The old language of playing cards. Direct, sharp, and strangely accurate. Galileo reads a full 52-card deck, spoken aloud."}
-            </p>
-            <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              {activeCartomancy ? `${activeCartomancy.exchangesTotal - activeCartomancy.exchangesUsed} QUESTIONS REMAINING` : "$15 · 7 QUESTIONS · SPOKEN ALOUD"}
-            </p>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
-            {activeCartomancy ? (
-              <>
-                <Link href="/cartomancy" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(232,121,160,0.4)", background: "rgba(232,121,160,0.08)", color: "#e879a0", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
-                  RETURN ✦
-                </Link>
-                <form action={async () => { "use server"; await prisma.readingSession.update({ where: { id: activeCartomancy.id }, data: { status: "complete", completedAt: new Date() } }); redirect("/dashboard") }}>
-                  <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>abandon</button>
-                </form>
-              </>
-            ) : (
-              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 7 } }); redirect("/cartomancy") }}>
-                <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(232,121,160,0.5)", background: "linear-gradient(135deg, rgba(232,121,160,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#e879a0", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
-              </form>
-            )}
-          </div>
-        </div>
-      </div>
-
 
       {/* Past readings */}
       {completedSessions.length > 0 && (
         <div>
-          <div
-            style={{
-              fontFamily: "'Cinzel', serif",
-              fontSize: 10,
-              letterSpacing: "0.25em",
-              color: "#7a8ba8",
-              marginBottom: 20,
-            }}
-          >
-            PAST READINGS
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {completedSessions.map((s) => {
-              const cards = s.cardsDrawn ? JSON.parse(s.cardsDrawn) : []
-              const date = new Date(s.createdAt).toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.25em", color: "#4a3870", marginBottom: 16 }}>PAST READINGS</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {completedSessions.slice(0, 8).map(s => {
+              const date = new Date(s.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+              const href = s.type === "tarot" ? `/reading/${s.id}` : `/${s.type}`
               return (
-                <Link
-                  key={s.id}
-                  href={`/reading/${s.id}`}
-                  style={{
-                    padding: "18px 20px",
-                    borderRadius: 8,
-                    border: "1px solid rgba(42,26,85,0.5)",
-                    background: "rgba(10,5,32,0.4)",
-                    textDecoration: "none",
-                    display: "flex",
-                    gap: 16,
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    flexWrap: "wrap",
-                  }}
-                >
+                <Link key={s.id} href={href} style={{ padding: "14px 18px", borderRadius: 8, border: "1px solid rgba(42,26,85,0.4)", background: "rgba(10,5,32,0.4)", textDecoration: "none", display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
                   <div>
-                    <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 18, color: "#ddd8f0", fontStyle: "italic", marginBottom: 4 }}>
-                      {s.question
-                        ? `"${s.question.substring(0, 70)}${s.question.length > 70 ? "..." : ""}"`
-                        : "A reading with Galileo"}
+                    <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 16, color: "#ddd8f0", fontStyle: "italic", marginBottom: 2 }}>
+                      {s.question ? `"${s.question.substring(0, 65)}${s.question.length > 65 ? "…" : ""}"` : `${s.type} reading`}
                     </div>
-                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#7a8ba8", letterSpacing: "0.12em", marginTop: 6 }}>
-                      {date}
-                      {s.spread ? ` · ${s.spread}` : ""}
+                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", letterSpacing: "0.12em" }}>
+                      {date}{s.spread ? ` · ${s.spread}` : ""} · {s.type.toUpperCase()}
                     </div>
                   </div>
-                  {cards.length > 0 && (
-                    <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#7a8ba8", fontStyle: "italic", textAlign: "right" }}>
-                      {cards.slice(0, 3).join(", ")}{cards.length > 3 ? "..." : ""}
-                    </div>
-                  )}
                 </Link>
               )
             })}
@@ -281,11 +211,8 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Back to landing */}
-      <div style={{ marginTop: 60, textAlign: "center" }}>
-        <Link href="/" style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#2a1a55", fontStyle: "italic", textDecoration: "none" }}>
-          Return to the stars
-        </Link>
+      <div style={{ marginTop: 56, textAlign: "center" }}>
+        <Link href="/" style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#2a1a55", fontStyle: "italic", textDecoration: "none" }}>Return to the stars</Link>
       </div>
     </div>
   )

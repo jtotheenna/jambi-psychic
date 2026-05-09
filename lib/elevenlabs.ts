@@ -16,7 +16,7 @@ export async function textToSpeech(text: string): Promise<ReadableStream | null>
       },
       body: JSON.stringify({
         text,
-        model_id: "eleven_turbo_v2_5",
+        model_id: "eleven_flash_v2_5",
         output_format: "pcm_16000",
         voice_settings: {
           stability: 0.6,

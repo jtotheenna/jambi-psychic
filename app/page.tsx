@@ -7,6 +7,174 @@ import { type Language } from "@/lib/language"
 import GalileoCircle from "@/components/GalileoCircle"
 import { playBoxOpen } from "@/lib/sounds"
 
+type ReadingCard = {
+  icon: string; name: string; price: string; color: string; glow: string; border: string
+  tagline: string; desc: string; btn: string; href: string; soon?: boolean
+}
+
+const SECTIONS: { title: string; subtitle: string; readings: ReadingCard[] }[] = [
+  {
+    title: "THE CARDS",
+    subtitle: "Drawn, shuffled, and read aloud in his voice.",
+    readings: [
+      {
+        icon: "★", name: "Tarot Reading", price: "$15", color: "#c9a84c", glow: "rgba(201,168,76,0.35)", border: "rgba(201,168,76,0.3)",
+        tagline: "Any question. A full 78-card deck. Up to 7 exchanges.",
+        desc: "Ask what you need to know, and Galileo draws from a fully shuffled tarot deck to speak your reading aloud. Each card is interpreted through your question, your energy, and the story unfolding across the spread.",
+        btn: "CHOOSE TAROT", href: "/signup",
+      },
+      {
+        icon: "♠", name: "Cartomancy", price: "$15", color: "#e879a0", glow: "rgba(232,121,160,0.3)", border: "rgba(232,121,160,0.25)",
+        tagline: "The old language of playing cards. Direct, sharp, and strangely accurate.",
+        desc: "Galileo draws from a shuffled 52-card deck of hearts, spades, diamonds, and clubs. Older in spirit, blunt in tone, and grounded in everyday fate, this reading speaks plainly about the question in front of you.",
+        btn: "CHOOSE CARTOMANCY", href: "/signup",
+      },
+      {
+        icon: "◎", name: "Yes or No Oracle", price: "$5", color: "#a5b4fc", glow: "rgba(165,180,252,0.3)", border: "rgba(165,180,252,0.25)",
+        tagline: "One question. One clear answer. A short spoken reading.",
+        desc: "Ask Galileo a yes or no question and he will consult the sphere for a direct answer — yes, no, perhaps, not yet, or look deeper — with a spoken reading that gives it weight.",
+        btn: "CHOOSE YES OR NO", href: "/signup",
+      },
+    ],
+  },
+  {
+    title: "THE SKY",
+    subtitle: "Planetary positions, lunar cycles, and the map of your birth.",
+    readings: [
+      {
+        icon: "☽", name: "Moon Reading", price: "$5", color: "#a5b4fc", glow: "rgba(165,180,252,0.3)", border: "rgba(165,180,252,0.25)",
+        tagline: "The current moon phase. The live sky. A message for your season.",
+        desc: "Galileo reads the moon as it is right now, blending the current lunar phase with Medicine Wheel wisdom to reflect what this moment is asking of you. Open the reading, and the sky is already set.",
+        btn: "CHOOSE MOON", href: "/signup",
+      },
+      {
+        icon: "✦", name: "Natal Chart", price: "$7", color: "#fbbf24", glow: "rgba(251,191,36,0.3)", border: "rgba(251,191,36,0.25)",
+        tagline: "Your complete birth chart. Every planet. Every aspect.",
+        desc: "Enter your birth date, time, and city. Galileo calculates your real planetary positions and delivers a full natal chart reading — Sun, Moon, Rising, all planets, aspects, and the overarching story of your chart.",
+        btn: "CHOOSE NATAL CHART", href: "/signup",
+      },
+      {
+        icon: "☀", name: "Birthday Year Reading", price: "$12", color: "#f97316", glow: "rgba(249,115,22,0.25)", border: "rgba(249,115,22,0.2)",
+        tagline: "A reading for the year you are entering.",
+        desc: "Using your birthday and the current year, Galileo reflects on the themes, lessons, openings, and challenges surrounding your next personal cycle. Spoken aloud.",
+        btn: "CHOOSE YEAR READING", href: "/signup", soon: true,
+      },
+      {
+        icon: "🔢", name: "Name Numerology", price: "$7", color: "#34d399", glow: "rgba(52,211,153,0.25)", border: "rgba(52,211,153,0.2)",
+        tagline: "Your name and birth date, read as number and symbol.",
+        desc: "Galileo reads the symbolic numbers, patterns, and themes connected to your name and date of birth. A short spoken reading for personality, timing, and life themes.",
+        btn: "CHOOSE NUMEROLOGY", href: "/signup", soon: true,
+      },
+    ],
+  },
+  {
+    title: "THE BODY",
+    subtitle: "What the physical carries that the mind doesn't say.",
+    readings: [
+      {
+        icon: "✋", name: "Palm Reading", price: "$5", color: "#c8d4e8", glow: "rgba(200,212,232,0.25)", border: "rgba(200,212,232,0.2)",
+        tagline: "Upload your palm. Hear what the lines reveal.",
+        desc: "Take a photo of your dominant hand, and Galileo reads the lines, mounts, shape, and symbols. Your reading is spoken aloud in full — a complete palm reading in his old, wise voice.",
+        btn: "CHOOSE PALM", href: "/signup",
+      },
+      {
+        icon: "🌈", name: "Aura Photo Reading", price: "$12", color: "#818cf8", glow: "rgba(129,140,248,0.25)", border: "rgba(129,140,248,0.2)",
+        tagline: "Upload a photo and receive a symbolic aura reading.",
+        desc: "Galileo reads the colors, mood, expression, atmosphere, and emotional impression of the image as a creative reflection. Spoken aloud in his old, wise voice.",
+        btn: "CHOOSE AURA READING", href: "/signup", soon: true,
+      },
+    ],
+  },
+  {
+    title: "THE VEIL",
+    subtitle: "What is hidden, approaching, or asking to be seen.",
+    readings: [
+      {
+        icon: "☁", name: "Dream Interpretation", price: "$12", color: "#a5b4fc", glow: "rgba(165,180,252,0.3)", border: "rgba(165,180,252,0.25)",
+        tagline: "Tell Galileo your dream. He reads the symbols.",
+        desc: "Share the dream — the people, the places, the feeling, what lingered when you woke. Galileo interprets the symbols, emotional themes, and hidden message beneath the dream in his old, wise voice.",
+        btn: "CHOOSE DREAM READING", href: "/signup",
+      },
+      {
+        icon: "🕯", name: "Guide Message", price: "$9", color: "#a78bfa", glow: "rgba(167,139,250,0.25)", border: "rgba(167,139,250,0.2)",
+        tagline: "No question needed. Receive the message.",
+        desc: "If you do not know what to ask, open this reading and let Galileo speak a message for your current moment. A short oracle reading for reflection, grounding, and clarity.",
+        btn: "CHOOSE GUIDE MESSAGE", href: "/signup",
+      },
+      {
+        icon: "🔮", name: "Crystal Vision", price: "$15", color: "#7c3aed", glow: "rgba(124,58,237,0.25)", border: "rgba(124,58,237,0.2)",
+        tagline: "A clairvoyance-style reading through Galileo's crystal sphere.",
+        desc: "Ask your question and Galileo speaks a symbolic vision of what may be hidden, approaching, or asking to be seen. Mystical, atmospheric, and spoken aloud.",
+        btn: "CHOOSE CRYSTAL VISION", href: "/signup", soon: true,
+      },
+      {
+        icon: "🜃", name: "Shadow Reading", price: "$15", color: "#6b7280", glow: "rgba(107,114,128,0.2)", border: "rgba(107,114,128,0.15)",
+        tagline: "A deeper reading for what you may be avoiding.",
+        desc: "Galileo speaks gently, but he does not flatter. This reading reflects on hidden fears, repeating patterns, blocked emotions, and the truth that may be waiting underneath the surface.",
+        btn: "CHOOSE SHADOW READING", href: "/signup", soon: true,
+      },
+      {
+        icon: "🖼", name: "Object Reading", price: "$12", color: "#d97706", glow: "rgba(217,119,6,0.2)", border: "rgba(217,119,6,0.15)",
+        tagline: "Upload a photo of a meaningful object or heirloom.",
+        desc: "Galileo reads the object symbolically — its mood, story, energy, and meaning. A creative psychometry-style reading for crystals, rings, antiques, or anything that carries history. Spoken aloud.",
+        btn: "CHOOSE OBJECT READING", href: "/signup", soon: true,
+      },
+    ],
+  },
+  {
+    title: "THE HEART",
+    subtitle: "For love, connection, longing, and the truth beneath relationships.",
+    readings: [
+      {
+        icon: "♡", name: "Love Oracle", price: "$15", color: "#e879a0", glow: "rgba(232,121,160,0.3)", border: "rgba(232,121,160,0.25)",
+        tagline: "A spoken reading for love, connection, and the heart.",
+        desc: "Ask about a relationship, a person, a pattern, or your own heart. Galileo reads the emotional energy around the situation and speaks what needs to be seen — clearly, gently, and honestly. Up to 5 exchanges.",
+        btn: "CHOOSE LOVE ORACLE", href: "/signup",
+      },
+    ],
+  },
+]
+
+function ReadingCard({ icon, name, price, color, glow, border, tagline, desc, btn, href, soon }: ReadingCard) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        padding: "24px 26px", borderRadius: 12,
+        border: `1px solid ${soon ? "rgba(42,26,85,0.6)" : border}`,
+        background: soon
+          ? "rgba(10,5,32,0.4)"
+          : "linear-gradient(135deg, rgba(10,5,32,0.85) 0%, rgba(20,10,50,0.6) 100%)",
+        transform: hovered && !soon ? "translateY(-4px)" : "none",
+        boxShadow: hovered && !soon ? `0 14px 44px ${glow}, 0 0 0 1px ${border}` : "none",
+        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+        position: "relative", overflow: "hidden",
+        opacity: soon ? 0.65 : 1,
+      }}
+    >
+      <div style={{ position: "absolute", top: 0, right: 0, width: 100, height: 100, background: `radial-gradient(circle at top right, ${glow.replace(/[\d.]+\)$/, "0.07)")}, transparent 70%)`, pointerEvents: "none" }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 18, color: soon ? "#4a3870" : color, filter: soon ? "none" : `drop-shadow(0 0 6px ${color})` }}>{icon}</span>
+        <span style={{ fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.12em", color: soon ? "#4a3870" : "#ddd8f0" }}>{name.toUpperCase()}</span>
+        {soon ? (
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", color: "#4a3870", marginLeft: "auto", border: "1px solid rgba(42,26,85,0.8)", borderRadius: 4, padding: "2px 8px" }}>COMING SOON</span>
+        ) : (
+          <span style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.1em", color, marginLeft: "auto", background: glow.replace(/[\d.]+\)$/, "0.1)"), border: `1px solid ${border}`, borderRadius: 4, padding: "2px 9px" }}>{price}</span>
+        )}
+      </div>
+      <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 16, color: soon ? "#3a2a5a" : "#b0a8d0", fontStyle: "italic", marginBottom: 8, lineHeight: 1.5 }}>{tagline}</p>
+      <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: soon ? "#3a2a5a" : "#7a8ba8", lineHeight: 1.7, marginBottom: soon ? 0 : 18 }}>{desc}</p>
+      {!soon && (
+        <Link href={href} style={{ display: "inline-block", padding: "9px 22px", borderRadius: 6, border: `1px solid ${border}`, background: glow.replace(/[\d.]+\)$/, "0.09)"), color, fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", textDecoration: "none" }}>
+          {btn} ✦
+        </Link>
+      )}
+    </div>
+  )
+}
+
 export default function LandingPage() {
   const [playing, setPlaying] = useState(false)
   const [glowing, setGlowing] = useState(false)
@@ -19,147 +187,71 @@ export default function LandingPage() {
     return () => { audioRef.current?.pause() }
   }, [])
 
-  // Play the box-open chime when Galileo's face appears (~3.2s after mount).
-  // Browsers block audio until a user gesture, so we queue it for the very first
-  // interaction — the chime fires the moment they first touch the page.
   useEffect(() => {
     let fired = false
     const fire = () => {
-      if (fired) return
-      fired = true
+      if (fired) return; fired = true
       playBoxOpen()
-      window.removeEventListener("mousemove",   fire)
-      window.removeEventListener("touchstart",  fire)
-      window.removeEventListener("click",       fire)
-      window.removeEventListener("keydown",     fire)
+      window.removeEventListener("mousemove", fire); window.removeEventListener("touchstart", fire)
+      window.removeEventListener("click", fire); window.removeEventListener("keydown", fire)
     }
-    // Only start listening after the reveal completes so early interactions don't
-    // trigger the chime before he appears
     const t = setTimeout(() => {
-      window.addEventListener("mousemove",  fire, { once: true })
-      window.addEventListener("touchstart", fire, { once: true })
-      window.addEventListener("click",      fire, { once: true })
-      window.addEventListener("keydown",    fire, { once: true })
+      window.addEventListener("mousemove", fire, { once: true }); window.addEventListener("touchstart", fire, { once: true })
+      window.addEventListener("click", fire, { once: true }); window.addEventListener("keydown", fire, { once: true })
     }, 3200)
     return () => {
       clearTimeout(t)
-      window.removeEventListener("mousemove",  fire)
-      window.removeEventListener("touchstart", fire)
-      window.removeEventListener("click",      fire)
-      window.removeEventListener("keydown",    fire)
+      window.removeEventListener("mousemove", fire); window.removeEventListener("touchstart", fire)
+      window.removeEventListener("click", fire); window.removeEventListener("keydown", fire)
     }
   }, [])
 
   function hearGalileo() {
     if (!audioRef.current) return
     if (playing) {
-      audioRef.current.pause()
-      audioRef.current.currentTime = 0
+      audioRef.current.pause(); audioRef.current.currentTime = 0
       setPlaying(false); setGlowing(false)
     } else {
-      audioRef.current.play().catch(() => {})
-      setPlaying(true); setGlowing(true)
+      audioRef.current.play().catch(() => {}); setPlaying(true); setGlowing(true)
     }
   }
 
-  const readings = [
-    {
-      icon: "★", name: "Tarot Reading", price: "$15", color: "#c9a84c", glow: "rgba(201,168,76,0.35)", border: "rgba(201,168,76,0.3)",
-      tagline: "Any question. A full 78-card deck. Up to 7 exchanges.",
-      desc: "Ask what you need to know, and Galileo will draw from a fully shuffled tarot deck to speak your reading aloud. Each card is interpreted through your question, your energy, and the story unfolding across the spread.",
-      btn: "CHOOSE TAROT",
-    },
-    {
-      icon: "♠", name: "Cartomancy", price: "$15", color: "#e879a0", glow: "rgba(232,121,160,0.3)", border: "rgba(232,121,160,0.25)",
-      tagline: "The old language of playing cards. Direct, sharp, and strangely accurate.",
-      desc: "Galileo draws from a shuffled 52-card deck of hearts, spades, diamonds, and clubs. Older in spirit, blunt in tone, and grounded in everyday fate, this reading speaks plainly about the question in front of you.",
-      btn: "CHOOSE CARTOMANCY",
-    },
-    {
-      icon: "✦", name: "Natal Chart", price: "$7", color: "#fbbf24", glow: "rgba(251,191,36,0.3)", border: "rgba(251,191,36,0.25)",
-      tagline: "Your complete birth chart. Every planet. Every aspect. The whole sky.",
-      desc: "Enter your birth date, time, and city. Galileo calculates your real planetary positions and delivers a full natal chart reading — Sun, Moon, Rising, all planets, aspects, and the overarching story of your chart.",
-      btn: "CHOOSE NATAL CHART",
-    },
-    {
-      icon: "☽", name: "Moon Reading", price: "$5", color: "#a5b4fc", glow: "rgba(165,180,252,0.3)", border: "rgba(165,180,252,0.25)",
-      tagline: "The current moon phase. The live sky. A message for your season.",
-      desc: "Galileo reads the moon as it is right now, blending the current lunar phase with Medicine Wheel wisdom to reflect what this moment is asking of you. Open the reading, and the sky is already set.",
-      btn: "CHOOSE MOON",
-    },
-    {
-      icon: "✋", name: "Palm Reading", price: "$5", color: "#c8d4e8", glow: "rgba(200,212,232,0.25)", border: "rgba(200,212,232,0.2)",
-      tagline: "Upload your palm. Hear what the lines reveal.",
-      desc: "Take a photo of your dominant hand, and Galileo will read the lines, mounts, shape, and symbols of your palm. Your reading is spoken aloud, with room to ask follow-up questions and go deeper.",
-      btn: "CHOOSE PALM",
-    },
-  ]
+  void glowing
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 1 }}>
 
-      {/* Language selector — top right */}
       <div style={{ position: "fixed", top: 16, right: 16, zIndex: 50 }}>
         <LanguageSelector onChange={setLanguage} />
       </div>
 
       {/* ── HERO ── */}
       <div style={{ width: "100%", maxWidth: 760, textAlign: "center", padding: "64px 24px 52px" }}>
-
-        {/* Galileo — alive, idle, TV static opens on load */}
         <div style={{ margin: "0 auto 32px" }}>
           <GalileoCircle state={playing ? "speaking" : "idle"} size={300} showName={false} showStars={false} />
         </div>
-
-        {/* Name */}
         <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(44px, 9vw, 88px)", letterSpacing: "0.15em", marginBottom: 8, lineHeight: 1 }} className="text-shimmer">
           GALILEO
         </h1>
         <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.5em", color: "#9a8ab8", marginBottom: 32 }}>
           THE CELESTIAL ORACLE
         </div>
-
-        {/* Hook line */}
         <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(22px, 5vw, 32px)", lineHeight: 1.7, color: "#ddd8f0", fontStyle: "italic", maxWidth: 540, margin: "0 auto 18px" }}>
           Bring him what you're carrying. He has been waiting.
         </p>
         <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(15px, 3vw, 17px)", color: "#8878a8", lineHeight: 1.75, maxWidth: 460, margin: "0 auto 44px" }}>
-          Every reading is a real conversation — spoken aloud, in his voice, remembered across every visit.
+          Every reading is a real conversation — spoken aloud in his voice, remembered across every visit.
         </p>
-
-        {/* Primary CTA */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-          <Link href="/signup" style={{
-            padding: "20px 64px", borderRadius: 8,
-            border: "1px solid rgba(201,168,76,0.7)",
-            background: "linear-gradient(135deg, rgba(201,168,76,0.18) 0%, rgba(79,70,229,0.18) 100%)",
-            color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.28em",
-            textDecoration: "none", display: "inline-block",
-            boxShadow: "0 0 60px rgba(201,168,76,0.12), 0 4px 24px rgba(0,0,0,0.5)",
-            transition: "all 0.2s ease",
-          }}
-            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 0 80px rgba(201,168,76,0.25), 0 8px 32px rgba(0,0,0,0.6)"; (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-2px)" }}
-            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 0 60px rgba(201,168,76,0.12), 0 4px 24px rgba(0,0,0,0.5)"; (e.currentTarget as HTMLAnchorElement).style.transform = "none" }}
-          >
+          <Link href="/signup" style={{ padding: "20px 64px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.7)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.28em", textDecoration: "none", display: "inline-block", boxShadow: "0 0 60px rgba(201,168,76,0.12), 0 4px 24px rgba(0,0,0,0.5)" }}>
             START MY READING ✦
           </Link>
-
-          {/* Hear him button */}
-          <button onClick={hearGalileo} style={{
-            padding: "13px 36px", borderRadius: 8, cursor: "pointer",
-            border: `1px solid ${playing ? "rgba(165,180,252,0.7)" : "rgba(165,180,252,0.3)"}`,
-            background: playing ? "rgba(79,70,229,0.2)" : "rgba(79,70,229,0.06)",
-            color: playing ? "#c8d4e8" : "#9a8ab8",
-            fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.22em",
-            transition: "all 0.25s ease", display: "flex", alignItems: "center", gap: 10,
-            boxShadow: playing ? "0 0 30px rgba(165,180,252,0.2)" : "none",
-          }}>
-            <span style={{ width: 22, height: 22, borderRadius: "50%", border: `1px solid ${playing ? "rgba(165,180,252,0.6)" : "rgba(165,180,252,0.3)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, flexShrink: 0 }}>
+          <button onClick={hearGalileo} style={{ padding: "13px 36px", borderRadius: 8, cursor: "pointer", border: `1px solid ${playing ? "rgba(165,180,252,0.7)" : "rgba(165,180,252,0.3)"}`, background: playing ? "rgba(79,70,229,0.2)" : "rgba(79,70,229,0.06)", color: playing ? "#c8d4e8" : "#9a8ab8", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.22em", transition: "all 0.25s ease", display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ width: 22, height: 22, borderRadius: "50%", border: `1px solid ${playing ? "rgba(165,180,252,0.6)" : "rgba(165,180,252,0.3)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10 }}>
               {playing ? "◼" : "▶"}
             </span>
             {playing ? "GALILEO IS SPEAKING..." : "HEAR GALILEO FIRST"}
           </button>
-
           <Link href="/login" style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#6a5a8a", textDecoration: "none", fontStyle: "italic", marginTop: 4 }}>
             I have been here before
           </Link>
@@ -167,37 +259,27 @@ export default function LandingPage() {
       </div>
 
       {/* Divider */}
-      <div style={{ width: "100%", maxWidth: 480, height: 1, background: "linear-gradient(to right, transparent, rgba(79,70,229,0.5), transparent)", marginBottom: 64 }} />
+      <div style={{ width: "100%", maxWidth: 480, height: 1, background: "linear-gradient(to right, transparent, rgba(79,70,229,0.5), transparent)", marginBottom: 72 }} />
 
-      {/* ── READINGS ── */}
-      <div style={{ width: "100%", maxWidth: 680, padding: "0 24px", marginBottom: 80 }}>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.4em", color: "#9a8ab8", textAlign: "center", marginBottom: 36 }}>
+      {/* ── READINGS — 5 SECTIONS ── */}
+      <div style={{ width: "100%", maxWidth: 720, padding: "0 20px", marginBottom: 80 }}>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.4em", color: "#9a8ab8", textAlign: "center", marginBottom: 12 }}>
           CHOOSE YOUR READING
         </div>
+        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#4a3870", textAlign: "center", marginBottom: 56, fontStyle: "italic" }}>
+          Full readings include spoken Galileo responses and follow-up exchanges where included. Mini readings are shorter, focused sessions.
+        </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {readings.map(({ icon, name, price, color, glow, border, tagline, desc, btn }) => (
-            <div
-              key={name}
-              style={{ padding: "28px", borderRadius: 12, border: `1px solid ${border}`, background: "linear-gradient(135deg, rgba(10,5,32,0.8) 0%, rgba(20,10,50,0.5) 100%)", transition: "transform 0.2s ease, box-shadow 0.2s ease", cursor: "pointer", position: "relative", overflow: "hidden" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-5px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 16px 48px ${glow}, 0 0 0 1px ${border}` }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = "none"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none" }}
-              onTouchStart={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-5px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 16px 48px ${glow}, 0 0 0 1px ${border}` }}
-              onTouchEnd={e => { setTimeout(() => { (e.currentTarget as HTMLDivElement).style.transform = "none"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none" }, 300) }}
-            >
-              {/* Subtle color wash in corner */}
-              <div style={{ position: "absolute", top: 0, right: 0, width: 120, height: 120, background: `radial-gradient(circle at top right, ${glow.replace("0.3", "0.08")}, transparent 70%)`, pointerEvents: "none" }} />
-
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 22, color, filter: `drop-shadow(0 0 8px ${color})` }}>{icon}</span>
-                <span style={{ fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.15em", color: "#ddd8f0" }}>{name.toUpperCase()}</span>
-                <span style={{ fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.12em", color, marginLeft: "auto", background: `${glow.replace("0.3", "0.12")}`, border: `1px solid ${border}`, borderRadius: 4, padding: "2px 10px" }}>{price}</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 56 }}>
+          {SECTIONS.map(({ title, subtitle, readings }) => (
+            <div key={title}>
+              <div style={{ marginBottom: 20, paddingBottom: 14, borderBottom: "1px solid rgba(42,26,85,0.5)" }}>
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.3em", color: "#c9a84c", marginBottom: 4 }}>{title}</div>
+                <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#6a5a8a", fontStyle: "italic" }}>{subtitle}</div>
               </div>
-              <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#b8b0d8", fontStyle: "italic", marginBottom: 10, lineHeight: 1.5 }}>{tagline}</p>
-              <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#7a8ba8", lineHeight: 1.75, marginBottom: 20 }}>{desc}</p>
-              <Link href="/signup" style={{ display: "inline-block", padding: "10px 26px", borderRadius: 6, border: `1px solid ${border}`, background: `${glow.replace("0.3", "0.1")}`, color, fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", textDecoration: "none", transition: "all 0.2s" }}>
-                {btn} ✦
-              </Link>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {readings.map(r => <ReadingCard key={r.name} {...r} />)}
+              </div>
             </div>
           ))}
         </div>
@@ -211,12 +293,12 @@ export default function LandingPage() {
         <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.4em", color: "#9a8ab8", marginBottom: 36 }}>HOW IT WORKS</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {[
-            ["Choose your reading — tarot, moon, palm, or cartomancy"],
-            ["Create an account and complete your payment"],
-            ["Ask your question or upload your palm photo"],
-            ["Galileo speaks your answer aloud, in his own voice"],
-            ["Continue the conversation until your session is complete"],
-          ].map(([text], i) => (
+            "Choose your reading from the list above",
+            "Create an account and complete your payment",
+            "Ask your question, share your dream, or upload your photo",
+            "Galileo speaks your answer aloud, in his own voice",
+            "Continue the conversation until your session is complete",
+          ].map((text, i) => (
             <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 16, textAlign: "left", padding: "16px 0", borderBottom: i < 4 ? "1px solid rgba(42,26,85,0.4)" : "none" }}>
               <div style={{ width: 32, height: 32, borderRadius: "50%", border: "1px solid rgba(201,168,76,0.35)", background: "rgba(201,168,76,0.06)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "'Cinzel', serif", fontSize: 10, color: "#c9a84c", marginTop: 2 }}>{i + 1}</div>
               <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", lineHeight: 1.65, margin: 0 }}>{text}</p>
@@ -226,21 +308,13 @@ export default function LandingPage() {
       </div>
 
       {/* ── FINAL CTA ── */}
-      <div style={{ width: "100%", maxWidth: 600, padding: "40px 24px", marginBottom: 64, borderRadius: 16, border: "1px solid rgba(201,168,76,0.2)", background: "linear-gradient(135deg, rgba(20,10,50,0.8) 0%, rgba(10,5,32,0.9) 100%)", textAlign: "center", boxShadow: "0 0 80px rgba(79,70,229,0.1)" }}>
+      <div style={{ width: "100%", maxWidth: 600, padding: "40px 24px", marginBottom: 64, borderRadius: 16, border: "1px solid rgba(201,168,76,0.2)", background: "linear-gradient(135deg, rgba(20,10,50,0.8), rgba(10,5,32,0.9))", textAlign: "center", boxShadow: "0 0 80px rgba(79,70,229,0.1)" }}>
         <div style={{ fontSize: 32, marginBottom: 16, filter: "drop-shadow(0 0 12px rgba(201,168,76,0.4))" }}>☽</div>
-        <h2 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(18px, 4vw, 26px)", letterSpacing: "0.12em", marginBottom: 12 }} className="text-shimmer">
-          HE IS WAITING
-        </h2>
+        <h2 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(18px, 4vw, 26px)", letterSpacing: "0.12em", marginBottom: 12 }} className="text-shimmer">HE IS WAITING</h2>
         <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 18, color: "#8878a8", fontStyle: "italic", lineHeight: 1.7, marginBottom: 28, maxWidth: 400, margin: "0 auto 28px" }}>
           Galileo remembers every reading. The longer you come, the more precisely he sees you.
         </p>
-        <Link href="/signup" style={{
-          padding: "18px 56px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.6)",
-          background: "linear-gradient(135deg, rgba(201,168,76,0.15) 0%, rgba(79,70,229,0.15) 100%)",
-          color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.25em",
-          textDecoration: "none", display: "inline-block",
-          boxShadow: "0 0 40px rgba(201,168,76,0.1)",
-        }}>
+        <Link href="/signup" style={{ padding: "18px 56px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.6)", background: "linear-gradient(135deg, rgba(201,168,76,0.15), rgba(79,70,229,0.15))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.25em", textDecoration: "none", display: "inline-block", boxShadow: "0 0 40px rgba(201,168,76,0.1)" }}>
           BEGIN YOUR READING ✦
         </Link>
       </div>
@@ -254,10 +328,10 @@ export default function LandingPage() {
       </div>
 
       {/* Disclaimer */}
-      <div style={{ maxWidth: 520, padding: "16px 24px", marginBottom: 20, borderRadius: 8, border: "1px solid rgba(120,100,180,0.2)", background: "rgba(42,26,85,0.15)", textAlign: "center" }}>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a6ba8", marginBottom: 8 }}>FOR ENTERTAINMENT PURPOSES ONLY</div>
-        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 13, color: "#6a5a8a", fontStyle: "italic", lineHeight: 1.7, margin: 0 }}>
-          Galileo readings are for entertainment and self-reflection only. They are not medical, legal, financial, or crisis advice. All readings are AI-generated. No refunds.
+      <div style={{ maxWidth: 560, padding: "20px 28px", marginBottom: 20, borderRadius: 8, border: "1px solid rgba(120,100,180,0.2)", background: "rgba(42,26,85,0.15)", textAlign: "center" }}>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a6ba8", marginBottom: 10 }}>FOR REFLECTION AND ENTERTAINMENT</div>
+        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#6a5a8a", fontStyle: "italic", lineHeight: 1.75, margin: 0 }}>
+          Galileo readings are offered for reflection, creativity, and entertainment. They are not medical, legal, financial, or crisis advice. If you are in immediate danger or need professional support, please contact the appropriate professional or emergency service.
         </p>
       </div>
 
