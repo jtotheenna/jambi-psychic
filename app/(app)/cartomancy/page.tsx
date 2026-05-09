@@ -8,7 +8,7 @@ import { getStoredLanguage } from "@/lib/language"
 import LanguageSelector from "@/components/LanguageSelector"
 import GemProgress from "@/components/GemProgress"
 import CartomancyCard from "@/components/CartomancyCard"
-import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
+import { playBoxOpen, playCardReveal, playSessionEnd } from "@/lib/sounds"
 import { audioBlobToPCM } from "@/components/FloatingSimli"
 
 type CardDrawn = { name: string; suit: string; rank: string; position?: string }
@@ -124,7 +124,11 @@ export default function CartomancyPage() {
     if (!res.ok) { setLoading(false); voice.setLoading(false); return }
 
     if (!sessionId && data.sessionId) setSessionId(data.sessionId)
-    if (data.cards?.length > 0) setAllCards(prev => [...prev, ...data.cards])
+    if (data.cards?.length > 0) {
+      setAllCards(prev => [...prev, ...data.cards])
+      // Chime for each card dealt
+      data.cards.forEach((_: unknown, i: number) => setTimeout(() => playCardReveal(i), i * 250))
+    }
     setExchangesUsed(data.exchangesUsed)
     setIsComplete(data.isComplete)
     if (data.isComplete) playSessionEnd()
@@ -152,7 +156,8 @@ export default function CartomancyPage() {
 
       <div style={{ flex: 1, maxWidth: 720, width: "100%", margin: "0 auto", padding: "24px 16px", display: "flex", flexDirection: "column", gap: 20 }}>
 
-        <div style={{ display: "flex", justifyContent: "center", position: "sticky", top: 57, zIndex: 30, background: "rgba(4,2,14,0.93)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(42,26,85,0.4)", padding: "10px 0" }}>
+        {/* Galileo — normal flow, not sticky */}
+        <div style={{ display: "flex", justifyContent: "center" }}>
           <GalileoPanel
             avatarState={hasStarted ? voice.avatarState : "closed"}
             hasStarted={hasStarted}
@@ -161,18 +166,16 @@ export default function CartomancyPage() {
             isListening={voice.isListening}
             interimTranscript={voice.interimTranscript}
             voiceSupported={voice.voiceSupported}
-            startOpen
-            onSendAudio={(fn) => { simliSendRef.current = fn }}
           />
         </div>
 
-        {/* Cards — shown after question, sticky + clickable */}
+        {/* Cards — shown after question, inline horizontal scroll */}
         {allCards.length > 0 && (
-          <div style={{ padding: "14px 16px", borderRadius: 10, border: "1px solid rgba(232,121,160,0.2)", background: "rgba(10,5,32,0.5)", position: "sticky", top: 57, zIndex: 10, backdropFilter: "blur(12px)" }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a8ba8", marginBottom: 14, textAlign: "center" }}>
-              THE CARDS · tap to learn more
+          <div style={{ padding: "16px", borderRadius: 10, border: "1px solid rgba(232,121,160,0.25)", background: "rgba(10,5,32,0.6)" }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a8ba8", marginBottom: 16, textAlign: "center" }}>
+              ♠ THE CARDS · tap any card to read it
             </div>
-            <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: 12, justifyContent: allCards.length <= 4 ? "center" : "flex-start", paddingBottom: 4 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center" }}>
               {allCards.map((card, i) => (
                 <CartomancyCard
                   key={i}
@@ -180,7 +183,7 @@ export default function CartomancyPage() {
                   suit={card.suit}
                   rank={card.rank}
                   position={card.position}
-                  revealDelay={i * 150}
+                  revealDelay={i * 200}
                 />
               ))}
             </div>
