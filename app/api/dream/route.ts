@@ -5,17 +5,7 @@ import { languageInstruction, type Language } from "@/lib/language"
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
-export async function POST(req: Request) {
-  const session = await auth()
-  if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 })
-
-  const { dream, language = "en" } = await req.json()
-  if (!dream?.trim()) return Response.json({ error: "Dream description required" }, { status: 400 })
-
-  const resp = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 1000,
-    system: `You are Galileo — ancient oracle, fluent in the old language of dreams. You read dreams the way a true reader does: through image, emotion, and the hidden grammar beneath the surface.
+const SYSTEM = (language: string) => `You are Galileo — ancient oracle, fluent in the old language of dreams. You read dreams the way a true reader does: through image, emotion, and the hidden grammar beneath the surface.
 
 HOW YOU READ A DREAM:
 - Every figure, place, and object in a dream is a symbol. Even the dreamer is a symbol.
@@ -27,24 +17,94 @@ HOW YOU READ A DREAM:
 READING STANDARDS:
 - Be specific to the actual images they described — not generic dream symbolism.
 - Read the emotional texture: what was the dreamer afraid of, reaching for, running from?
-- 5–7 flowing paragraphs. Rich, specific, worth carrying into the day.
-- End with one quiet question or reflection — what the dream may be asking them to consider.
-- No bullet points. No lists. No asterisks. No "this dream could mean." Spoken, direct prose.
-- Do not offer medical or psychological diagnoses.${languageInstruction(language as Language)}`,
+- For the initial reading: 7–9 rich paragraphs. Every image deserves its own attention.
+- For follow-up exchanges: 4–6 paragraphs, going deeper on whatever they ask.
+- End each response with one quiet question or reflection — what the dream may be asking them to consider.
+- No bullet points. No lists. No asterisks. Spoken, direct prose.
+- Do not offer medical or psychological diagnoses.${languageInstruction(language as Language)}`
+
+type StoredMessage = { role: "user" | "galileo"; content: string }
+
+export async function POST(req: Request) {
+  const session = await auth()
+  if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { dream, message, sessionId, language = "en" } = await req.json()
+
+  // ── Follow-up exchange ────────────────────────────────────────────────────
+  if (sessionId && message?.trim()) {
+    const dreamSession = await prisma.readingSession.findFirst({
+      where: { id: sessionId, userId: session.user.id, type: "dream", status: "active" },
+    })
+    if (!dreamSession) return Response.json({ error: "Session not found" }, { status: 404 })
+    if (dreamSession.exchangesUsed >= dreamSession.exchangesTotal) {
+      return Response.json({ error: "Reading complete" }, { status: 403 })
+    }
+
+    const transcript: StoredMessage[] = dreamSession.transcript ? JSON.parse(dreamSession.transcript) : []
+    const anthropicMessages: Anthropic.MessageParam[] = transcript.map(m => ({
+      role: m.role === "galileo" ? "assistant" : "user",
+      content: m.content,
+    }))
+    anthropicMessages.push({ role: "user", content: message })
+
+    const exchangesLeft = dreamSession.exchangesTotal - dreamSession.exchangesUsed - 1
+    const closingNote = exchangesLeft === 0
+      ? "\nFINAL EXCHANGE. No new question at the end. Give them a complete, grounded closing reflection on this dream."
+      : ""
+
+    const resp = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 800,
+      system: SYSTEM(language) + closingNote,
+      messages: anthropicMessages,
+    })
+    const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
+
+    transcript.push({ role: "user", content: message })
+    transcript.push({ role: "galileo", content: reading })
+
+    const newExchangesUsed = dreamSession.exchangesUsed + 1
+    const isComplete = newExchangesUsed >= dreamSession.exchangesTotal
+
+    await prisma.readingSession.update({
+      where: { id: sessionId },
+      data: {
+        transcript: JSON.stringify(transcript),
+        exchangesUsed: newExchangesUsed,
+        status: isComplete ? "complete" : "active",
+        completedAt: isComplete ? new Date() : null,
+      },
+    })
+
+    return Response.json({
+      reading,
+      exchangesUsed: newExchangesUsed,
+      exchangesTotal: dreamSession.exchangesTotal,
+      isComplete,
+      sessionId,
+    })
+  }
+
+  // ── Initial reading ───────────────────────────────────────────────────────
+  if (!dream?.trim()) return Response.json({ error: "Dream description required" }, { status: 400 })
+
+  const resp = await anthropic.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1600,
+    system: SYSTEM(language),
     messages: [{ role: "user", content: `Here is my dream:\n\n${dream}` }],
   })
-
   const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
 
-  await prisma.readingSession.create({
+  const dreamSession = await prisma.readingSession.create({
     data: {
       userId: session.user.id,
       type: "dream",
-      status: "complete",
-      exchangesTotal: 1,
+      status: "active",
+      exchangesTotal: 3,
       exchangesUsed: 1,
       question: dream.substring(0, 200),
-      completedAt: new Date(),
       transcript: JSON.stringify([
         { role: "user", content: dream },
         { role: "galileo", content: reading },
@@ -52,5 +112,11 @@ READING STANDARDS:
     },
   })
 
-  return Response.json({ reading })
+  return Response.json({
+    reading,
+    exchangesUsed: 1,
+    exchangesTotal: 3,
+    isComplete: false,
+    sessionId: dreamSession.id,
+  })
 }
