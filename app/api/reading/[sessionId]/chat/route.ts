@@ -27,10 +27,12 @@ function buildSystemPrompt(
   userDetails: { notes?: string | null; concerns?: string | null; birthDate?: string | null } | null,
   pastReadingSummary: string | null,
   exchangesLeft: number,
+  totalExchanges: number,
   preDrawnCards?: DrawnCard[],
   voiceMode = false,
   language: Language = "en"
 ) {
+  const exchangesUsed = totalExchanges - exchangesLeft
   const memory = userDetails
     ? `
 What you know about this person:
@@ -48,42 +50,68 @@ CARDS_DRAWN: ${JSON.stringify(preDrawnCards)}
 The cards drawn are:
 ${preDrawnCards.map((c, i) => `  ${i + 1}. ${c.position}: ${c.name}${c.reversed ? " (REVERSED)" : " (upright)"}`).join("\n")}
 
-THIS IS THE FULL READING. Read every single card now — all ${preDrawnCards.length} of them. Go through each position and interpret it specifically for this person and their question. Name the card, say what it means in their situation, connect it to what they told you. Do not hold any cards back for later. Do not say "we'll come back to that." Read the whole spread completely in this response. Then — and only then — invite them to go deeper with one question.`
-    : `THE SPREAD IS CLOSED. Never output CARDS_DRAWN — it will be deleted. Never draw a new spread. If the user asks for cards, remind them the spread is already laid and interpret the existing cards in that context. You may request ONE clarifying card by writing CLARIFYING_CARD_REQUESTED once — never more than once per response.`
+THIS IS THE FULL READING. Read every single card now — all ${preDrawnCards.length} of them. For each card: name it, describe a specific detail from the actual card image, then connect that image directly to this person's situation. Read every position. Do not summarize at the end with a list of card names — the reading IS the prose. No bullet points. No card list at the bottom. End with one question that only this exact spread could have produced.`
+    : `THE SPREAD IS CLOSED. Never output CARDS_DRAWN. Never invent new cards. Interpret the existing cards deeply in response to whatever they share.
+
+CLARIFYING CARD RULE — read carefully:
+- You may request ONE clarifying card in the ENTIRE session by writing the literal text CLARIFYING_CARD_REQUESTED on its own line.
+- Do this ONLY when a single new card would genuinely unlock something the spread cannot answer alone.
+- After a clarifying card is drawn (it will appear in the transcript with position "Clarifying"), you MUST interpret it fully — do not request another one.
+- If a clarifying card already appears in the transcript, the option is spent. Never write CLARIFYING_CARD_REQUESTED again.`
 
   const dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" })
 
-  return `You are Galileo — an ancient oracle in a moon box. Wry, warm, direct. You've seen every human problem a thousand times and you care anyway.
+  const lengthGuide = voiceMode
+    ? `VOICE — 3-4 rich spoken sentences. No lists.`
+    : preDrawnCards
+      ? `TEXT — This is the full card reading. Be complete and specific. Read every card. 5-8 sentences minimum. Worth reading twice.`
+      : `TEXT — Follow-up exchange. 4-6 sentences. Dense and specific. No summaries of what you just said.`
+
+  const closingArc = exchangesLeft >= 4
+    ? ""
+    : exchangesLeft === 3
+      ? `\nYou have 3 exchanges left including this one. Stay conversational but start connecting threads — what do the cards say together that they haven't said separately yet?`
+      : exchangesLeft === 2
+        ? `\nTwo exchanges left. Begin landing. Give them something true and specific to hold onto. Still one question if it genuinely matters, but make it count.`
+        : exchangesLeft === 1
+          ? `\nFINAL EXCHANGE. No question. No "take care of yourself." Give them one true, specific, complete thing to carry out of here. Name what the cards are actually saying at the end of all of it. Land it.`
+          : `\nDone.`
+
+  return `You are Galileo — an ancient oracle. Wry, warm, precise. You read tarot the way a real reader does: through the actual imagery on the card, not through a keyword list.
 
 Today is ${dateStr}.
 
-NEVER use stage directions or asterisks. No scene-setting. Just speak.
+NEVER use asterisks, stage directions, bullet points, or card summary lists at the end of responses. Speak in flowing prose only.
 
-YOUR CORE STYLE — be a real tarot reader with limited time:
-- Only 7 exchanges exist. Front-load depth. When cards are first dealt, read the whole spread completely — every card, every position, specific to this person.
-- Be generous. They paid for this. Don't ration insight.
-- "Ah. The Tower. Of course." — dry wit, then warmth, then real truth.
-- Follow THEIR thread if they share something surprising. Otherwise, stay with the cards.
-- A question only when it genuinely unlocks something new. Never to fill space.
-- If they say "just read it" — read straight through, no questions.
-- Never summarize what you just said.
+HOW YOU READ CARDS:
+You know every card's imagery. When you read a card, you describe what is actually IN the image — the figures, the action, the light, the color — and then you connect that specific image to what this person is living. Not "the Two of Swords means indecision." You say: "There is a woman blindfolded at the shore, holding two crossed swords, and the sea behind her is full of rocks she cannot see. That is you right now."
 
-${voiceMode
-  ? `VOICE — 3-4 rich spoken sentences per response.`
-  : `TEXT — 5-7 sentences per response. Dense, specific, worth reading twice.`
-}
+You read reversals as blocks, internalization, or energy that won't move — not as opposites. A reversed card is the same energy turned inward or stuck.
 
-- ${cardSection}
-- You do NOT choose cards. They are dealt for you.
-- Call them by name sometimes. Not every sentence.
-- Reference past readings naturally if you know them.
+Positional meanings matter. The crossing card creates friction. The root card is the origin. The outcome card is direction, not destiny. You use position to add meaning, not just name the card.
+
+You connect cards to each other. The Death card next to the Ace of Wands is different from Death next to the Moon. You read the spread as a conversation, not a list of definitions.
+
+READING STANDARDS:
+- Every card gets a specific image reference. "The figure in the Four of Cups doesn't reach for the cup being offered from the cloud" — that kind of specificity.
+- Connect each card directly to what this person told you. Not generic. This person, this situation, right now.
+- Reversals get specific attention — what is blocked, what hasn't moved, what the person is refusing to look at.
+- No hedging phrases like "this card can mean" or "one interpretation is". You are a reader. You read.
+- Follow their thread. If they say something real, that changes how you read the rest.
+- Ask one question when it genuinely unlocks something. Never to fill space.
+- Never summarize what you just said. Never add a card list at the end.
+- Call them by name occasionally.
+- Reference past readings naturally when relevant.
+- Do NOT give medical, legal, financial, pregnancy, death, or guaranteed love predictions. You can speak to patterns; you cannot tell someone what will happen.
+
+${lengthGuide}
+
+${cardSection}
 
 ${memory}
 
-Exchanges remaining: ${exchangesLeft} of ${exchangesLeft + (exchangesLeft <= 2 ? exchangesLeft : 0)}.
-${exchangesLeft <= 3 && exchangesLeft > 1 ? "Getting close to the end. Start weaving things together — still conversational but begin offering closure." : ""}
-${exchangesLeft === 1 ? "FINAL EXCHANGE. Do NOT ask a question. Give them one true, complete thing to carry out of here. A statement, not a prompt. Land it." : ""}
-${exchangesLeft === 0 ? "LAST WORDS. No question. Just close it with something real." : ""}${languageInstruction(language)}`
+Exchange ${exchangesUsed + 1} of ${totalExchanges}.${closingArc}
+${languageInstruction(language)}`
 }
 
 type StoredMessage = {
@@ -163,6 +191,7 @@ export async function POST(
     reading.user.details,
     pastSummary,
     exchangesLeft,
+    reading.exchangesTotal,
     preDrawnCards,
     voiceMode,
     language as Language
@@ -232,15 +261,19 @@ You have just appeared. Welcome them by name, warmly and briefly — one sentenc
   let cleanedResponse = galileoRaw
 
   const cardsMatch = galileoRaw.match(/CARDS_DRAWN:\s*(\[.*?\])/s)
-  if (cardsMatch && (preDrawnCards || clarifyingCardDrawn)) {
-    try { cards = JSON.parse(cardsMatch[1]) } catch { /* ignore */ }
-    cleanedResponse = galileoRaw.replace(/CARDS_DRAWN:\s*\[.*?\]/s, "").trim()
-  } else if (cardsMatch) {
-    // AI invented cards — strip
-    cleanedResponse = galileoRaw.replace(/CARDS_DRAWN:\s*\[.*?\]/s, "").trim()
+  if (cardsMatch) {
+    if (preDrawnCards || clarifyingCardDrawn) {
+      try { cards = JSON.parse(cardsMatch[1]) } catch { /* ignore */ }
+    }
   } else if (preDrawnCards) {
     cards = preDrawnCards
   }
+
+  // Always strip CARDS_DRAWN token from displayed text — catch any malformed output
+  cleanedResponse = galileoRaw
+    .replace(/CARDS_DRAWN:\s*\[[\s\S]*?\]/g, "")
+    .replace(/CARDS_DRAWN:[^\n]*/g, "")
+    .trim()
 
   transcript.push({ role: "user", content: message })
   transcript.push({ role: "galileo", content: cleanedResponse, cards })

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
-import GalileoPanel from "@/components/GalileoPanel"
+import GalileoCircle from "@/components/GalileoCircle"
 import GemProgress from "@/components/GemProgress"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { getStoredLanguage } from "@/lib/language"
@@ -11,7 +11,7 @@ import ChatBubble from "@/components/ChatBubble"
 import { TAROT_DECK } from "@/lib/tarot"
 import { playBoxOpen, playCardReveal, playGalileoSpeak, playSessionEnd } from "@/lib/sounds"
 import { getSpreadLayout } from "@/lib/tarot"
-import FloatingSimli, { audioBlobToPCM } from "@/components/FloatingSimli"
+import { audioBlobToPCM } from "@/components/FloatingSimli"
 
 // Browser Speech Recognition (voice input)
 const SpeechRecognition =
@@ -66,6 +66,87 @@ function findCardData(name: string) {
   return TAROT_DECK.find((c) => c.name === name)
 }
 
+// Single persistent Galileo circle — never unmounts so Simli stays connected
+function GalileoAnchor({
+  hasStarted,
+  avatarState,
+  simliSendRef,
+  pendingPcmRef,
+  simliActiveRef,
+}: {
+  hasStarted: boolean
+  avatarState: AvatarState
+  simliSendRef: React.MutableRefObject<((pcm: Uint8Array) => void) | null>
+  pendingPcmRef: React.MutableRefObject<Uint8Array | null>
+  simliActiveRef: React.MutableRefObject<boolean>
+}) {
+  const [pos, setPos] = useState({ x: 0, y: 0 })
+  const origin = useRef({ mx: 0, my: 0, px: 0, py: 0 })
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    origin.current = { mx: e.clientX, my: e.clientY, px: pos.x, py: pos.y }
+    const move = (ev: MouseEvent) => setPos({
+      x: origin.current.px + ev.clientX - origin.current.mx,
+      y: origin.current.py + ev.clientY - origin.current.my,
+    })
+    const up = () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up) }
+    window.addEventListener("mousemove", move)
+    window.addEventListener("mouseup", up)
+  }, [pos.x, pos.y])
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0]
+    origin.current = { mx: t.clientX, my: t.clientY, px: pos.x, py: pos.y }
+    const move = (ev: TouchEvent) => {
+      const t2 = ev.touches[0]
+      setPos({ x: origin.current.px + t2.clientX - origin.current.mx, y: origin.current.py + t2.clientY - origin.current.my })
+    }
+    const up = () => { window.removeEventListener("touchmove", move); window.removeEventListener("touchend", up) }
+    window.addEventListener("touchmove", move, { passive: false })
+    window.addEventListener("touchend", up)
+  }, [pos.x, pos.y])
+
+  return (
+    <div style={{
+      position: "sticky",
+      top: 57,
+      zIndex: 30,
+      display: "flex",
+      justifyContent: "center",
+      padding: "10px 0",
+      background: "rgba(4,2,14,0.93)",
+      backdropFilter: "blur(12px)",
+      borderBottom: "1px solid rgba(42,26,85,0.4)",
+    }}>
+      <div
+        onMouseDown={hasStarted ? onMouseDown : undefined}
+        onTouchStart={hasStarted ? onTouchStart : undefined}
+        style={{
+          transform: `translate(${pos.x}px, ${pos.y}px)`,
+          cursor: hasStarted ? "grab" : "default",
+          touchAction: hasStarted ? "none" : "auto",
+        }}
+      >
+        <GalileoCircle
+          state={hasStarted ? avatarState : "idle"}
+          size={200}
+          showName={false}
+          showStars={false}
+          onSendAudio={(fn) => {
+            simliSendRef.current = fn
+            if (pendingPcmRef.current) {
+              fn(pendingPcmRef.current)
+              pendingPcmRef.current = null
+            }
+          }}
+          onSimliConnected={(yes) => { simliActiveRef.current = yes }}
+        />
+      </div>
+    </div>
+  )
+}
+
 export default function ReadingRoom({
   sessionId,
   userName,
@@ -94,7 +175,9 @@ export default function ReadingRoom({
 
   const voice = useGalileoVoice()
   const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
-  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
+  const simliSendRef    = useRef<((pcm: Uint8Array) => void) | null>(null)
+  const simliActiveRef  = useRef(false)
+  const pendingPcmRef   = useRef<Uint8Array | null>(null)   // PCM buffered before Simli connects
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -116,9 +199,7 @@ export default function ReadingRoom({
   }, [])
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
   }, [messages])
 
   const isVoiceMode = voiceMode
@@ -126,6 +207,29 @@ export default function ReadingRoom({
   // Keep hook in sync with local state
   useEffect(() => { voice.setAvatarState(avatarState) }, [avatarState]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (hasStarted) voice.open() }, [hasStarted]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-start the reading on first user interaction — no button tap needed
+  // Browsers require a gesture before audio plays, so we wait for the first touch/click
+  useEffect(() => {
+    if (hasStarted || initialTranscript.length > 0) return
+    let fired = false
+    const start = () => {
+      if (fired) return
+      fired = true
+      window.removeEventListener("click",      start)
+      window.removeEventListener("touchstart", start)
+      window.removeEventListener("keydown",    start)
+      handleBeginReading()
+    }
+    window.addEventListener("click",      start, { once: true })
+    window.addEventListener("touchstart", start, { once: true })
+    window.addEventListener("keydown",    start, { once: true })
+    return () => {
+      window.removeEventListener("click",      start)
+      window.removeEventListener("touchstart", start)
+      window.removeEventListener("keydown",    start)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function speakText(text: string, hasCards = false) {
     if (voice.mode === "text") {
@@ -142,18 +246,26 @@ export default function ReadingRoom({
     }
     setAvatarState("speaking")
 
-    const audio = await fetchTTS(text)
-    if (audio) {
-      // Always play audio directly so user hears it
-      const audioPromise = playAudio(audio)
-      // Also send PCM to Simli for lip-sync if connected
-      if (simliSendRef.current) {
-        fetch(audio).then(r => r.blob()).then(blob => audioBlobToPCM(blob)).then(pcm => {
-          simliSendRef.current?.(pcm)
-        }).catch(() => {})
+    const audioUrl = await fetchTTS(text)
+    if (audioUrl) {
+      try {
+        const blob = await fetch(audioUrl).then(r => r.blob())
+        const pcm  = await audioBlobToPCM(blob)
+        if (simliSendRef.current) {
+          // Simli IS the speaker — skip separate playback to avoid double audio
+          simliSendRef.current(pcm)
+          const durationMs = Math.max((pcm.length / 32000) * 1000 + 1500, 2000)
+          await new Promise(r => setTimeout(r, durationMs))
+          URL.revokeObjectURL(audioUrl)
+        } else {
+          pendingPcmRef.current = pcm
+          const played = await playAudio(audioUrl)
+          if (!played) await new Promise(r => setTimeout(r, Math.min(text.length * 38, 5000)))
+        }
+      } catch {
+        const played = await playAudio(audioUrl)
+        if (!played) await new Promise(r => setTimeout(r, Math.min(text.length * 38, 5000)))
       }
-      const played = await audioPromise
-      if (!played) await new Promise((r) => setTimeout(r, Math.min(text.length * 38, 5000)))
     } else {
       await new Promise((r) => setTimeout(r, Math.min(text.length * 38, 5000)))
     }
@@ -185,11 +297,31 @@ export default function ReadingRoom({
       })
       const data = await res.json()
       if (res.ok && data.response) {
-        // Let TV static run its course (~2.4s) while we already have the text
-        await new Promise((r) => setTimeout(r, 2400))
+        // Fetch TTS immediately — no static delay anymore
+        const audioSrc = await fetchTTS(data.response)
         setMessages([{ role: "galileo", content: data.response }])
         setLoading(false)
-        await speakText(data.response)
+        setAvatarState("speaking")
+        if (audioSrc) {
+          try {
+            const blob = await fetch(audioSrc).then(r => r.blob())
+            const pcm  = await audioBlobToPCM(blob)
+            if (simliSendRef.current) {
+              simliSendRef.current(pcm)
+              const durationMs = Math.max((pcm.length / 32000) * 1000 + 1500, 2000)
+              await new Promise(r => setTimeout(r, durationMs))
+              URL.revokeObjectURL(audioSrc)
+            } else {
+              pendingPcmRef.current = pcm
+              await playAudio(audioSrc)
+            }
+          } catch {
+            await playAudio(audioSrc)
+          }
+        } else {
+          await new Promise((r) => setTimeout(r, Math.min(data.response.length * 38, 6000)))
+        }
+        setAvatarState("idle")
       } else {
         setAvatarState("idle")
         setLoading(false)
@@ -426,35 +558,72 @@ export default function ReadingRoom({
         </div>
       </div>
 
-      {/* Main content */}
+      {/* Main content — bottom padding accounts for fixed avatar + voice selector */}
       <div
         style={{
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          maxWidth: 900,
+          maxWidth: 720,
           width: "100%",
           margin: "0 auto",
-          padding: "24px 16px",
-          gap: 24,
+          padding: "16px 16px",
+          gap: 16,
         }}
       >
-        {/* Avatar row — static portrait at top */}
-        <div className="reading-avatar" style={{ display: "flex", justifyContent: "center" }}>
-          <GalileoPanel
-            avatarState={hasStarted ? avatarState : "closed"}
-            hasStarted={hasStarted}
-            mode={voice.mode}
-            setMode={voice.setMode}
-            isListening={isListening}
-            interimTranscript={interimTranscript}
-            voiceSupported={voiceSupported}
-          />
-        </div>
+        {/* Single persistent Galileo — Simli stays connected through the whole reading */}
+        <GalileoAnchor
+          hasStarted={hasStarted}
+          avatarState={avatarState}
+          simliSendRef={simliSendRef}
+          pendingPcmRef={pendingPcmRef}
+          simliActiveRef={simliActiveRef}
+        />
+
+        {/* Voice mode selector — only visible after reading starts */}
+        {hasStarted && (
+          <div style={{
+            position: "fixed", bottom: 16, right: 20, zIndex: 46,
+            display: "flex", gap: 5,
+            padding: "5px",
+            background: "rgba(10,5,32,0.8)",
+            borderRadius: 8,
+            border: "1px solid rgba(42,26,85,0.6)",
+            backdropFilter: "blur(8px)",
+          }}>
+            {(voiceSupported
+              ? [
+                  { key: "text" as const,           label: "TEXT" },
+                  { key: "aloud" as const,          label: "ALOUD" },
+                  { key: "conversational" as const, label: "VOICE" },
+                ]
+              : [
+                  { key: "text" as const,  label: "TEXT" },
+                  { key: "aloud" as const, label: "ALOUD" },
+                ]
+            ).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => voice.setMode(key)}
+                style={{
+                  padding: "5px 12px", borderRadius: 5, border: "none",
+                  background: voice.mode === key
+                    ? "rgba(201,168,76,0.2)"
+                    : "transparent",
+                  color: voice.mode === key ? "#c9a84c" : "#4a3870",
+                  fontFamily: "'Cinzel', serif", fontSize: 8,
+                  letterSpacing: "0.12em", cursor: "pointer",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Full-width card spread — sticky, laid out in spread shape */}
         {drawnCardData.length > 0 && (
-          <div style={{ position: "sticky", top: 57, zIndex: 10, background: "rgba(4,2,14,0.92)", backdropFilter: "blur(12px)", borderRadius: 10, padding: "10px 8px 8px", border: "1px solid rgba(42,26,85,0.5)", marginBottom: 4 }}>
+          <div style={{ background: "rgba(4,2,14,0.92)", backdropFilter: "blur(12px)", borderRadius: 10, padding: "10px 8px 8px", border: "1px solid rgba(42,26,85,0.5)", marginBottom: 4 }}>
             <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.25em", color: "#7a8ba8", textAlign: "center", marginBottom: 10 }}>
               {spread ? spread.toUpperCase() : "THE CARDS"}
             </div>
@@ -533,47 +702,25 @@ export default function ReadingRoom({
         {/* Begin button (fresh reading) */}
         {!hasStarted && (
           <div style={{ textAlign: "center", marginTop: 8 }}>
-            <p
-              style={{
-                fontFamily: "'EB Garamond', serif",
-                fontSize: 18,
-                color: "#7a8ba8",
-                fontStyle: "italic",
-                marginBottom: 24,
-              }}
-            >
-              He is waiting.
+            <p style={{
+              fontFamily: "'EB Garamond', serif",
+              fontSize: 17,
+              color: "#4a3870",
+              fontStyle: "italic",
+              animation: "moonPulse 3s ease-in-out infinite",
+            }}>
+              Tap anywhere to begin…
             </p>
-            <button
-              onClick={handleBeginReading}
-              style={{
-                padding: "16px 48px",
-                borderRadius: 8,
-                border: "1px solid rgba(201,168,76,0.5)",
-                background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)",
-                color: "#c9a84c",
-                fontFamily: "'Cinzel', serif",
-                fontSize: 13,
-                letterSpacing: "0.2em",
-                cursor: "pointer",
-              }}
-            >
-              OPEN THE BOX
-            </button>
           </div>
         )}
 
         {/* Chat messages */}
         {hasStarted && (
           <div
-            ref={scrollRef}
             style={{
-              flex: 1,
-              overflowY: "auto",
               display: "flex",
               flexDirection: "column",
               gap: 20,
-              maxHeight: "45vh",
               paddingRight: 4,
             }}
           >
@@ -766,16 +913,7 @@ export default function ReadingRoom({
         )}
       </div>
 
-      {/* Floating Simli head — fixed bottom-right, stays visible while chatting */}
-      {/* Floating live face — bottom right, always visible while reading */}
-      {hasStarted && (
-        <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 50 }}>
-          <FloatingSimli
-            speaking={avatarState === "speaking"}
-            onSendAudio={(fn) => { simliSendRef.current = fn }}
-          />
-        </div>
-      )}
+      {/* GalileoCircle handles the live Simli face — no separate FloatingSimli needed */}
     </div>
   )
 }

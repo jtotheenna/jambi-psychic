@@ -1,6 +1,6 @@
 "use client"
 
-import GalileoAvatar from "./GalileoAvatar"
+import GalileoCircle from "./GalileoCircle"
 import { VoiceMode, AvatarState } from "@/lib/useGalileoVoice"
 
 type Props = {
@@ -11,6 +11,8 @@ type Props = {
   isListening: boolean
   interimTranscript: string
   voiceSupported: boolean
+  startOpen?: boolean
+  onSendAudio?: (fn: (pcm: Uint8Array) => void) => void
 }
 
 const MODES: { key: VoiceMode; label: string; desc: string }[] = [
@@ -21,11 +23,14 @@ const MODES: { key: VoiceMode; label: string; desc: string }[] = [
 
 export default function GalileoPanel({
   avatarState, hasStarted, mode, setMode, isListening, interimTranscript, voiceSupported,
+  startOpen = false, onSendAudio,
 }: Props) {
+  const resolvedState = hasStarted ? avatarState : startOpen ? "idle" : "closed"
+
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
       {/* Avatar */}
-      <GalileoAvatar state={hasStarted ? avatarState : "closed"} />
+      <GalileoCircle state={resolvedState} size={200} onSendAudio={onSendAudio} />
 
       {/* Mode selector */}
       <div style={{

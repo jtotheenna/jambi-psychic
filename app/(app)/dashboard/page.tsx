@@ -32,6 +32,7 @@ export default async function DashboardPage() {
   const activeMoon       = user.sessions.find((s) => s.status === "active" && s.type === "moon")
   const activeCartomancy = user.sessions.find((s) => s.status === "active" && s.type === "cartomancy")
   const completedSessions = user.sessions.filter((s) => s.status === "complete")
+  const pastAstrology = user.sessions.filter((s) => s.type === "astrology" && s.status === "complete")
 
   return (
     <div
@@ -92,7 +93,7 @@ export default async function DashboardPage() {
               </p>
             )}
             <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              {activeTarot ? `${activeTarot.exchangesTotal - activeTarot.exchangesUsed} QUESTIONS REMAINING` : "$10 · 7 QUESTIONS · SPOKEN ALOUD"}
+              {activeTarot ? `${activeTarot.exchangesTotal - activeTarot.exchangesUsed} QUESTIONS REMAINING` : "$15 · 5 QUESTIONS · SPOKEN ALOUD"}
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
@@ -106,7 +107,7 @@ export default async function DashboardPage() {
                 </form>
               </>
             ) : (
-              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 7 } }); redirect(`/reading/${r.id}`) }}>
+              <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 5 } }); redirect(`/reading/${r.id}`) }}>
                 <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
               </form>
             )}
@@ -176,6 +177,29 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* ── NATAL CHART ── */}
+      <div style={{ marginBottom: 20, padding: 24, borderRadius: 12, border: "1px solid rgba(201,168,76,0.2)", background: "rgba(10,5,32,0.5)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#c9a84c", marginBottom: 8 }}>✦ NATAL CHART READING</div>
+            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
+              Every planet. Every house. Every aspect. Your complete birth chart interpreted by Galileo — a sacred document of who you are and what you are here to do.
+            </p>
+            <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
+              $10 · ONE-TIME FULL CHART · SPOKEN ALOUD
+            </p>
+            {pastAstrology.length > 0 && (
+              <p style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#4a3870", letterSpacing: "0.1em", marginTop: 6 }}>
+                {pastAstrology.length} CHART{pastAstrology.length > 1 ? "S" : ""} ALREADY READ
+              </p>
+            )}
+          </div>
+          <Link href="/astrology" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", textDecoration: "none", whiteSpace: "nowrap" }}>
+            BEGIN ✦
+          </Link>
+        </div>
+      </div>
+
       {/* ── CARTOMANCY ── */}
       <div style={{ marginBottom: 32, padding: 24, borderRadius: 12, border: `1px solid ${activeCartomancy ? "rgba(232,121,160,0.4)" : "rgba(232,121,160,0.2)"}`, background: "rgba(10,5,32,0.5)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
@@ -185,7 +209,7 @@ export default async function DashboardPage() {
               {activeCartomancy ? "Your cartomancy reading is open." : "The old language of playing cards. Direct, sharp, and strangely accurate. Galileo reads a full 52-card deck, spoken aloud."}
             </p>
             <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
-              {activeCartomancy ? `${activeCartomancy.exchangesTotal - activeCartomancy.exchangesUsed} QUESTIONS REMAINING` : "$10 · 7 QUESTIONS · SPOKEN ALOUD"}
+              {activeCartomancy ? `${activeCartomancy.exchangesTotal - activeCartomancy.exchangesUsed} QUESTIONS REMAINING` : "$15 · 5 QUESTIONS · SPOKEN ALOUD"}
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
@@ -203,6 +227,26 @@ export default async function DashboardPage() {
                 <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(232,121,160,0.5)", background: "linear-gradient(135deg, rgba(232,121,160,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#e879a0", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
               </form>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── ASTROLOGY ── */}
+      <div style={{ marginBottom: 32, padding: 24, borderRadius: 12, border: "1px solid rgba(250,204,21,0.2)", background: "rgba(10,5,32,0.5)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.2em", color: "#fbbf24", marginBottom: 8 }}>✦ NATAL CHART</div>
+            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 17, color: "#c8d4e8", fontStyle: "italic", marginBottom: 4 }}>
+              Your complete birth chart — every planet, every aspect, every pattern. The sky at the exact moment you arrived. Galileo reads it all.
+            </p>
+            <p style={{ fontFamily: "'Cinzel', serif", fontSize: 10, color: "#7a8ba8", letterSpacing: "0.12em" }}>
+              $10 · FULL NATAL CHART · 3 FOLLOW-UP QUESTIONS · SPOKEN ALOUD
+            </p>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "astrology", status: "active", exchangesTotal: 4 } }); redirect("/astrology") }}>
+              <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(250,204,21,0.5)", background: "linear-gradient(135deg, rgba(250,204,21,0.12) 0%, rgba(79,70,229,0.12) 100%)", color: "#fbbf24", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.18em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
+            </form>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import GalileoPanel from "@/components/GalileoPanel"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
@@ -9,6 +9,7 @@ import LanguageSelector from "@/components/LanguageSelector"
 import GemProgress from "@/components/GemProgress"
 import CartomancyCard from "@/components/CartomancyCard"
 import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
+import { audioBlobToPCM } from "@/components/FloatingSimli"
 
 type CardDrawn = { name: string; suit: string; rank: string; position?: string }
 type Message = { role: "user" | "galileo"; content: string; cards?: CardDrawn[] }
@@ -28,13 +29,54 @@ export default function CartomancyPage() {
   const [loading, setLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [exchangesUsed, setExchangesUsed] = useState(0)
-  const [exchangesTotal] = useState(7)
+  const [exchangesTotal] = useState(5)
   const [isComplete, setIsComplete] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
   const [allCards, setAllCards] = useState<CardDrawn[]>([])
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollRef    = useRef<HTMLDivElement>(null)
+  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const voice = useGalileoVoice()
   const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
+
+  const speakWithSimli = useCallback(async (text: string) => {
+    voice.setAvatarState("speaking")
+    try {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      })
+      if (res.ok && res.status !== 204) {
+        const blob = await res.blob()
+        if (simliSendRef.current) {
+          try {
+            const pcm = await audioBlobToPCM(blob)
+            simliSendRef.current(pcm)
+            // Simli IS the speaker — wait for duration, don't double-play
+            const durationMs = Math.max((pcm.length / 32000) * 1000 + 1500, 2000)
+            await new Promise<void>(r => setTimeout(r, durationMs))
+          } catch {
+            const src = URL.createObjectURL(blob)
+            await new Promise<void>((resolve) => {
+              const audio = new Audio(src)
+              audio.onended = () => { URL.revokeObjectURL(src); resolve() }
+              audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
+              audio.play().catch(() => resolve())
+            })
+          }
+        } else {
+          const src = URL.createObjectURL(blob)
+          await new Promise<void>((resolve) => {
+            const audio = new Audio(src)
+            audio.onended = () => { URL.revokeObjectURL(src); resolve() }
+            audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
+            audio.play().catch(() => resolve())
+          })
+        }
+      }
+    } catch { /* silent */ }
+    voice.setAvatarState("idle")
+  }, [voice])
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -46,10 +88,9 @@ export default function CartomancyPage() {
     silentAudio.play().catch(() => {})
 
     setHasStarted(true)
-    voice.open()
     playBoxOpen()
     setLoading(true)
-    voice.setLoading(true)
+    voice.setAvatarState("thinking")
 
     const res = await fetch("/api/cartomancy", {
       method: "POST",
@@ -61,9 +102,9 @@ export default function CartomancyPage() {
 
     if (!sessionId && data.sessionId) setSessionId(data.sessionId)
     setMessages([{ role: "galileo", content: data.response }])
-    voice.setLoading(false)
+    voice.setAvatarState("idle")
     setLoading(false)
-    await voice.speak(data.response)
+    await speakWithSimli(data.response)
   }
 
   async function sendMessage(text?: string) {
@@ -71,7 +112,7 @@ export default function CartomancyPage() {
     if (!msg || loading || isComplete) return
     setInput("")
     setLoading(true)
-    voice.setLoading(true)
+    voice.setAvatarState("thinking")
     setMessages(prev => [...prev, { role: "user", content: msg }])
 
     const res = await fetch("/api/cartomancy", {
@@ -88,10 +129,10 @@ export default function CartomancyPage() {
     setIsComplete(data.isComplete)
     if (data.isComplete) playSessionEnd()
     setMessages(prev => [...prev, { role: "galileo", content: data.response, cards: data.cards }])
-    voice.setLoading(false)
+    voice.setAvatarState("idle")
     setLoading(false)
     if (voice.mode !== "text") {
-      await voice.speak(data.response)
+      await speakWithSimli(data.response)
       if (voice.mode === "conversational" && !data.isComplete) {
         voice.startListening(t => sendMessage(t))
       }
@@ -111,7 +152,7 @@ export default function CartomancyPage() {
 
       <div style={{ flex: 1, maxWidth: 720, width: "100%", margin: "0 auto", padding: "24px 16px", display: "flex", flexDirection: "column", gap: 20 }}>
 
-        <div style={{ display: "flex", justifyContent: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center", position: "sticky", top: 57, zIndex: 30, background: "rgba(4,2,14,0.93)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(42,26,85,0.4)", padding: "10px 0" }}>
           <GalileoPanel
             avatarState={hasStarted ? voice.avatarState : "closed"}
             hasStarted={hasStarted}
@@ -120,6 +161,8 @@ export default function CartomancyPage() {
             isListening={voice.isListening}
             interimTranscript={voice.interimTranscript}
             voiceSupported={voice.voiceSupported}
+            startOpen
+            onSendAudio={(fn) => { simliSendRef.current = fn }}
           />
         </div>
 

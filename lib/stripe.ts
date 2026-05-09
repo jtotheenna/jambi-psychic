@@ -13,9 +13,9 @@ export const stripe = new Proxy({} as Stripe, {
   get(_, prop) { return getStripe()[prop as keyof Stripe] },
 })
 
-export const READING_PRICE_CENTS = 1000
-export const READING_PRICE_DISPLAY = "$10"
-export const EXCHANGES_PER_READING = 7
+export const READING_PRICE_CENTS = 1500
+export const READING_PRICE_DISPLAY = "$15"
+export const EXCHANGES_PER_READING = 5
 
 export const PALM_PRICE_CENTS = 500
 export const PALM_PRICE_DISPLAY = "$5"

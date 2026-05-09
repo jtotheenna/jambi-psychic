@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback } from "react"
 import Link from "next/link"
 import GalileoPanel from "@/components/GalileoPanel"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { getStoredLanguage } from "@/lib/language"
 import LanguageSelector from "@/components/LanguageSelector"
+import { audioBlobToPCM } from "@/components/FloatingSimli"
 
 async function compressImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -35,8 +36,45 @@ export default function PalmPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageError, setImageError] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const voice = useGalileoVoice()
   const language = typeof window !== "undefined" ? getStoredLanguage() : "en"
+
+  const speakWithSimli = useCallback(async (text: string) => {
+    voice.setAvatarState("speaking")
+    try {
+      const res = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) })
+      if (res.ok && res.status !== 204) {
+        const blob = await res.blob()
+        if (simliSendRef.current) {
+          try {
+            const pcm = await audioBlobToPCM(blob)
+            simliSendRef.current(pcm)
+            // Simli IS the speaker — wait for duration, don't double-play
+            const durationMs = Math.max((pcm.length / 32000) * 1000 + 1500, 2000)
+            await new Promise<void>(r => setTimeout(r, durationMs))
+          } catch {
+            const src = URL.createObjectURL(blob)
+            await new Promise<void>((resolve) => {
+              const audio = new Audio(src)
+              audio.onended = () => { URL.revokeObjectURL(src); resolve() }
+              audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
+              audio.play().catch(() => resolve())
+            })
+          }
+        } else {
+          const src = URL.createObjectURL(blob)
+          await new Promise<void>((resolve) => {
+            const audio = new Audio(src)
+            audio.onended = () => { URL.revokeObjectURL(src); resolve() }
+            audio.onerror  = () => { URL.revokeObjectURL(src); resolve() }
+            audio.play().catch(() => resolve())
+          })
+        }
+      }
+    } catch { /* silent */ }
+    voice.setAvatarState("idle")
+  }, [voice])
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -76,8 +114,9 @@ export default function PalmPage() {
     setLoading(false)
 
     // Speak first paragraph immediately
-    const firstPara = data.reading.split("\n\n")[0] || data.reading.slice(0, 400)
-    await voice.speak(firstPara)
+    // Speak opening hook only — saves TTS credits, full reading shown as text
+    const hook = data.reading.slice(0, 300).replace(/\s\S+$/, "…")
+    await speakWithSimli(hook)
   }
 
   return (
@@ -90,7 +129,7 @@ export default function PalmPage() {
 
       <div style={{ flex: 1, maxWidth: 720, width: "100%", margin: "0 auto", padding: "24px 16px", display: "flex", flexDirection: "column", gap: 20 }}>
 
-        <div style={{ display: "flex", justifyContent: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center", position: "sticky", top: 57, zIndex: 30, background: "rgba(4,2,14,0.93)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(42,26,85,0.4)", padding: "10px 0" }}>
           <GalileoPanel
             avatarState={hasStarted ? voice.avatarState : "closed"}
             hasStarted={hasStarted}
@@ -99,6 +138,8 @@ export default function PalmPage() {
             isListening={voice.isListening}
             interimTranscript={voice.interimTranscript}
             voiceSupported={voice.voiceSupported}
+            startOpen
+            onSendAudio={(fn) => { simliSendRef.current = fn }}
           />
         </div>
 

@@ -12,6 +12,7 @@ model User {
   email            String         @unique
   name             String?
   passwordHash     String?
+  role             String         @default("user")   // "user" | "admin"
   stripeCustomerId String?        @unique
   createdAt        DateTime       @default(now())
 

@@ -64,7 +64,7 @@ function TVStatic({ opacity }: { opacity: number }) {
   )
 }
 
-function GalileoFace({ visible, speaking }: { visible: boolean; speaking: boolean }) {
+export function GalileoFace({ visible, speaking }: { visible: boolean; speaking: boolean }) {
   return (
     <div
       style={{
@@ -398,19 +398,15 @@ export default function GalileoAvatar({ state }: Props) {
           {/* TV Static overlay */}
           <TVStatic opacity={staticOpacity} />
 
-          {/* Real Galileo image — fills the box, fades in after static */}
+          {/* Galileo photo — fades in after static */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/galileo.jpg"
             alt="Galileo"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
             style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
-              objectPosition: "center center",
+              position: "absolute", inset: 0,
+              width: "100%", height: "100%",
+              objectFit: "contain", objectPosition: "center center",
               background: "#04020e",
               opacity: faceVisible ? 1 : 0,
               transition: "opacity 1.5s ease",
@@ -421,7 +417,8 @@ export default function GalileoAvatar({ state }: Props) {
             }}
           />
 
-          {/* CSS face — only shown if image fails to load */}
+          {/* CSS face fallback if photo fails */}
+          <GalileoFace visible={faceVisible} speaking={internalState === "speaking"} />
 
           {/* Thinking dots */}
           {internalState === "thinking" && (

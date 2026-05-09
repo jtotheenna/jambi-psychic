@@ -4,6 +4,8 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import LanguageSelector from "@/components/LanguageSelector"
 import { type Language } from "@/lib/language"
+import GalileoCircle from "@/components/GalileoCircle"
+import { playBoxOpen } from "@/lib/sounds"
 
 export default function LandingPage() {
   const [playing, setPlaying] = useState(false)
@@ -15,6 +17,37 @@ export default function LandingPage() {
     audioRef.current = new Audio("/galileo-welcome.mp3")
     audioRef.current.onended = () => { setPlaying(false); setGlowing(false) }
     return () => { audioRef.current?.pause() }
+  }, [])
+
+  // Play the box-open chime when Galileo's face appears (~3.2s after mount).
+  // Browsers block audio until a user gesture, so we queue it for the very first
+  // interaction — the chime fires the moment they first touch the page.
+  useEffect(() => {
+    let fired = false
+    const fire = () => {
+      if (fired) return
+      fired = true
+      playBoxOpen()
+      window.removeEventListener("mousemove",   fire)
+      window.removeEventListener("touchstart",  fire)
+      window.removeEventListener("click",       fire)
+      window.removeEventListener("keydown",     fire)
+    }
+    // Only start listening after the reveal completes so early interactions don't
+    // trigger the chime before he appears
+    const t = setTimeout(() => {
+      window.addEventListener("mousemove",  fire, { once: true })
+      window.addEventListener("touchstart", fire, { once: true })
+      window.addEventListener("click",      fire, { once: true })
+      window.addEventListener("keydown",    fire, { once: true })
+    }, 3200)
+    return () => {
+      clearTimeout(t)
+      window.removeEventListener("mousemove",  fire)
+      window.removeEventListener("touchstart", fire)
+      window.removeEventListener("click",      fire)
+      window.removeEventListener("keydown",    fire)
+    }
   }, [])
 
   function hearGalileo() {
@@ -31,8 +64,8 @@ export default function LandingPage() {
 
   const readings = [
     {
-      icon: "★", name: "Tarot Reading", price: "$10", color: "#c9a84c", glow: "rgba(201,168,76,0.35)", border: "rgba(201,168,76,0.3)",
-      tagline: "Any question. A full 78-card deck. Up to 10 exchanges.",
+      icon: "★", name: "Tarot Reading", price: "$15", color: "#c9a84c", glow: "rgba(201,168,76,0.35)", border: "rgba(201,168,76,0.3)",
+      tagline: "Any question. A full 78-card deck. Up to 5 exchanges.",
       desc: "Ask what you need to know, and Galileo will draw from a fully shuffled tarot deck to speak your reading aloud. Each card is interpreted through your question, your energy, and the story unfolding across the spread.",
       btn: "CHOOSE TAROT",
     },
@@ -41,6 +74,12 @@ export default function LandingPage() {
       tagline: "The old language of playing cards. Direct, sharp, and strangely accurate.",
       desc: "Galileo draws from a shuffled 52-card deck of hearts, spades, diamonds, and clubs. Older in spirit, blunt in tone, and grounded in everyday fate, this reading speaks plainly about the question in front of you.",
       btn: "CHOOSE CARTOMANCY",
+    },
+    {
+      icon: "✦", name: "Natal Chart", price: "$10", color: "#fbbf24", glow: "rgba(251,191,36,0.3)", border: "rgba(251,191,36,0.25)",
+      tagline: "Your complete birth chart. Every planet. Every aspect. The whole sky.",
+      desc: "Enter your birth date, time, and city. Galileo calculates your real planetary positions and delivers a full natal chart reading — Sun, Moon, Rising, all planets, aspects, and the overarching story of your chart.",
+      btn: "CHOOSE NATAL CHART",
     },
     {
       icon: "☽", name: "Moon Reading", price: "$5", color: "#a5b4fc", glow: "rgba(165,180,252,0.3)", border: "rgba(165,180,252,0.25)",
@@ -67,29 +106,9 @@ export default function LandingPage() {
       {/* ── HERO ── */}
       <div style={{ width: "100%", maxWidth: 760, textAlign: "center", padding: "64px 24px 52px" }}>
 
-        {/* Portrait with dramatic glow ring */}
-        <div style={{ position: "relative", width: 200, height: 200, margin: "0 auto 40px" }}>
-          {/* Outer glow ring */}
-          <div style={{
-            position: "absolute", inset: -8, borderRadius: "50%",
-            background: glowing
-              ? "conic-gradient(from 0deg, rgba(201,168,76,0.6), rgba(165,180,252,0.4), rgba(201,168,76,0.6))"
-              : "conic-gradient(from 0deg, rgba(201,168,76,0.15), rgba(165,180,252,0.08), rgba(201,168,76,0.15))",
-            animation: "spin 8s linear infinite",
-            transition: "all 0.6s ease",
-            filter: glowing ? "blur(2px)" : "blur(4px)",
-          }} />
-          <div style={{
-            position: "absolute", inset: 0, borderRadius: "50%", overflow: "hidden",
-            border: "2px solid rgba(201,168,76,0.5)",
-            boxShadow: glowing
-              ? "0 0 60px rgba(201,168,76,0.6), 0 0 120px rgba(165,180,252,0.3), inset 0 0 30px rgba(201,168,76,0.1)"
-              : "0 0 30px rgba(201,168,76,0.2), 0 8px 40px rgba(0,0,0,0.8)",
-            transition: "box-shadow 0.6s ease",
-          }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/galileo.jpg" alt="Galileo" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", filter: glowing ? "brightness(1.12) saturate(1.1)" : "brightness(1)", transition: "filter 0.6s ease" }} />
-          </div>
+        {/* Galileo — alive, idle, TV static opens on load */}
+        <div style={{ margin: "0 auto 32px" }}>
+          <GalileoCircle state={playing ? "speaking" : "idle"} size={300} showName={false} showStars={false} />
         </div>
 
         {/* Name */}
@@ -246,9 +265,6 @@ export default function LandingPage() {
         POWERED BY JENNASYS PRO
       </a>
 
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   )
 }

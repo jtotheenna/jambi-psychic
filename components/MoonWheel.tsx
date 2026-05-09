@@ -15,15 +15,16 @@ export default function MoonWheel({ moonData }: Props) {
   const innerR = 68
 
   const PATHS: Record<string, string> = {
-    "Red Path of Life Growth":     "#be123c",
-    "Red Path of Purification":    "#dc4040",
-    "Black Path of Enlightenment": "#a5b4fc",
+    "Red Path of Life & Growth":              "#be123c",
+    "Red Path of Purification":               "#dc4040",
+    "Black Path of Enlightenment":            "#a5b4fc",
+    "Black Path of Lessons":                  "#7c6adc",
     "All paths — the still point of the wheel": "#c9a84c",
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-      <svg width={320} height={320} viewBox="0 0 320 320" style={{ overflow: "visible" }}>
+      <svg width={420} height={420} viewBox="0 0 320 320" style={{ overflow: "visible" }}>
         <defs>
           <filter id="glow">
             <feGaussianBlur stdDeviation="3" result="blur" />
@@ -121,7 +122,7 @@ export default function MoonWheel({ moonData }: Props) {
       </svg>
 
       {/* Current moon info */}
-      <div style={{ textAlign: "center", maxWidth: 300 }}>
+      <div style={{ textAlign: "center", maxWidth: 400 }}>
         <div style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 13, letterSpacing: "0.12em", color: "#c9a84c", marginBottom: 4 }}>
           {sunBearMoon.name}
         </div>

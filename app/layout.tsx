@@ -9,13 +9,13 @@ export const metadata: Metadata = {
     title: "Galileo — AI Tarot, Palm & Moon Readings",
     description: "An ancient oracle in a moon box. Tarot, palm reading, and live moon readings — spoken aloud in his own voice.",
     type: "website",
-    images: [{ url: "/galileo.jpg", width: 1200, height: 1200, alt: "Galileo the Celestial Oracle" }],
+    images: [{ url: "/api/og", width: 1200, height: 630, alt: "Galileo the Celestial Oracle" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Galileo — AI Tarot, Palm & Moon Readings",
     description: "An ancient oracle in a moon box. Real tarot. Real palm readings. The live moon. Spoken aloud.",
-    images: ["/galileo.jpg"],
+    images: ["/api/og"],
   },
 }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { CARTOMANCY_DECK } from "@/lib/cartomancy"
 
 type Props = {
@@ -99,11 +99,10 @@ export default function CartomancyCard({ name, suit, rank, position, revealDelay
   const rankAbbr = RANK_ABBR[rank] || rank
   const color = isRed ? "#c41e3a" : "#111"
 
-  // Auto-reveal after delay
-  useState(() => {
+  useEffect(() => {
     const t = setTimeout(() => setRevealed(true), revealDelay)
     return () => clearTimeout(t)
-  })
+  }, [revealDelay])
 
   return (
     <>
