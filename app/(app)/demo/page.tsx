@@ -186,7 +186,7 @@ export default function DemoPage() {
         </div>
 
         {/* Scrollable content — fits inside the frame */}
-        <div style={{ width: "100%", flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", padding: "16px 12px 80px", gap: 16 }}>
+        <div style={{ width: "100%", flex: 1, overflowY: "hidden", display: "flex", flexDirection: "column", alignItems: "center", padding: "16px 12px 80px", gap: 16 }}>
 
           {/* Title */}
           <div style={{ textAlign: "center" }}>
