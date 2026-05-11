@@ -130,7 +130,6 @@ export default function MoonPage() {
           size={180}
           showName={false}
           showStars={false}
-          onReady={handleGalileoReady}
         />
       </div>
 
