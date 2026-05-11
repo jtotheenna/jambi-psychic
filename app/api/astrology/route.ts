@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import Anthropic from "@anthropic-ai/sdk"
 import { calculateNatalChart, type NatalChart } from "@/lib/astroCalc"
 import { languageInstruction, type Language } from "@/lib/language"
+import { sseResponse, streamClaude } from "@/lib/streamSSE"
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -141,28 +142,31 @@ export async function POST(req: Request) {
   // Build Claude prompt
   const prompt = buildPrompt(name, birthDate, birthTime, cityDisplay, chartText, language as Language)
 
-  // Generate reading
-  const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 2048,
-    messages: [{ role: "user", content: prompt }],
+  const userId = session.user.id
+  const question = `${name} · born ${birthDate} in ${birthCity}`
+
+  return sseResponse(async (emit) => {
+    emit("chart", { chart, chartText })
+
+    const reading = await streamClaude(emit, {
+      model: "claude-sonnet-4-6",
+      max_tokens: 2048,
+      messages: [{ role: "user", content: prompt }],
+    })
+
+    await prisma.readingSession.create({
+      data: {
+        userId,
+        type: "astrology",
+        status: "complete",
+        exchangesTotal: 1,
+        exchangesUsed: 1,
+        question,
+        transcript: JSON.stringify([{ role: "galileo", content: reading }]),
+        completedAt: new Date(),
+      },
+    })
+
+    emit("done", { reading, chart, chartText })
   })
-
-  const reading = (message.content[0] as { type: string; text: string }).text
-
-  // Save to database as a completed session
-  await prisma.readingSession.create({
-    data: {
-      userId: session.user.id,
-      type: "astrology",
-      status: "complete",
-      exchangesTotal: 1,
-      exchangesUsed: 1,
-      question: `${name} · born ${birthDate} in ${birthCity}`,
-      transcript: reading,
-      completedAt: new Date(),
-    },
-  })
-
-  return Response.json({ reading, chart, chartText })
 }

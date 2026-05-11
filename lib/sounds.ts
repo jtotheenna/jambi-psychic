@@ -7,6 +7,14 @@ function getAudioContext(): AudioContext | null {
   return ctx
 }
 
+// Call this inside a user gesture (button click) to ensure the shared AudioContext
+// is running before any sounds are played. Must be awaited.
+export async function initSounds(): Promise<void> {
+  if (typeof window === "undefined") return
+  if (!ctx) ctx = new AudioContext()
+  if (ctx.state !== "running") await ctx.resume()
+}
+
 // Real bell chime using inharmonic partials (how physical bells actually sound)
 function bellChime(ac: AudioContext, freq: number, vol = 0.35, duration = 3.5) {
   const now = ac.currentTime

@@ -1,23 +1,13 @@
-// Wrap raw 16kHz 16-bit mono PCM in a WAV header so browsers can play it
-function pcmToWav(pcm: Uint8Array, sampleRate = 16000): Blob {
-  const numCh = 1, bits = 16
-  const byteRate = sampleRate * numCh * (bits / 8)
-  const blockAlign = numCh * (bits / 8)
-  const buf = new ArrayBuffer(44)
-  const v = new DataView(buf)
-  const str = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)) }
-  str(0, "RIFF"); v.setUint32(4, 36 + pcm.byteLength, true); str(8, "WAVE")
-  str(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true)
-  v.setUint16(22, numCh, true); v.setUint32(24, sampleRate, true)
-  v.setUint32(28, byteRate, true); v.setUint16(32, blockAlign, true)
-  v.setUint16(34, bits, true); str(36, "data"); v.setUint32(40, pcm.byteLength, true)
-  return new Blob([buf, new Uint8Array(pcm).buffer as ArrayBuffer], { type: "audio/wav" })
+// Shared AudioContext — reused across all TTS calls so iOS doesn't suspend between sentences
+let _sharedCtx: AudioContext | null = null
+function getAudioCtx(): AudioContext | null {
+  if (typeof window === "undefined") return null
+  if (!_sharedCtx || _sharedCtx.state === "closed") {
+    try { _sharedCtx = new AudioContext() } catch { return null }
+  }
+  return _sharedCtx
 }
 
-// Stream PCM from /api/tts:
-// - Always plays audio through speakers (Simli audio element is muted — Simli is lip sync only)
-// - Sends PCM chunks to Simli in real time for mouth animation when connected
-// Returns when playback is done.
 export async function speakStreaming(
   text: string,
   sendToSimli: ((pcm: Uint8Array) => void) | null
@@ -32,24 +22,81 @@ export async function speakStreaming(
   const reader = res.body.getReader()
   const chunks: Uint8Array[] = []
   let totalBytes = 0
-
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
     if (!value?.byteLength) continue
     chunks.push(value)
     totalBytes += value.byteLength
-    if (sendToSimli) sendToSimli(value)  // lip sync — non-blocking
   }
-
   if (!totalBytes) return
 
-  // Always play through speakers — Simli's audio element is muted so it
-  // only drives the mouth animation, not the audio output
   const all = new Uint8Array(totalBytes)
-  let offset = 0
-  for (const chunk of chunks) { all.set(chunk, offset); offset += chunk.byteLength }
-  const src = URL.createObjectURL(pcmToWav(all))
+  let off = 0
+  for (const c of chunks) { all.set(c, off); off += c.byteLength }
+  const mp3Buffer = all.buffer.slice(all.byteOffset, all.byteOffset + all.byteLength) as ArrayBuffer
+
+  if (sendToSimli) {
+    try {
+      const ctx = getAudioCtx()
+      if (!ctx) throw new Error("No AudioContext")
+      try { await ctx.resume() } catch { /* ignore */ }
+
+      // If context still isn't running after resume, bail to plain Audio element
+      if (ctx.state !== "running") {
+        throw new Error("AudioContext suspended")
+      }
+
+      const decoded = await ctx.decodeAudioData(mp3Buffer)
+      const source = ctx.createBufferSource()
+      source.buffer = decoded
+
+      // ScriptProcessorNode captures audio AS it plays and sends to Simli immediately.
+      // This is frame-perfect: same samples that hit the speaker go to Simli with zero delay.
+      const nativeRate = ctx.sampleRate        // e.g. 44100 or 48000
+      const simliRate  = 16000
+      const bufSize    = 4096                  // samples per frame at native rate
+
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      const processor = ctx.createScriptProcessor(bufSize, 1, 1)
+
+      processor.onaudioprocess = (e: AudioProcessingEvent) => {
+        const native = e.inputBuffer.getChannelData(0)  // float32 at native rate
+        // Downsample to 16kHz for Simli using linear interpolation
+        const outLen = Math.round(native.length * simliRate / nativeRate)
+        const i16 = new Int16Array(outLen)
+        for (let i = 0; i < outLen; i++) {
+          const pos = i * nativeRate / simliRate
+          const lo  = Math.floor(pos), hi = Math.min(lo + 1, native.length - 1)
+          const frac = pos - lo
+          const sample = native[lo] * (1 - frac) + native[hi] * frac
+          i16[i] = Math.max(-32768, Math.min(32767, sample * 32768))
+        }
+        sendToSimli!(new Uint8Array(i16.buffer))
+      }
+
+      // source → processor → speakers
+      // processor.onaudioprocess fires for every frame going to speakers — perfect sync
+      source.connect(processor)
+      processor.connect(ctx.destination)
+
+      await new Promise<void>(resolve => {
+        source.onended = () => {
+          processor.disconnect()
+          // Don't close the shared context — it stays alive for the next sentence
+          resolve()
+        }
+        source.start(0)
+      })
+      return
+    } catch {
+      // Web Audio failed — fall through to plain MP3 playback
+    }
+  }
+
+  // No Simli or Web Audio unavailable — plain MP3 via Audio element
+  const blob = new Blob([all], { type: "audio/mpeg" })
+  const src  = URL.createObjectURL(blob)
   await new Promise<void>(resolve => {
     const audio = new Audio(src)
     audio.onended = () => { URL.revokeObjectURL(src); resolve() }

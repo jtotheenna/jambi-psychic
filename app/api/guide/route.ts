@@ -1,28 +1,27 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import Anthropic from "@anthropic-ai/sdk"
 import { languageInstruction, type Language } from "@/lib/language"
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+import { sseResponse, streamClaude } from "@/lib/streamSSE"
 
 export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
   const { context, language = "en" } = await req.json()
+  const userId = session.user.id
   const dateStr = new Date().toLocaleDateString("en-US", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
     timeZone: "America/New_York",
   })
-
   const userContent = context?.trim()
     ? `What's been on my mind: ${context}`
     : "No question. Just what I need to hear right now."
 
-  const resp = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 1000,
-    system: `You are Galileo — ancient oracle. Someone has come to you without a question. They want to receive the message that is waiting for this moment.
+  return sseResponse(async (emit) => {
+    const reading = await streamClaude(emit, {
+      model: "claude-sonnet-4-6",
+      max_tokens: 1400,
+      system: `You are Galileo — ancient oracle. Someone has come to you without a question. They want to receive the message that is waiting for this moment.
 
 Today is ${dateStr}.
 
@@ -37,26 +36,25 @@ The message should move through several dimensions:
 
 This is not advice. This is the specific kind of message that arrives when someone stops asking and finally listens. Write it the way a candle speaks — without trying, without agenda, giving light because that is simply what it does.
 
-5–6 paragraphs. Dense with meaning, warm without effort. No filler sentences.
+8–9 paragraphs. Dense with meaning, warm without effort. No filler sentences.
 No asterisks, no bullet points, no lists, no stage directions. Flowing prose only.
 The final line should be something they remember.${languageInstruction(language as Language)}`,
-    messages: [{ role: "user", content: userContent }],
+      messages: [{ role: "user", content: userContent }],
+    })
+
+    await prisma.readingSession.create({
+      data: {
+        userId,
+        type: "guide",
+        status: "complete",
+        exchangesTotal: 1,
+        exchangesUsed: 1,
+        question: context?.substring(0, 200) || "guide message",
+        completedAt: new Date(),
+        transcript: JSON.stringify([{ role: "galileo", content: reading }]),
+      },
+    })
+
+    emit("done", { reading })
   })
-
-  const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
-
-  await prisma.readingSession.create({
-    data: {
-      userId: session.user.id,
-      type: "guide",
-      status: "complete",
-      exchangesTotal: 1,
-      exchangesUsed: 1,
-      question: context?.substring(0, 200) || "guide message",
-      completedAt: new Date(),
-      transcript: JSON.stringify([{ role: "galileo", content: reading }]),
-    },
-  })
-
-  return Response.json({ reading })
 }

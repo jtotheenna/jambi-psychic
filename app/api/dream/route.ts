@@ -1,9 +1,7 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import Anthropic from "@anthropic-ai/sdk"
 import { languageInstruction, type Language } from "@/lib/language"
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+import { sseResponse, streamClaude } from "@/lib/streamSSE"
 
 const SYSTEM = (language: string) => `You are Galileo — ancient oracle, fluent in the old language of dreams. You read dreams the way a true reader does: through image, emotion, and the hidden grammar beneath the surface.
 
@@ -31,7 +29,7 @@ export async function POST(req: Request) {
 
   const { dream, message, sessionId, language = "en" } = await req.json()
 
-  // ── Follow-up exchange ────────────────────────────────────────────────────
+  // ── Follow-up exchange ───────────────────────────────────────────────────────
   if (sessionId && message?.trim()) {
     const dreamSession = await prisma.readingSession.findFirst({
       where: { id: sessionId, userId: session.user.id, type: "dream", status: "active" },
@@ -42,8 +40,8 @@ export async function POST(req: Request) {
     }
 
     const transcript: StoredMessage[] = dreamSession.transcript ? JSON.parse(dreamSession.transcript) : []
-    const anthropicMessages: Anthropic.MessageParam[] = transcript.map(m => ({
-      role: m.role === "galileo" ? "assistant" : "user",
+    const anthropicMessages = transcript.map(m => ({
+      role: (m.role === "galileo" ? "assistant" : "user") as "user" | "assistant",
       content: m.content,
     }))
     anthropicMessages.push({ role: "user", content: message })
@@ -53,70 +51,62 @@ export async function POST(req: Request) {
       ? "\nFINAL EXCHANGE. No new question at the end. Give them a complete, grounded closing reflection on this dream."
       : ""
 
-    const resp = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 800,
-      system: SYSTEM(language) + closingNote,
-      messages: anthropicMessages,
-    })
-    const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
-
-    transcript.push({ role: "user", content: message })
-    transcript.push({ role: "galileo", content: reading })
-
     const newExchangesUsed = dreamSession.exchangesUsed + 1
     const isComplete = newExchangesUsed >= dreamSession.exchangesTotal
 
-    await prisma.readingSession.update({
-      where: { id: sessionId },
-      data: {
-        transcript: JSON.stringify(transcript),
-        exchangesUsed: newExchangesUsed,
-        status: isComplete ? "complete" : "active",
-        completedAt: isComplete ? new Date() : null,
-      },
-    })
+    return sseResponse(async (emit) => {
+      const reading = await streamClaude(emit, {
+        model: "claude-sonnet-4-6",
+        max_tokens: 800,
+        system: SYSTEM(language) + closingNote,
+        messages: anthropicMessages,
+      })
 
-    return Response.json({
-      reading,
-      exchangesUsed: newExchangesUsed,
-      exchangesTotal: dreamSession.exchangesTotal,
-      isComplete,
-      sessionId,
+      transcript.push({ role: "user", content: message })
+      transcript.push({ role: "galileo", content: reading })
+
+      await prisma.readingSession.update({
+        where: { id: sessionId },
+        data: {
+          transcript: JSON.stringify(transcript),
+          exchangesUsed: newExchangesUsed,
+          status: isComplete ? "complete" : "active",
+          completedAt: isComplete ? new Date() : null,
+        },
+      })
+
+      emit("done", { reading, exchangesUsed: newExchangesUsed, exchangesTotal: dreamSession.exchangesTotal, isComplete, sessionId })
     })
   }
 
-  // ── Initial reading ───────────────────────────────────────────────────────
+  // ── Initial reading ──────────────────────────────────────────────────────────
   if (!dream?.trim()) return Response.json({ error: "Dream description required" }, { status: 400 })
 
-  const resp = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 1600,
-    system: SYSTEM(language),
-    messages: [{ role: "user", content: `Here is my dream:\n\n${dream}` }],
-  })
-  const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
+  const userId = session.user.id
 
-  const dreamSession = await prisma.readingSession.create({
-    data: {
-      userId: session.user.id,
-      type: "dream",
-      status: "active",
-      exchangesTotal: 3,
-      exchangesUsed: 1,
-      question: dream.substring(0, 200),
-      transcript: JSON.stringify([
-        { role: "user", content: dream },
-        { role: "galileo", content: reading },
-      ]),
-    },
-  })
+  return sseResponse(async (emit) => {
+    const reading = await streamClaude(emit, {
+      model: "claude-sonnet-4-6",
+      max_tokens: 1600,
+      system: SYSTEM(language),
+      messages: [{ role: "user", content: `Here is my dream:\n\n${dream}` }],
+    })
 
-  return Response.json({
-    reading,
-    exchangesUsed: 1,
-    exchangesTotal: 3,
-    isComplete: false,
-    sessionId: dreamSession.id,
+    const dreamSession = await prisma.readingSession.create({
+      data: {
+        userId,
+        type: "dream",
+        status: "active",
+        exchangesTotal: 4,
+        exchangesUsed: 1,
+        question: dream.substring(0, 200),
+        transcript: JSON.stringify([
+          { role: "user", content: dream },
+          { role: "galileo", content: reading },
+        ]),
+      },
+    })
+
+    emit("done", { reading, exchangesUsed: 1, exchangesTotal: 4, isComplete: false, sessionId: dreamSession.id })
   })
 }

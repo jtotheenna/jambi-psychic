@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import Anthropic from "@anthropic-ai/sdk"
 import { languageInstruction, type Language } from "@/lib/language"
+import { sseResponse, streamClaude } from "@/lib/streamSSE"
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -84,10 +85,7 @@ Welcome them warmly${context ? ", referencing what they've shared so he clearly 
 
   const storedContext = loveSession!.question && loveSession!.question !== message ? loveSession!.question : null
 
-  const resp = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 900,
-    system: `You are Galileo — ancient oracle who reads the heart. You have spent centuries watching love arrive and depart, and you know the difference between what people say they want and what they are actually carrying.
+  const system = `You are Galileo — ancient oracle who reads the heart. You have spent centuries watching love arrive and depart, and you know the difference between what people say they want and what they are actually carrying.
 
 Today is ${dateStr}.${userName ? ` The person's name is ${userName}.` : ""}${storedContext ? `\nContext for this reading: ${storedContext}` : ""}
 
@@ -101,34 +99,35 @@ Ask one question only when it genuinely opens a door. Not to fill space.
 
 5 exchanges. 5–7 sentences per response. No asterisks, bullet points, or stage directions.
 Each response should feel like something they will read twice. Dense, specific, earned.${closingNote}
-${languageInstruction(language as Language)}`,
-    messages: anthropicMessages,
-  })
+${languageInstruction(language as Language)}`
 
-  const response = resp.content[0].type === "text" ? resp.content[0].text : ""
+  const sessionRef = loveSession!
+  const newExchangesUsed = sessionRef.exchangesUsed + 1
+  const isComplete = newExchangesUsed >= sessionRef.exchangesTotal
 
-  transcript.push({ role: "user", content: message })
-  transcript.push({ role: "galileo", content: response })
+  return sseResponse(async (emit) => {
+    const response = await streamClaude(emit, { model: "claude-sonnet-4-6", max_tokens: 900, system, messages: anthropicMessages })
 
-  const newExchangesUsed = loveSession!.exchangesUsed + 1
-  const isComplete = newExchangesUsed >= loveSession!.exchangesTotal
+    transcript.push({ role: "user", content: message })
+    transcript.push({ role: "galileo", content: response })
 
-  await prisma.readingSession.update({
-    where: { id: loveSession!.id },
-    data: {
-      transcript: JSON.stringify(transcript),
-      question: loveSession!.question || message,
+    await prisma.readingSession.update({
+      where: { id: sessionRef.id },
+      data: {
+        transcript: JSON.stringify(transcript),
+        question: sessionRef.question || message,
+        exchangesUsed: newExchangesUsed,
+        status: isComplete ? "complete" : "active",
+        completedAt: isComplete ? new Date() : null,
+      },
+    })
+
+    emit("done", {
+      response,
       exchangesUsed: newExchangesUsed,
-      status: isComplete ? "complete" : "active",
-      completedAt: isComplete ? new Date() : null,
-    },
-  })
-
-  return Response.json({
-    response,
-    exchangesUsed: newExchangesUsed,
-    exchangesTotal: loveSession!.exchangesTotal,
-    isComplete,
-    sessionId: loveSession!.id,
+      exchangesTotal: sessionRef.exchangesTotal,
+      isComplete,
+      sessionId: sessionRef.id,
+    })
   })
 }

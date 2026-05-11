@@ -35,7 +35,7 @@ async function fetchTTS(text: string): Promise<string | null> {
 
 export function useGalileoVoice() {
   const [mode, setMode] = useState<VoiceMode>("aloud")
-  const [avatarState, setAvatarState] = useState<AvatarState>("closed")
+  const [avatarState, setAvatarState] = useState<AvatarState>("idle")
   const [isListening, setIsListening] = useState(false)
   const [interimTranscript, setInterimTranscript] = useState("")
   const [voiceSupported, setVoiceSupported] = useState(false)

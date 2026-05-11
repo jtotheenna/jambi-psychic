@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { speakStreaming } from "@/lib/speak"
 import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
+import { readSSE, nextBoundary } from "@/lib/readSSE"
 import GalileoPanel from "@/components/GalileoPanel"
 
 export default function GuidePage() {
@@ -18,6 +19,8 @@ export default function GuidePage() {
   const language = "en"
   useEffect(() => { voice.open() }, []) // eslint-disable-line
 
+  const audioChainRef = useRef<Promise<void>>(Promise.resolve())
+
   async function receiveMessage() {
     const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
     sa.volume = 0; sa.play().catch(() => {})
@@ -25,22 +28,39 @@ export default function GuidePage() {
     setHasStarted(true)
     setLoading(true)
     voice.setAvatarState("thinking")
+    audioChainRef.current = Promise.resolve()
 
     const res = await fetch("/api/guide", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ context: context.trim() || undefined, language }),
     })
-    const data = await res.json()
-    if (!res.ok) { setLoading(false); voice.setAvatarState("idle"); return }
+    if (!res.ok || !res.body) { setLoading(false); voice.setAvatarState("idle"); return }
 
-    setReading(data.reading)
-    setIsComplete(true)
-    setLoading(false)
-    playSessionEnd()
-    voice.setAvatarState("speaking")
-    await speakStreaming(data.reading, simliSendRef.current)
+    let pending = ""
+    const queueSentence = (text: string) => {
+      if (voice.mode === "text" || !text.trim()) return
+      voice.setAvatarState("speaking")
+      audioChainRef.current = audioChainRef.current.then(() => speakStreaming(text, simliSendRef.current))
+    }
+
+    await readSSE(res.body, (data) => {
+      if (data.type === "delta") {
+        const text = data.text as string
+        setLoading(false)
+        setReading(prev => prev + text)
+        pending += text
+        const b = nextBoundary(pending)
+        if (b !== -1) { queueSentence(pending.slice(0, b)); pending = pending.slice(b) }
+      } else if (data.type === "done") {
+        queueSentence(pending.trim()); pending = ""
+      }
+    })
+
+    await audioChainRef.current
     voice.setAvatarState("idle")
+    playSessionEnd()
+    setIsComplete(true)
   }
 
   return (
@@ -104,7 +124,7 @@ export default function GuidePage() {
           </div>
         )}
 
-        {reading && isComplete && (
+        {reading && (
           <div style={{ width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 20, animation: "fadeUp 0.6s ease-out forwards" }}>
             <div style={{ padding: "28px 32px", borderRadius: 12, border: "1px solid rgba(124,58,237,0.2)", background: "linear-gradient(135deg, rgba(26,13,63,0.92), rgba(10,5,32,0.95))", backdropFilter: "blur(8px)" }}>
               <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#7a8ba8", marginBottom: 20 }}>🕯 YOUR MESSAGE</div>

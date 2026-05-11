@@ -1,10 +1,8 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import Anthropic from "@anthropic-ai/sdk"
 import { getMoonData } from "@/lib/moon"
 import { languageInstruction, type Language } from "@/lib/language"
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+import { sseResponse, streamClaude } from "@/lib/streamSSE"
 
 function buildMoonPrompt(moonData: ReturnType<typeof getMoonData>, question: string, isFirst = true): string {
   const { phase, illumination, dayOfCycle, daysToFull, daysToNew, sunBearMoon } = moonData
@@ -42,17 +40,11 @@ export async function POST(req: Request) {
   const { message, sessionId, language = "en" } = await req.json()
   if (!message?.trim()) return Response.json({ error: "No question provided" }, { status: 400 })
 
-  // Find active moon session or create one (dev bypass)
   let moonSession = sessionId
-    ? await prisma.readingSession.findFirst({
-        where: { id: sessionId, userId: session.user.id, type: "moon", status: "active" },
-      })
-    : await prisma.readingSession.findFirst({
-        where: { userId: session.user.id, type: "moon", status: "active" },
-      })
+    ? await prisma.readingSession.findFirst({ where: { id: sessionId, userId: session.user.id, type: "moon", status: "active" } })
+    : await prisma.readingSession.findFirst({ where: { userId: session.user.id, type: "moon", status: "active" } })
 
   if (!moonSession) {
-    // TESTING: free session for all — remove before launch
     moonSession = await prisma.readingSession.create({
       data: { userId: session.user.id, type: "moon", status: "active", exchangesTotal: 2 },
     })
@@ -62,110 +54,86 @@ export async function POST(req: Request) {
   }
 
   const moonData = getMoonData(new Date())
-  const transcript = moonSession.transcript ? JSON.parse(moonSession.transcript) : []
-  const isOpening = transcript.length === 0
+  const moonMeta = { phase: moonData.phase, illumination: moonData.illumination, dayOfCycle: moonData.dayOfCycle, phaseEmoji: moonData.phaseEmoji, sunBearMoon: moonData.sunBearMoon }
 
-  // Full reading delivered immediately on open — free, not counted
+  // __OPENING__ — full reading streamed immediately
   if (message === "__OPENING__") {
     const tonight = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/New_York" })
     const sm = moonData.sunBearMoon
-    const resp = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1800,
-      system: `You are Galileo — ancient oracle, reader of sky and Sun Bear's Medicine Wheel. No asterisks. No stage directions. Speak directly.
+    const sessionId = moonSession.id
+
+    return sseResponse(async (emit) => {
+      emit("moon", { moonData: moonMeta })
+
+      const reading = await streamClaude(emit, {
+        model: "claude-sonnet-4-6",
+        max_tokens: 1800,
+        system: `You are Galileo — ancient oracle, reader of sky and Sun Bear's Medicine Wheel. No asterisks. No stage directions. Speak directly.
 
 Tonight (${tonight}): ${moonData.phase}, ${moonData.illumination}% illuminated, day ${moonData.dayOfCycle} of the lunar cycle. ${moonData.daysToFull !== null ? `${moonData.daysToFull} days to Full Moon.` : `${moonData.daysToNew} days to New Moon.`}
 Sun Bear Moon: ${sm.name} (${sm.dates}). Totem: ${sm.totem}. Element: ${sm.element}. Clan: ${sm.clan}. Path: ${sm.path}.
 Moon energy: ${sm.energy}
 
-Give the COMPLETE moon reading right now. No preamble. No question at the end — this is a single complete reading, not a conversation opener.
+Give the COMPLETE moon reading right now. No preamble. No question at the end — this is a single complete reading.
 
 Write 6-8 rich paragraphs covering ALL of this in depth:
-1. Tonight's exact phase — what it means to be at ${moonData.illumination}% on day ${moonData.dayOfCycle}, the specific quality of light and energy right now, what the moon is asking
-2. The ${sm.name} — its full teaching, what this moon carries, what it has meant across time, why Sun Bear named it this
-3. The ${sm.totem} spirit — ${sm.totem} as guide, how this animal moves through the world, what it teaches about the current moment specifically
-4. The ${sm.path} — what this path on the wheel means, how it differs from others, what it demands of those walking it tonight
-5. The ${sm.element} and ${sm.clan} — how these energies shape this moon and the people drawn to it
-6. What tonight specifically asks — what to release, begin, sit with, or honor under this exact sky
+1. Tonight's exact phase — what it means to be at ${moonData.illumination}% on day ${moonData.dayOfCycle}
+2. The ${sm.name} — its full teaching, what this moon carries
+3. The ${sm.totem} spirit — as guide, how this animal moves through the world
+4. The ${sm.path} — what this path on the wheel means tonight
+5. The ${sm.element} and ${sm.clan} — how these energies shape this moon
+6. What tonight specifically asks — what to release, begin, sit with, or honor
 7. A closing truth that ties phase + moon + totem + path into one real thing they can carry
 
-Be rich. Be long. Be specific. This is the only thing they get — give them everything.${languageInstruction(language as Language)}`,
-      messages: [{ role: "user", content: "Read the moon." }],
-    })
-    const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
+Be rich. Be long. Be specific. Give them everything.${languageInstruction(language as Language)}`,
+        messages: [{ role: "user", content: "Read the moon." }],
+      })
 
-    const transcript = [{ role: "galileo", content: reading }]
+      await prisma.readingSession.update({
+        where: { id: sessionId },
+        data: { status: "complete", completedAt: new Date(), question: "Moon reading", transcript: JSON.stringify([{ role: "galileo", content: reading }]), exchangesUsed: 1 },
+      })
 
-    await prisma.readingSession.update({
-      where: { id: moonSession.id },
-      data: {
-        status: "complete",
-        completedAt: new Date(),
-        question: "Moon reading",
-        transcript: JSON.stringify(transcript),
-      },
-    })
-
-    return Response.json({
-      reading,
-      sessionId: moonSession.id,
-      moonData: { phase: moonData.phase, illumination: moonData.illumination, dayOfCycle: moonData.dayOfCycle, phaseEmoji: moonData.phaseEmoji, sunBearMoon: moonData.sunBearMoon },
-      exchangesUsed: 1,
-      exchangesTotal: 1,
-      isComplete: true,
-      isGreeting: true,
+      emit("done", { reading, sessionId, moonData: moonMeta, exchangesUsed: 1, exchangesTotal: 1, isComplete: true })
     })
   }
 
-  // Build message history
-  const messages: Anthropic.MessageParam[] = []
+  // Follow-up messages
+  const transcript = moonSession.transcript ? JSON.parse(moonSession.transcript) : []
+  const isOpening = transcript.length === 0
+  const messages: { role: "user" | "assistant"; content: string }[] = []
   for (const msg of transcript) {
     messages.push({ role: msg.role === "galileo" ? "assistant" : "user", content: msg.content })
   }
-
-  const systemPrompt = buildMoonPrompt(moonData, message, isOpening) + languageInstruction(language as Language)
-
   messages.push({ role: "user", content: message })
 
-  const resp = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: isOpening ? 1200 : 700,
-    system: systemPrompt,
-    messages,
-  })
-
-  const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
-
-  // Update session
-  transcript.push({ role: "user", content: message })
-  transcript.push({ role: "galileo", content: reading })
-
+  const systemPrompt = buildMoonPrompt(moonData, message, isOpening) + languageInstruction(language as Language)
+  const sessionRef = moonSession
   const newExchangesUsed = moonSession.exchangesUsed + 1
   const isComplete = newExchangesUsed >= moonSession.exchangesTotal
 
-  await prisma.readingSession.update({
-    where: { id: moonSession.id },
-    data: {
-      transcript: JSON.stringify(transcript),
-      question: moonSession.question || message,
-      exchangesUsed: newExchangesUsed,
-      status: isComplete ? "complete" : "active",
-      completedAt: isComplete ? new Date() : null,
-    },
-  })
+  return sseResponse(async (emit) => {
+    const reading = await streamClaude(emit, {
+      model: "claude-sonnet-4-6",
+      max_tokens: isOpening ? 1200 : 700,
+      system: systemPrompt,
+      messages,
+    })
 
-  return Response.json({
-    reading,
-    sessionId: moonSession.id,
-    moonData: {
-      phase: moonData.phase,
-      illumination: moonData.illumination,
-      dayOfCycle: moonData.dayOfCycle,
-      phaseEmoji: moonData.phaseEmoji,
-      sunBearMoon: moonData.sunBearMoon,
-    },
-    exchangesUsed: newExchangesUsed,
-    exchangesTotal: moonSession.exchangesTotal,
-    isComplete,
+    transcript.push({ role: "user", content: message })
+    transcript.push({ role: "galileo", content: reading })
+
+    await prisma.readingSession.update({
+      where: { id: sessionRef.id },
+      data: {
+        transcript: JSON.stringify(transcript),
+        question: sessionRef.question || message,
+        exchangesUsed: newExchangesUsed,
+        status: isComplete ? "complete" : "active",
+        completedAt: isComplete ? new Date() : null,
+      },
+    })
+
+    emit("done", { reading, sessionId: sessionRef.id, moonData: moonMeta, exchangesUsed: newExchangesUsed, exchangesTotal: sessionRef.exchangesTotal, isComplete })
   })
 }

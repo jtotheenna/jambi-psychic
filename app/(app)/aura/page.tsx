@@ -171,12 +171,14 @@ export default function AuraPage() {
     if (!res.ok) { setLoading(false); voice.setAvatarState("idle"); return }
 
     setReading(data.reading)
-    setIsComplete(true)
     setLoading(false)
+    if (voice.mode !== "text") {
+      voice.setAvatarState("speaking")
+      await speakStreaming(data.reading, simliSendRef.current)
+      voice.setAvatarState("idle")
+    }
     playSessionEnd()
-    voice.setAvatarState("speaking")
-    await speakStreaming(data.reading, simliSendRef.current)
-    voice.setAvatarState("idle")
+    setIsComplete(true)
   }
 
   return (

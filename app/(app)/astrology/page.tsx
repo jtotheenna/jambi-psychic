@@ -134,10 +134,12 @@ export default function AstrologyPage() {
 
     if (!hasBeenRead) {
       setHasBeenRead(true)
+      if (voice.mode !== "text") {
+        voice.setAvatarState("speaking")
+        await speakStreaming(data.reading, simliSendRef.current)
+        voice.setAvatarState("idle")
+      }
       playSessionEnd()
-      voice.setAvatarState("speaking")
-      await speakStreaming(data.reading, simliSendRef.current)
-      voice.setAvatarState("idle")
     }
   }
 
@@ -240,11 +242,11 @@ export default function AstrologyPage() {
           <GalileoPanel
             avatarState={voice.avatarState}
             hasStarted={hasStarted}
-            mode="aloud"
-            setMode={() => {}}
-            isListening={false}
-            interimTranscript=""
-            voiceSupported={false}
+            mode={voice.mode}
+            setMode={voice.setMode}
+            isListening={voice.isListening}
+            interimTranscript={voice.interimTranscript}
+            voiceSupported={voice.voiceSupported}
             onSendAudio={(fn) => { simliSendRef.current = fn }}
           />
         </div>

@@ -168,7 +168,6 @@ export function chooseCartomancySpread(concern: string): CartomancySpread {
     return CARTOMANCY_SPREADS.find(s => s.name === "The Decision")!
   }
 
-  // Default: Past Present Future for short questions, Cross for longer ones
-  if (lower.length < 25) return CARTOMANCY_SPREADS.find(s => s.name === "Past, Present, Future")!
-  return CARTOMANCY_SPREADS.find(s => s.name === "The Cross")!
+  // Default: The Horseshoe — 7 cards, complete picture regardless of question length
+  return CARTOMANCY_SPREADS.find(s => s.name === "The Horseshoe")!
 }

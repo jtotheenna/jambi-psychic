@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { speakStreaming } from "@/lib/speak"
 import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
+import { readSSE, nextBoundary } from "@/lib/readSSE"
 import GalileoPanel from "@/components/GalileoPanel"
 
 // ── Coin SVG faces ────────────────────────────────────────────────────────────
@@ -173,19 +174,19 @@ function OracleFace({ label }: { label: string }) {
 
 const FACE_MAP: Record<string, "yes" | "no" | "oracle"> = {
   YES: "yes", NO: "no",
-  PERHAPS: "oracle", "NOT YET": "oracle", "LOOK DEEPER": "oracle",
+  PERHAPS: "oracle", "NOT YET": "oracle",
 }
 
 const ORACLE_LABELS: Record<string, string> = {
-  PERHAPS: "PERHAPS", "NOT YET": "NOT YET", "LOOK DEEPER": "LOOK DEEPER",
+  PERHAPS: "PERHAPS", "NOT YET": "NOT YET",
 }
 
+// box-shadow glow applied to the perspective wrapper (not the preserve-3d element — filter there breaks 3D)
 const GLOW: Record<string, string> = {
   YES: "0 0 60px rgba(201,168,76,0.6), 0 0 120px rgba(201,168,76,0.3)",
   NO:  "0 0 60px rgba(190,18,60,0.6),  0 0 120px rgba(190,18,60,0.3)",
   PERHAPS: "0 0 60px rgba(165,180,252,0.5)",
   "NOT YET": "0 0 60px rgba(245,158,11,0.5)",
-  "LOOK DEEPER": "0 0 60px rgba(124,58,237,0.5)",
 }
 
 function OracleCoin({ answer }: { answer: string | null }) {
@@ -204,14 +205,18 @@ function OracleCoin({ answer }: { answer: string | null }) {
   const rotation = face === "yes" ? 2160 : face === "no" ? 2160 + 180 : 2160 + 90
 
   return (
-    <div style={{ perspective: "1200px", width: 220, height: 220 }}>
+    <div style={{
+      perspective: "1200px", width: 220, height: 220, borderRadius: "50%",
+      // box-shadow on the perspective wrapper — never on the preserve-3d element (filter breaks 3D backfaceVisibility)
+      boxShadow: done && answer ? GLOW[answer] : "0 8px 24px rgba(0,0,0,0.6)",
+      transition: "box-shadow 0.8s ease",
+    }}>
       <div style={{
         width: 220, height: 220,
         position: "relative",
         transformStyle: "preserve-3d",
         transition: flipping ? "transform 2s cubic-bezier(0.23, 1, 0.32, 1)" : "none",
         transform: flipping ? `rotateY(${rotation}deg)` : "rotateY(0deg)",
-        filter: done && answer ? GLOW[answer] : "drop-shadow(0 8px 24px rgba(0,0,0,0.6))",
       }}>
         {/* Front: YES */}
         <div style={{ position: "absolute", inset: 0, borderRadius: "50%", backfaceVisibility: "hidden", overflow: "hidden" }}>
@@ -244,6 +249,8 @@ export default function YesNoPage() {
   const language = "en"
   useEffect(() => { voice.open() }, []) // eslint-disable-line
 
+  const audioChainRef = useRef<Promise<void>>(Promise.resolve())
+
   async function consult() {
     if (!question.trim() || loading) return
     const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
@@ -252,29 +259,40 @@ export default function YesNoPage() {
     setHasStarted(true)
     setLoading(true)
     voice.setAvatarState("thinking")
+    audioChainRef.current = Promise.resolve()
 
     const res = await fetch("/api/yes-no", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question, language }),
     })
-    const data = await res.json()
-    if (!res.ok) { setLoading(false); voice.setAvatarState("idle"); return }
+    if (!res.ok || !res.body) { setLoading(false); voice.setAvatarState("idle"); return }
 
-    setAnswer(data.answer)
-    setReading(data.reading)
-    setLoading(false)
-    playSessionEnd()
+    let pending = ""
+    let coinShown = false
+    const queueSentence = (text: string) => {
+      if (voice.mode === "text" || !text.trim()) return
+      voice.setAvatarState("speaking")
+      audioChainRef.current = audioChainRef.current.then(() => speakStreaming(text, simliSendRef.current))
+    }
 
-    // Let coin flip start, then show reading after 2.2s
-    setTimeout(() => setShowReading(true), 2200)
+    await readSSE(res.body, (data) => {
+      if (data.type === "answer") {
+        setAnswer(data.answer as string)
+        setLoading(false)
+        if (!coinShown) { coinShown = true; setTimeout(() => setShowReading(true), 2200) }
+      } else if (data.type === "delta") {
+        setReading(prev => prev + (data.text as string))
+        pending += data.text as string
+        const b = nextBoundary(pending)
+        if (b !== -1) { queueSentence(pending.slice(0, b)); pending = pending.slice(b) }
+      } else if (data.type === "done") {
+        queueSentence(pending.trim()); pending = ""
+      }
+    })
 
-    voice.setAvatarState("speaking")
-    // Small delay so the coin is dramatic first
-    setTimeout(async () => {
-      await speakStreaming(data.reading, simliSendRef.current)
-      voice.setAvatarState("idle")
-    }, 800)
+    await audioChainRef.current
+    voice.setAvatarState("idle")
   }
 
   return (

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useRef, useState } from "react"
 
 type Props = {
   state: "idle" | "thinking" | "speaking" | "closed"
@@ -9,7 +9,7 @@ type Props = {
   showStars?: boolean
   onSendAudio?: (fn: (pcm: Uint8Array) => void) => void
   onReady?: () => void
-  onSimliConnected?: (isConnected: boolean) => void  // tells parent if Simli is live
+  onSimliConnected?: (isConnected: boolean) => void
 }
 
 function CircleStatic({ opacity }: { opacity: number }) {
@@ -51,62 +51,132 @@ function CircleStatic({ opacity }: { opacity: number }) {
 }
 
 export default function GalileoCircle({ state, size = 200, showName = true, showStars = true, onSendAudio, onReady, onSimliConnected }: Props) {
-  const [staticOpacity, setStaticOpacity]  = useState(0)
-  const [faceVisible,   setFaceVisible]    = useState(false)
-  const [internalState, setInternalState]  = useState<typeof state>("closed")
-  const [simliReady,    setSimliReady]     = useState(false)
-  const [winking,       setWinking]        = useState(false)
-  const [effectiveSize, setEffectiveSize]  = useState(size)
-  const hasOpenedRef  = useRef(false)
-  const hasWinkedRef  = useRef(false)
+  const [staticOpacity, setStaticOpacity] = useState(0)
+  const [faceVisible,   setFaceVisible]   = useState(false)
+  const [internalState, setInternalState] = useState<typeof state>("closed")
+  const [simliReady,    setSimliReady]    = useState(false)
+  const [effectiveSize, setEffectiveSize] = useState(size)
 
-  // Cap size to viewport on mobile so it never overflows
+  const hasOpenedRef         = useRef(false)
+  const videoRef             = useRef<HTMLVideoElement>(null)
+  const audioRef             = useRef<HTMLAudioElement>(null)
+  const clientRef            = useRef<unknown>(null)
+  const mountedRef           = useRef(true)
+  const simliReadyRef        = useRef(false)       // mirror of simliReady for closures
+  const reconnectAttemptsRef = useRef(0)
+  const reconnectTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const onSendAudioRef       = useRef(onSendAudio)
+  const onSimliConnectedRef  = useRef(onSimliConnected)
+  const onReadyRef           = useRef(onReady)
+
+  // Keep prop refs current without triggering effects
+  useEffect(() => { onSendAudioRef.current = onSendAudio },      [onSendAudio])
+  useEffect(() => { onSimliConnectedRef.current = onSimliConnected }, [onSimliConnected])
+  useEffect(() => { onReadyRef.current = onReady },              [onReady])
+
+  // Cap size to viewport width on mobile
   useEffect(() => {
     const update = () => setEffectiveSize(Math.min(size, window.innerWidth * 0.76))
     update()
     window.addEventListener("resize", update)
     return () => window.removeEventListener("resize", update)
   }, [size])
-  const videoRef     = useRef<HTMLVideoElement>(null)
-  const audioRef     = useRef<HTMLAudioElement>(null)
-  const clientRef    = useRef<unknown>(null)
 
-  // Simli connection
-  const initSimli = useCallback(async () => {
-    try {
-      const { SimliClient, generateIceServers } = await import("simli-client")
-      const tokenRes = await fetch("/api/simli/token", { method: "POST" })
-      if (!tokenRes.ok) return
-      const { session_token } = await tokenRes.json()
-      const iceServers = await generateIceServers("o9f1298cjhpilxszvk193q")
-      const client = new SimliClient(
-        session_token, videoRef.current!, audioRef.current!, iceServers ?? null
-      )
-      client.on("start", () => {
-        setSimliReady(true)
-        onSimliConnected?.(true)
-        if (onSendAudio) {
-          onSendAudio((pcm: Uint8Array) => {
-            const CHUNK = 6000
-            for (let offset = 0; offset < pcm.length; offset += CHUNK) {
-              (client as { sendAudioData: (d: Uint8Array) => void }).sendAudioData(pcm.slice(offset, offset + CHUNK))
-            }
-          })
-        }
-      })
-      await client.start()
-      clientRef.current = client
-    } catch (err) {
-      console.error("GalileoCircle Simli error:", err)
-    }
-  }, [onSendAudio])
-
+  // ── Simli connection with auto-reconnect ──────────────────────────────────────
   useEffect(() => {
-    initSimli()
-    return () => { (clientRef.current as { stop?: () => void })?.stop?.() }
+    mountedRef.current = true
+
+    async function connect() {
+      if (!mountedRef.current) return
+      if (reconnectTimerRef.current) { clearTimeout(reconnectTimerRef.current); reconnectTimerRef.current = null }
+      // Tear down any previous client cleanly
+      try { (clientRef.current as { stop?: () => void })?.stop?.() } catch { /* ignore */ }
+      clientRef.current = null
+
+      function scheduleRetry() {
+        if (!mountedRef.current) return
+        if (reconnectAttemptsRef.current >= 10) return          // give up after 10 tries
+        const delay = Math.min(1500 * Math.pow(1.6, reconnectAttemptsRef.current), 45000)
+        reconnectAttemptsRef.current++
+        reconnectTimerRef.current = setTimeout(connect, delay)
+      }
+
+      try {
+        const { SimliClient, generateIceServers } = await import("simli-client")
+        const tokenRes = await fetch("/api/simli/token", { method: "POST" })
+        if (!tokenRes.ok) { scheduleRetry(); return }
+        const { session_token } = await tokenRes.json()
+        const iceServers = await generateIceServers("o9f1298cjhpilxszvk193q")
+        if (!mountedRef.current) return
+
+        const client = new SimliClient(
+          session_token, videoRef.current!, audioRef.current!, iceServers ?? null
+        )
+
+        client.on("start", () => {
+          if (!mountedRef.current) return
+          reconnectAttemptsRef.current = 0          // reset backoff on successful connect
+          simliReadyRef.current = true
+          setSimliReady(true)
+          onSimliConnectedRef.current?.(true)
+          // Expose audio sender to parent — re-registered on every reconnect
+          if (onSendAudioRef.current) {
+            onSendAudioRef.current((pcm: Uint8Array) => {
+              const CHUNK = 6000
+              for (let offset = 0; offset < pcm.length; offset += CHUNK) {
+                (client as { sendAudioData: (d: Uint8Array) => void }).sendAudioData(pcm.slice(offset, offset + CHUNK))
+              }
+            })
+          }
+        })
+
+        // Connection dropped or errored → mark not ready and schedule reconnect
+        const onDrop = () => {
+          if (!mountedRef.current) return
+          simliReadyRef.current = false
+          setSimliReady(false)
+          onSimliConnectedRef.current?.(false)
+          scheduleRetry()
+        }
+        client.on("stop",          onDrop)
+        client.on("error",         onDrop)
+        client.on("startup_error", onDrop)
+
+        await client.start()
+        clientRef.current = client
+      } catch {
+        scheduleRetry()
+      }
+    }
+
+    connect()
+
+    // Reconnect when the user returns to the tab
+    function handleVisibility() {
+      if (document.visibilityState === "visible" && !simliReadyRef.current) {
+        reconnectAttemptsRef.current = 0
+        connect()
+      }
+    }
+    // Reconnect when network comes back
+    function handleOnline() {
+      reconnectAttemptsRef.current = 0
+      connect()
+    }
+
+    document.addEventListener("visibilitychange", handleVisibility)
+    window.addEventListener("online", handleOnline)
+
+    return () => {
+      mountedRef.current = false
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
+      document.removeEventListener("visibilitychange", handleVisibility)
+      window.removeEventListener("online", handleOnline)
+      try { (clientRef.current as { stop?: () => void })?.stop?.() } catch { /* ignore */ }
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Reveal sequence
+  // ── Reveal sequence ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (state === "closed") {
       setFaceVisible(false)
@@ -117,14 +187,13 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
     }
     if (!hasOpenedRef.current) {
       hasOpenedRef.current = true
-      // Static flickers on → face materialises through it → static fades
       setStaticOpacity(1)
       setTimeout(() => {
         setFaceVisible(true)
         setInternalState(state)
-        onReady?.()
-        setTimeout(() => setStaticOpacity(0), 400)
-      }, 1400)
+        onReadyRef.current?.()
+        setTimeout(() => setStaticOpacity(0), 300)
+      }, 600)
     } else {
       setInternalState(state)
     }
@@ -133,9 +202,7 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
   const isThinking = internalState === "thinking"
   const isSpeaking = internalState === "speaking"
 
-  const glowColor = isThinking || isSpeaking
-    ? "rgba(165,180,252,0.7)"
-    : "rgba(201,168,76,0.45)"
+  const glowColor  = isThinking || isSpeaking ? "rgba(165,180,252,0.7)" : "rgba(201,168,76,0.45)"
   const glowShadow = isThinking
     ? "0 0 40px rgba(165,180,252,0.5), 0 0 80px rgba(165,180,252,0.2)"
     : isSpeaking
@@ -144,7 +211,6 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-      {/* Stars — hidden on pages that already have them */}
       {showStars && (
         <div style={{ display: "flex", gap: 24, marginBottom: 4, height: 28, alignItems: "flex-end" }}>
           {["★","✦","★"].map((s, i) => (
@@ -158,8 +224,9 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
         </div>
       )}
 
-      <div style={{ position: "relative", width: size, height: size }}>
-        {/* Glow ring — spins faster while channeling */}
+      {/* Use effectiveSize for layout so the circle never overflows on mobile */}
+      <div style={{ position: "relative", width: effectiveSize, height: effectiveSize }}>
+        {/* Glow ring */}
         <div style={{
           position: "absolute", inset: -10, borderRadius: "50%",
           background: isThinking || isSpeaking
@@ -179,9 +246,44 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
           transition: "box-shadow 0.5s ease, border-color 0.5s ease",
           background: "#04020e",
         }}>
-          {/* TV static — shows during reveal, fades when face appears */}
+          {/* Living glow — always visible, gives presence even before Simli face loads */}
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 0,
+            background: isThinking
+              ? "radial-gradient(ellipse 90% 95% at 50% 45%, rgba(79,70,229,0.55) 0%, rgba(124,58,237,0.3) 35%, rgba(42,26,85,0.15) 65%, transparent 85%)"
+              : isSpeaking
+              ? "radial-gradient(ellipse 90% 95% at 50% 45%, rgba(201,168,76,0.4) 0%, rgba(79,70,229,0.25) 35%, rgba(42,26,85,0.12) 65%, transparent 85%)"
+              : "radial-gradient(ellipse 90% 95% at 50% 45%, rgba(79,70,229,0.38) 0%, rgba(124,58,237,0.18) 35%, rgba(42,26,85,0.1) 65%, transparent 85%)",
+            animation: isThinking
+              ? "glowPulse 1.4s ease-in-out infinite"
+              : isSpeaking
+              ? "glowPulse 0.9s ease-in-out infinite"
+              : "glowPulse 4s ease-in-out infinite",
+            transition: "background 0.6s ease",
+          }} />
+
+          {/* TV static — reveal only */}
           <CircleStatic opacity={staticOpacity} />
 
+          {/* Idle face loop — shows once /public/galileo-idle.mp4 is recorded.
+              Hides silently if file doesn't exist yet. */}
+          <video
+            src="/galileo-idle.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            onError={e => { (e.currentTarget as HTMLVideoElement).style.display = "none" }}
+            style={{
+              position: "absolute", top: "-10%", left: 0,
+              width: "100%", height: "120%",
+              objectFit: "cover", objectPosition: "center top",
+              zIndex: 1,
+              opacity: 1,
+            }}
+          />
+
+          {/* Live Simli feed — always visible once connected */}
           <video
             ref={videoRef}
             autoPlay
@@ -192,17 +294,15 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
               width: "100%", height: "120%",
               objectFit: "cover", objectPosition: "center top",
               opacity: faceVisible && simliReady ? 1 : 0,
-              zIndex: 1,
-              filter: winking
-                ? "brightness(0.05)"
-                : isSpeaking
+              zIndex: 2,
+              filter: isSpeaking
                 ? "brightness(1.08) contrast(1.05) drop-shadow(0 0 8px rgba(201,168,76,0.3))"
                 : "brightness(1) contrast(1.05) saturate(0.9)",
-              transition: winking ? "filter 0.06s ease" : "filter 0.12s ease, opacity 1.5s ease",
+              transition: "filter 0.3s ease, opacity 1.2s ease",
             }}
           />
 
-          {/* Scan lines over the video */}
+          {/* Scan lines */}
           <div style={{
             position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none",
             backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 3px)",
@@ -213,45 +313,11 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
             position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none",
             background: "radial-gradient(ellipse at center, transparent 50%, rgba(4,2,14,0.55) 100%)",
           }} />
-
-          {/* Channeling indicator */}
-          {isThinking && (
-            <div style={{
-              position: "absolute", bottom: 0, left: 0, right: 0,
-              padding: "8px 6px",
-              background: "linear-gradient(to top, rgba(4,2,14,0.85) 0%, transparent 100%)",
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 5, zIndex: 4,
-            }}>
-              <div style={{
-                display: "flex", gap: 5,
-              }}>
-                {[0,1,2].map(i => (
-                  <div key={i} style={{
-                    width: 4, height: 4, borderRadius: "50%", background: "#a5b4fc",
-                    animation: "moonPulse 1.2s ease-in-out infinite",
-                    animationDelay: `${i * 0.3}s`,
-                  }} />
-                ))}
-              </div>
-              <div style={{
-                fontFamily: "'Cinzel', serif",
-                fontSize: 8,
-                letterSpacing: "0.25em",
-                color: "#a5b4fc",
-                opacity: 0.8,
-                animation: "moonPulse 2s ease-in-out infinite",
-              }}>
-                CHANNELING
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Simli audio element — Simli IS the speaker, drives both voice and animation */}
-      <audio ref={audioRef} autoPlay />
+      <audio ref={audioRef} autoPlay muted />
 
-      {/* Name — hidden when the page already shows the title */}
       {showName && (
         <div style={{ textAlign: "center" }}>
           <div style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 18, letterSpacing: "0.15em" }} className="text-shimmer">

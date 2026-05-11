@@ -106,7 +106,7 @@ export default async function DashboardPage() {
           )}
 
           {card("◎", "YES OR NO ORACLE", "rgba(165,180,252,0.3)", "rgba(165,180,252,0.2)",
-            "One question. One clear answer. Yes, no, perhaps, not yet, or look deeper.",
+            "One question. One clear answer. Yes, no, perhaps, not yet.",
             "$5 · SHORT SPOKEN READING",
             <Link href="/yes-no" style={{ padding: "9px 20px", borderRadius: 7, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(165,180,252,0.08)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", textDecoration: "none", whiteSpace: "nowrap" }}>BEGIN ✦</Link>
           )}
@@ -148,7 +148,7 @@ export default async function DashboardPage() {
           {card("✋", "PALM READING", "rgba(200,212,232,0.25)", "rgba(200,212,232,0.2)",
             "Upload a photo of your palm. Galileo reads your lines, mounts, and soul — spoken aloud.",
             "$10 · FULL HAND READING · SPOKEN ALOUD",
-            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "palm", status: "active", exchangesTotal: 5 } }); redirect("/palm") }}>{beginBtn("rgba(200,212,232,0.25)", "rgba(200,212,232,0.35)")}</form>,
+            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "palm", status: "active", exchangesTotal: 1 } }); redirect("/palm") }}>{beginBtn("rgba(200,212,232,0.25)", "rgba(200,212,232,0.35)")}</form>,
             activePalm, "/palm", activePalm ? abandonBtn(activePalm.id) : undefined
           )}
 

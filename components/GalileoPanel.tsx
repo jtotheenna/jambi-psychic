@@ -16,14 +16,14 @@ type Props = {
 }
 
 const MODES: { key: VoiceMode; label: string; desc: string }[] = [
-  { key: "text",           label: "TEXT",          desc: "Read only" },
+  { key: "text",           label: "MUTE",          desc: "No voice" },
   { key: "aloud",          label: "READ ALOUD",    desc: "Galileo speaks" },
   { key: "conversational", label: "CONVERSATION",  desc: "Voice back and forth" },
 ]
 
 export default function GalileoPanel({
   avatarState, hasStarted, mode, setMode, isListening, interimTranscript, voiceSupported,
-  startOpen = false, onSendAudio,
+  startOpen = true, onSendAudio,
 }: Props) {
   const resolvedState = hasStarted ? avatarState : startOpen ? "idle" : "closed"
 

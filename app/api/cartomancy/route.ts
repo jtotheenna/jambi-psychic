@@ -1,10 +1,50 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import Anthropic from "@anthropic-ai/sdk"
-import { shuffleCartomancy, chooseCartomancySpread } from "@/lib/cartomancy"
+import { shuffleCartomancy, CARTOMANCY_SPREADS } from "@/lib/cartomancy"
 import { languageInstruction, type Language } from "@/lib/language"
+import { sseResponse, streamClaude } from "@/lib/streamSSE"
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+
+const CART_WORD_NUMS: Record<string, number> = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7 }
+const CART_AUTO = CARTOMANCY_SPREADS.filter(s => s.positions.length >= 5)
+
+async function pickCartomancySpread(question: string) {
+  const lower = question.toLowerCase()
+
+  // Explicit numeric request
+  const numMatch = lower.match(/\b(\d+)\s*cards?\b/)
+  if (numMatch) {
+    const n = parseInt(numMatch[1])
+    const found = CARTOMANCY_SPREADS.find(s => s.positions.length === n)
+    if (found) return found
+  }
+  for (const [w, n] of Object.entries(CART_WORD_NUMS)) {
+    if (new RegExp(`\\b${w}\\s*cards?\\b`).test(lower)) {
+      const found = CARTOMANCY_SPREADS.find(s => s.positions.length === n)
+      if (found) return found
+    }
+  }
+  if (lower.includes("horseshoe")) return CARTOMANCY_SPREADS.find(s => s.name === "The Horseshoe")!
+  if (lower.includes("year"))      return CARTOMANCY_SPREADS.find(s => s.name === "The Year Ahead")!
+
+  // Let Haiku pick like a real cartomancer
+  try {
+    const res = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 20,
+      messages: [{
+        role: "user",
+        content: `You're a professional cartomancer (playing card reader) choosing a spread for this question: "${question.slice(0, 300)}"\n\nPick one:\n${CART_AUTO.map(s => `${s.name} (${s.positions.length} cards) — ${s.description}`).join("\n")}\n\nReply with only the spread name, exactly as written.`,
+      }],
+    })
+    const name = res.content[0].type === "text" ? res.content[0].text.trim() : ""
+    return CART_AUTO.find(s => s.name === name) ?? CARTOMANCY_SPREADS.find(s => s.name === "The Horseshoe")!
+  } catch {
+    return CARTOMANCY_SPREADS.find(s => s.name === "The Horseshoe")!
+  }
+}
 
 function buildSystem(userName: string | null, exchangesLeft: number, cards: string[], voiceMode: boolean, language = "en") {
   const dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" })
@@ -63,7 +103,6 @@ export async function POST(req: Request) {
       })
 
   if (!cartSession) {
-    // TESTING: free session for all — remove before launch
     cartSession = await prisma.readingSession.create({
       data: { userId: session.user.id, type: "cartomancy", status: "active", exchangesTotal: 5 },
       include: { user: { include: { details: true } } },
@@ -123,7 +162,7 @@ Welcome them warmly in one sentence. Then ask: what question do they bring to th
       ...transcript.filter((m: { role: string }) => m.role === "user").map((m: { content: string }) => m.content),
       message,
     ].join(" ")
-    const spread = chooseCartomancySpread(allUserText)
+    const spread = await pickCartomancySpread(allUserText)
     spreadName = spread.name
     const drawn = shuffleCartomancy(spread.positions.length)
     drawnCards = drawn.map((card, i) => ({ ...card, position: spread.positions[i] }))
@@ -149,41 +188,38 @@ Welcome them warmly in one sentence. Then ask: what question do they bring to th
     anthropicMessages.push({ role: "user", content: userContent })
   }
 
-  const resp = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: voiceMode ? 300 : drawnCards ? 1600 : 700,
-    system: systemPrompt,
-    messages: anthropicMessages,
-  })
+  const sessionRef = cartSession!
+  const newExchangesUsed = sessionRef.exchangesUsed + 1
+  const isComplete = newExchangesUsed >= sessionRef.exchangesTotal
+  const question = sessionRef.question || message
+  const cards = drawnCards?.map(c => ({ name: c.name, suit: c.suit, rank: c.rank }))
 
-  const response = resp.content[0].type === "text" ? resp.content[0].text : ""
+  return sseResponse(async (emit) => {
+    if (drawnCards) emit("cards", { cards, spread: spreadName })
 
-  transcript.push({ role: "user", content: message })
-  transcript.push({ role: "galileo", content: response, cards: drawnCards?.map(c => ({ name: c.name, suit: c.suit, rank: c.rank })) })
+    const response = await streamClaude(emit, {
+      model: "claude-sonnet-4-6",
+      max_tokens: voiceMode ? 300 : drawnCards ? 1600 : 700,
+      system: systemPrompt,
+      messages: anthropicMessages,
+    })
 
-  const question = cartSession!.question || message
-  const newExchangesUsed = cartSession!.exchangesUsed + 1
-  const isComplete = newExchangesUsed >= cartSession!.exchangesTotal
+    transcript.push({ role: "user", content: message })
+    transcript.push({ role: "galileo", content: response, cards })
 
-  await prisma.readingSession.update({
-    where: { id: cartSession!.id },
-    data: {
-      transcript: JSON.stringify(transcript),
-      cardsDrawn: JSON.stringify(allCards),
-      spread: spreadName,
-      question,
-      exchangesUsed: newExchangesUsed,
-      status: isComplete ? "complete" : "active",
-      completedAt: isComplete ? new Date() : null,
-    },
-  })
+    await prisma.readingSession.update({
+      where: { id: sessionRef.id },
+      data: {
+        transcript: JSON.stringify(transcript),
+        cardsDrawn: JSON.stringify(allCards),
+        spread: spreadName,
+        question,
+        exchangesUsed: newExchangesUsed,
+        status: isComplete ? "complete" : "active",
+        completedAt: isComplete ? new Date() : null,
+      },
+    })
 
-  return Response.json({
-    response,
-    cards: drawnCards || [],
-    exchangesUsed: newExchangesUsed,
-    exchangesTotal: cartSession!.exchangesTotal,
-    isComplete,
-    sessionId: cartSession!.id,
+    emit("done", { response, cards: cards || [], exchangesUsed: newExchangesUsed, exchangesTotal: sessionRef.exchangesTotal, isComplete, sessionId: sessionRef.id })
   })
 }

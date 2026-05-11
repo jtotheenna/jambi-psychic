@@ -9,8 +9,8 @@ export async function POST() {
       apiKey,
       faceId,
       handleSilence: true,
-      maxSessionLength: 600,
-      maxIdleTime: 60,
+      maxSessionLength: 3600,
+      maxIdleTime: 300,
     }),
   })
 

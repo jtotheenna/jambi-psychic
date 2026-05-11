@@ -8,6 +8,7 @@ import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import GemProgress from "@/components/GemProgress"
 import { speakStreaming } from "@/lib/speak"
 import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
+import { readSSE, nextBoundary, rafThrottle } from "@/lib/readSSE"
 
 type Message = { role: "user" | "galileo"; content: string }
 
@@ -24,13 +25,14 @@ export default function LovePage() {
   const [hasStarted, setHasStarted] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
+  const audioChainRef = useRef<Promise<void>>(Promise.resolve())
   const voice = useGalileoVoice()
   const language = "en"
   useEffect(() => { voice.open() }, []) // eslint-disable-line
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-  }, [messages])
+  }, [messages.length])
 
   async function openReading() {
     const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
@@ -54,8 +56,10 @@ export default function LovePage() {
     if (data.response) {
       setMessages([{ role: "galileo", content: data.response }])
       setLoading(false)
-      voice.setAvatarState("speaking")
-      await speakStreaming(data.response, simliSendRef.current)
+      if (voice.mode !== "text") {
+        voice.setAvatarState("speaking")
+        await speakStreaming(data.response, simliSendRef.current)
+      }
     }
     voice.setAvatarState("idle")
     setLoading(false)
@@ -77,18 +81,39 @@ export default function LovePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: msg, sessionId, language }),
     })
-    const data = await res.json()
-    if (!res.ok) { setLoading(false); voice.setAvatarState("idle"); return }
+    if (!res.ok || !res.body) { setLoading(false); voice.setAvatarState("idle"); return }
 
-    if (!sessionId && data.sessionId) setSessionId(data.sessionId)
-    setExchangesUsed(data.exchangesUsed)
-    setIsComplete(data.isComplete)
-    if (data.isComplete) playSessionEnd()
-    setMessages(prev => [...prev, { role: "galileo", content: data.response }])
+    audioChainRef.current = Promise.resolve()
+    let pending = "", fullText = "", doneData: Record<string, unknown> = {}
+    const queueSentence = (text: string) => {
+      if (voice.mode === "text" || !text.trim()) return
+      voice.setAvatarState("speaking")
+      audioChainRef.current = audioChainRef.current.then(() => speakStreaming(text, simliSendRef.current))
+    }
+
+    // Add galileo message slot immediately so it updates in place
+    setMessages(prev => [...prev, { role: "galileo", content: "" }])
     setLoading(false)
-    voice.setAvatarState("speaking")
-    await speakStreaming(data.response, simliSendRef.current)
+    const setTextThrottled = rafThrottle((t: string) => setMessages(prev => [...prev.slice(0, -1), { role: "galileo", content: t }]))
+
+    await readSSE(res.body, (data) => {
+      if (data.type === "delta") {
+        fullText += data.text as string
+        pending += data.text as string
+        setTextThrottled(fullText)
+        const b = nextBoundary(pending)
+        if (b !== -1) { queueSentence(pending.slice(0, b)); pending = pending.slice(b) }
+      } else if (data.type === "done") {
+        doneData = data
+        queueSentence(pending.trim()); pending = ""
+        if (data.sessionId && !sessionId) setSessionId(data.sessionId as string)
+        setExchangesUsed(data.exchangesUsed as number)
+      }
+    })
+
+    await audioChainRef.current
     voice.setAvatarState("idle")
+    if (doneData.isComplete) { playSessionEnd(); setIsComplete(true) }
   }
 
   return (

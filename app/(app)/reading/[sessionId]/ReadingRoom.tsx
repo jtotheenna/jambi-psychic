@@ -10,6 +10,7 @@ import ChatBubble from "@/components/ChatBubble"
 import { TAROT_DECK } from "@/lib/tarot"
 import { playBoxOpen, playCardReveal, playGalileoSpeak, playSessionEnd } from "@/lib/sounds"
 import { speakStreaming } from "@/lib/speak"
+import { readSSE, nextBoundary, rafThrottle } from "@/lib/readSSE"
 
 // Browser Speech Recognition (voice input)
 const SpeechRecognition =
@@ -41,45 +42,22 @@ function findCardData(name: string) {
   return TAROT_DECK.find((c) => c.name === name)
 }
 
-// Single persistent Galileo circle — never unmounts so Simli stays connected
-function GalileoAnchor({
-  hasStarted,
+// Sticky bar: Galileo on the left, card thumbnails on the right
+function ReadingBar({
   avatarState,
   simliSendRef,
   simliActiveRef,
+  cards,
+  spread,
+  onCardClick,
 }: {
-  hasStarted: boolean
   avatarState: AvatarState
   simliSendRef: React.MutableRefObject<((pcm: Uint8Array) => void) | null>
   simliActiveRef: React.MutableRefObject<boolean>
+  cards: { card: { name: string; position?: string; reversed?: boolean }; idx: number }[]
+  spread: string | null
+  onCardClick: (cardData: NonNullable<ReturnType<typeof findCardData>>, meta: { position?: string; reversed?: boolean }) => void
 }) {
-  const [pos, setPos] = useState({ x: 0, y: 0 })
-  const origin = useRef({ mx: 0, my: 0, px: 0, py: 0 })
-
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    origin.current = { mx: e.clientX, my: e.clientY, px: pos.x, py: pos.y }
-    const move = (ev: MouseEvent) => setPos({
-      x: origin.current.px + ev.clientX - origin.current.mx,
-      y: origin.current.py + ev.clientY - origin.current.my,
-    })
-    const up = () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up) }
-    window.addEventListener("mousemove", move)
-    window.addEventListener("mouseup", up)
-  }, [pos.x, pos.y])
-
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
-    const t = e.touches[0]
-    origin.current = { mx: t.clientX, my: t.clientY, px: pos.x, py: pos.y }
-    const move = (ev: TouchEvent) => {
-      const t2 = ev.touches[0]
-      setPos({ x: origin.current.px + t2.clientX - origin.current.mx, y: origin.current.py + t2.clientY - origin.current.my })
-    }
-    const up = () => { window.removeEventListener("touchmove", move); window.removeEventListener("touchend", up) }
-    window.addEventListener("touchmove", move, { passive: false })
-    window.addEventListener("touchend", up)
-  }, [pos.x, pos.y])
-
   return (
     <div style={{
       position: "sticky",
@@ -87,28 +65,66 @@ function GalileoAnchor({
       zIndex: 30,
       display: "flex",
       justifyContent: "center",
-      padding: "10px 0",
-      background: "rgba(4,2,14,0.93)",
+      padding: "10px 14px",
+      background: "rgba(4,2,14,0.95)",
       backdropFilter: "blur(12px)",
       borderBottom: "1px solid rgba(42,26,85,0.4)",
+      minHeight: 152,
     }}>
-      <div
-        onMouseDown={hasStarted ? onMouseDown : undefined}
-        onTouchStart={hasStarted ? onTouchStart : undefined}
-        style={{
-          transform: `translate(${pos.x}px, ${pos.y}px)`,
-          cursor: hasStarted ? "grab" : "default",
-          touchAction: hasStarted ? "none" : "auto",
-        }}
-      >
-        <GalileoCircle
-          state={hasStarted ? avatarState : "idle"}
-          size={200}
-          showName={false}
-          showStars={false}
-          onSendAudio={(fn) => { simliSendRef.current = fn }}
-          onSimliConnected={(yes) => { simliActiveRef.current = yes }}
-        />
+      <div style={{ display: "flex", alignItems: "center", gap: 16, maxWidth: 720, width: "100%" }}>
+        {/* Galileo — left, fixed size */}
+        <div style={{ flexShrink: 0 }}>
+          <GalileoCircle
+            state={avatarState}
+            size={124}
+            showName={false}
+            showStars={false}
+            onSendAudio={(fn) => { simliSendRef.current = fn }}
+            onSimliConnected={(yes) => { simliActiveRef.current = yes }}
+          />
+        </div>
+
+        {/* Right side: spread label + card strip */}
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+          {cards.length > 0 ? (
+            <>
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 7, letterSpacing: "0.2em", color: "#4a3870" }}>
+                {spread ? spread.toUpperCase() : "THE CARDS"} · TAP TO READ
+              </div>
+              <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
+                {cards.map(({ card, idx }) => {
+                  const cardData = findCardData(card.name)
+                  if (!cardData) return null
+                  const slug = cardData.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => onCardClick(cardData, { position: card.position, reversed: card.reversed })}
+                      style={{ flexShrink: 0, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, animation: `fadeUp 0.5s ease-out ${idx * 320}ms both` }}
+                    >
+                      <div style={{ width: 56, height: 80, borderRadius: 5, overflow: "hidden", border: "1px solid rgba(201,168,76,0.3)", boxShadow: "0 2px 8px rgba(0,0,0,0.5)", transform: card.reversed ? "rotate(180deg)" : "none", transition: "transform 0.15s ease, box-shadow 0.15s ease" }}
+                        onMouseEnter={e => { const d = e.currentTarget as HTMLDivElement; d.style.boxShadow = "0 4px 16px rgba(201,168,76,0.45)"; d.style.transform = `translateY(-3px)${card.reversed ? " rotate(180deg)" : ""}` }}
+                        onMouseLeave={e => { const d = e.currentTarget as HTMLDivElement; d.style.boxShadow = "0 2px 8px rgba(0,0,0,0.5)"; d.style.transform = card.reversed ? "rotate(180deg)" : "none" }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`/cards/${slug}.jpg`} alt={cardData.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                      </div>
+                      {card.position && (
+                        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 5, letterSpacing: "0.08em", color: "#3a2a55", maxWidth: 58, textAlign: "center", lineHeight: 1.2 }}>
+                          {card.position.length > 12 ? card.position.substring(0, 10) + "…" : card.position}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          ) : (
+            <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#2a1a4a", fontStyle: "italic", lineHeight: 1.5, margin: 0, animation: "moonPulse 3s ease-in-out infinite" }}>
+              The cards are ready. Ask your question and Galileo will read.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -148,6 +164,7 @@ export default function ReadingRoom({
   const simliSendRef    = useRef<((pcm: Uint8Array) => void) | null>(null)
   const simliActiveRef  = useRef(false)
   const prefetchedRef   = useRef<{ response: string } | null>(null)
+  const audioChainRef   = useRef<Promise<void>>(Promise.resolve())
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -169,10 +186,11 @@ export default function ReadingRoom({
   }, [])
 
   useEffect(() => {
+    // Only scroll when a new complete message arrives (role changes), not on every delta
+    const last = messages[messages.length - 1]
+    if (!last) return
     window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
-  }, [messages])
-
-  const isVoiceMode = voiceMode
+  }, [messages.length])
 
   useEffect(() => { voice.open() }, []) // eslint-disable-line — immediate Simli connection on mount
   // Keep hook in sync with local state
@@ -268,8 +286,7 @@ export default function ReadingRoom({
     if (response) {
       setMessages([{ role: "galileo", content: response }])
       setLoading(false)
-      setAvatarState("speaking")
-      await speakStreaming(response, simliSendRef.current)
+      await speakText(response)
     }
     setAvatarState("idle")
     setLoading(false)
@@ -383,13 +400,12 @@ export default function ReadingRoom({
 
   async function sendMessageText(text: string) {
     if (!text.trim() || loadingRef.current || isComplete) return
-    // Unlock audio within user gesture
     const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
     sa.volume = 0; sa.play().catch(() => {})
     setInput("")
     setLoading(true)
 
-    const newMessages: Message[] = [...messages, { role: "user", content: text }]
+    const newMessages: Message[] = [...messages, { role: "user", content: text }, { role: "galileo", content: "" }]
     setMessages(newMessages)
     setAvatarState("thinking")
 
@@ -400,34 +416,64 @@ export default function ReadingRoom({
         body: JSON.stringify({ message: text, voiceMode: voiceModeRef.current, language }),
       })
 
-      const data = await res.json()
-
-      if (!res.ok) {
-        setMessages([...newMessages, { role: "galileo", content: data.error || "Something stirred in the void. Please try again." }])
+      if (!res.ok || !res.body) {
+        setMessages([...newMessages.slice(0, -1), { role: "galileo", content: "Something stirred in the void. Please try again." }])
         setAvatarState("idle")
         setLoading(false)
         if (voiceModeRef.current) setTimeout(() => startAutoListening(), 600)
         return
       }
 
-      const galileoMessage: Message = {
-        role: "galileo",
-        content: data.response,
-        cards: data.cards?.length > 0 ? data.cards : undefined,
+      audioChainRef.current = Promise.resolve()
+      let pending = "", fullText = "", doneData: Record<string, unknown> = {}
+      let hasCards = false
+      const setTextThrottled = rafThrottle((t: string) => {
+        setMessages(prev => [...prev.slice(0, -1), { role: "galileo", content: t, cards: prev[prev.length-1]?.cards }])
+      })
+
+      const queueSentence = (t: string) => {
+        if (voice.mode === "text" || !t.trim()) return
+        setAvatarState("speaking")
+        audioChainRef.current = audioChainRef.current.then(() => speakStreaming(t, simliSendRef.current))
       }
-      setMessages([...newMessages, galileoMessage])
 
-      if (data.cards?.length > 0) {
-        setCardsDrawn((prev) => [...prev, ...data.cards.map((c: { name: string }) => c.name)])
+      setLoading(false)
+
+      await readSSE(res.body, (data) => {
+        if (data.type === "cards") {
+          const cards = data.cards as { name: string; position?: string; reversed?: boolean }[]
+          hasCards = cards.length > 0
+          if (hasCards) {
+            setCardsDrawn(prev => [...prev, ...cards.map(c => c.name)])
+            setSpread(data.spread as string || null)
+            if (voice.mode === "aloud") {
+              setTimeout(() => playCardReveal(0), 800)
+              setTimeout(() => playCardReveal(1), 1400)
+              setTimeout(() => playCardReveal(2), 2000)
+            }
+          }
+          // Update last galileo message with cards
+          setMessages(prev => [...prev.slice(0, -1), { role: "galileo", content: fullText, cards: hasCards ? cards : undefined }])
+        } else if (data.type === "delta") {
+          fullText += data.text as string; pending += data.text as string
+          setTextThrottled(fullText)
+          const b = nextBoundary(pending); if (b !== -1) { queueSentence(pending.slice(0, b)); pending = pending.slice(b) }
+        } else if (data.type === "done") {
+          doneData = data; queueSentence(pending.trim()); pending = ""
+          setExchangesUsed(data.exchangesUsed as number)
+        }
+      })
+
+      await audioChainRef.current
+      setAvatarState("idle")
+
+      if (doneData.isComplete) {
+        playSessionEnd()
+        setIsComplete(true)
       }
-
-      setExchangesUsed(data.exchangesUsed)
-      setIsComplete(data.isComplete)
-      if (data.isComplete) playSessionEnd()
-
-      await speakText(data.response, data.cards?.length > 0)
+      if (voiceModeRef.current && !doneData.isComplete) setTimeout(() => startAutoListening(), 600)
     } catch {
-      setMessages([...newMessages, { role: "galileo", content: "The stars went dark for a moment. Please try again." }])
+      setMessages(prev => [...prev.slice(0, -1), { role: "galileo", content: "The stars went dark for a moment. Please try again." }])
       setAvatarState("idle")
       if (voiceModeRef.current) setTimeout(() => startAutoListening(), 600)
     }
@@ -447,11 +493,10 @@ export default function ReadingRoom({
     }
   }
 
-  // Get unique cards for the card display (from all drawn this session)
-  const drawnCardData = cardsDrawn
-    .filter((v, i, a) => a.indexOf(v) === i)
-    .map((name) => findCardData(name))
-    .filter(Boolean)
+  const readingBarCards = messages
+    .filter(m => m.role === "galileo" && m.cards?.length)
+    .flatMap(m => m.cards!)
+    .map((card, idx) => ({ card, idx }))
 
   return (
     <div
@@ -502,7 +547,17 @@ export default function ReadingRoom({
         </div>
       </div>
 
-      {/* Main content — bottom padding accounts for fixed avatar + voice selector */}
+      {/* Reading bar — Galileo left, cards right, sticky below nav */}
+      <ReadingBar
+        avatarState={avatarState}
+        simliSendRef={simliSendRef}
+        simliActiveRef={simliActiveRef}
+        cards={readingBarCards}
+        spread={spread}
+        onCardClick={(cardData, meta) => { setExpandedCard(cardData); setExpandedCardMeta(meta) }}
+      />
+
+      {/* Main content */}
       <div
         style={{
           flex: 1,
@@ -515,14 +570,6 @@ export default function ReadingRoom({
           gap: 16,
         }}
       >
-        {/* Single persistent Galileo — Simli stays connected through the whole reading */}
-        <GalileoAnchor
-          hasStarted={hasStarted}
-          avatarState={avatarState}
-          simliSendRef={simliSendRef}
-          simliActiveRef={simliActiveRef}
-        />
-
         {/* Voice mode selector — only visible after reading starts */}
         {hasStarted && (
           <div style={{
@@ -536,12 +583,12 @@ export default function ReadingRoom({
           }}>
             {(voiceSupported
               ? [
-                  { key: "text" as const,           label: "TEXT" },
+                  { key: "text" as const,           label: "MUTE" },
                   { key: "aloud" as const,          label: "ALOUD" },
                   { key: "conversational" as const, label: "VOICE" },
                 ]
               : [
-                  { key: "text" as const,  label: "TEXT" },
+                  { key: "text" as const,  label: "MUTE" },
                   { key: "aloud" as const, label: "ALOUD" },
                 ]
             ).map(({ key, label }) => (
@@ -561,44 +608,6 @@ export default function ReadingRoom({
                 {label}
               </button>
             ))}
-          </div>
-        )}
-
-        {/* Compact card thumbnails — tap any to see full detail */}
-        {drawnCardData.length > 0 && (
-          <div style={{ background: "rgba(4,2,14,0.9)", borderRadius: 10, padding: "10px 12px 10px", border: "1px solid rgba(42,26,85,0.5)" }}>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.25em", color: "#4a3870", textAlign: "center", marginBottom: 10 }}>
-              {spread ? spread.toUpperCase() : "THE CARDS"} · TAP ANY CARD TO READ IT
-            </div>
-            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, justifyContent: drawnCardData.length <= 5 ? "center" : "flex-start" }}>
-              {messages
-                .filter(m => m.role === "galileo" && m.cards && m.cards.length > 0)
-                .flatMap(m => m.cards || [])
-                .filter(c => findCardData(c.name))
-                .map((c, idx) => {
-                  const cardData = findCardData(c.name)!
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => { setExpandedCard(cardData); setExpandedCardMeta({ position: c.position, reversed: c.reversed }) }}
-                      style={{ flexShrink: 0, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, animation: `fadeUp 0.4s ease-out ${idx * 150}ms both` }}
-                    >
-                      <div style={{ width: 52, height: 74, borderRadius: 5, overflow: "hidden", border: "1px solid rgba(201,168,76,0.35)", boxShadow: "0 2px 8px rgba(0,0,0,0.5)", transform: c.reversed ? "rotate(180deg)" : "none", transition: "transform 0.15s ease, box-shadow 0.15s ease" }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 16px rgba(201,168,76,0.4)"; (e.currentTarget as HTMLDivElement).style.transform = `translateY(-3px)${c.reversed ? " rotate(180deg)" : ""}` }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 8px rgba(0,0,0,0.5)"; (e.currentTarget as HTMLDivElement).style.transform = c.reversed ? "rotate(180deg)" : "none" }}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`/cards/${cardData.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")}.jpg`} alt={cardData.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                      </div>
-                      {c.position && (
-                        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 6, letterSpacing: "0.1em", color: "#4a3870", maxWidth: 56, textAlign: "center", lineHeight: 1.3 }}>
-                          {c.position.toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-            </div>
           </div>
         )}
 

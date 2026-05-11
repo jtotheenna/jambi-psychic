@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useGalileoVoice } from "@/lib/useGalileoVoice"
 import { speakStreaming } from "@/lib/speak"
 import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
+import { readSSE, nextBoundary, rafThrottle } from "@/lib/readSSE"
 import GalileoPanel from "@/components/GalileoPanel"
 
 const SpeechRecognition = typeof window !== "undefined"
@@ -34,7 +35,7 @@ export default function DreamPage() {
   useEffect(() => { voice.open(); setMicSupported(!!SpeechRecognition) }, []) // eslint-disable-line
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-  }, [messages])
+  }, [messages.length])
 
   function startListening() {
     if (!SpeechRecognition || isListening) return
@@ -70,18 +71,32 @@ export default function DreamPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ dream, language }),
     })
-    const data = await res.json()
-    if (!res.ok) { setLoading(false); voice.setAvatarState("idle"); return }
+    if (!res.ok || !res.body) { setLoading(false); voice.setAvatarState("idle"); return }
 
-    if (data.sessionId) setSessionId(data.sessionId)
-    setExchangesUsed(data.exchangesUsed ?? 1)
-    setMessages([
-      { role: "user", content: dream },
-      { role: "galileo", content: data.reading },
-    ])
+    let pending = "", fullText = ""
+    setMessages([{ role: "user", content: dream }, { role: "galileo", content: "" }])
     setLoading(false)
-    voice.setAvatarState("speaking")
-    await speakStreaming(data.reading, simliSendRef.current)
+    const chain = { current: Promise.resolve() as Promise<void> }
+    const queueSentence = (text: string) => {
+      if (voice.mode === "text" || !text.trim()) return
+      voice.setAvatarState("speaking")
+      chain.current = chain.current.then(() => speakStreaming(text, simliSendRef.current))
+    }
+
+    const setTextThrottled1 = rafThrottle((t: string) => setMessages(prev => [...prev.slice(0, -1), { role: "galileo", content: t }]))
+    await readSSE(res.body, (data) => {
+      if (data.type === "delta") {
+        fullText += data.text as string
+        pending += data.text as string
+        setTextThrottled1(fullText)
+        const b = nextBoundary(pending); if (b !== -1) { queueSentence(pending.slice(0, b)); pending = pending.slice(b) }
+      } else if (data.type === "done") {
+        queueSentence(pending.trim()); pending = ""
+        if (data.sessionId) setSessionId(data.sessionId as string)
+        setExchangesUsed((data.exchangesUsed as number) ?? 1)
+      }
+    })
+    await chain.current
     voice.setAvatarState("idle")
   }
 
@@ -93,24 +108,38 @@ export default function DreamPage() {
     setFollowInput("")
     setLoading(true)
     voice.setAvatarState("thinking")
-    setMessages(prev => [...prev, { role: "user", content: msg }])
+    setMessages(prev => [...prev, { role: "user", content: msg }, { role: "galileo", content: "" }])
 
     const res = await fetch("/api/dream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: msg, sessionId, language }),
     })
-    const data = await res.json()
-    if (!res.ok) { setLoading(false); voice.setAvatarState("idle"); return }
+    if (!res.ok || !res.body) { setLoading(false); voice.setAvatarState("idle"); return }
 
-    setExchangesUsed(data.exchangesUsed)
-    setIsComplete(data.isComplete)
-    if (data.isComplete) playSessionEnd()
-    setMessages(prev => [...prev, { role: "galileo", content: data.reading }])
+    let pending = "", fullText = "", doneData: Record<string, unknown> = {}
     setLoading(false)
-    voice.setAvatarState("speaking")
-    await speakStreaming(data.reading, simliSendRef.current)
+    const chain = { current: Promise.resolve() as Promise<void> }
+    const queueSentence = (text: string) => {
+      if (voice.mode === "text" || !text.trim()) return
+      voice.setAvatarState("speaking")
+      chain.current = chain.current.then(() => speakStreaming(text, simliSendRef.current))
+    }
+
+    const setTextThrottled2 = rafThrottle((t: string) => setMessages(prev => [...prev.slice(0, -1), { role: "galileo", content: t }]))
+    await readSSE(res.body, (data) => {
+      if (data.type === "delta") {
+        fullText += data.text as string; pending += data.text as string
+        setTextThrottled2(fullText)
+        const b = nextBoundary(pending); if (b !== -1) { queueSentence(pending.slice(0, b)); pending = pending.slice(b) }
+      } else if (data.type === "done") {
+        doneData = data; queueSentence(pending.trim()); pending = ""
+        setExchangesUsed(data.exchangesUsed as number)
+      }
+    })
+    await chain.current
     voice.setAvatarState("idle")
+    if (doneData.isComplete) { playSessionEnd(); setIsComplete(true) }
   }
 
   const followUpsLeft = exchangesTotal - exchangesUsed

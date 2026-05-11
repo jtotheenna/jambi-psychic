@@ -1,8 +1,9 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import Anthropic from "@anthropic-ai/sdk"
-import { TAROT_DECK, chooseSpreadsForConcern } from "@/lib/tarot"
+import { TAROT_DECK, SPREADS } from "@/lib/tarot"
 import { languageInstruction, type Language } from "@/lib/language"
+import { sseResponse, streamClaude } from "@/lib/streamSSE"
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -22,6 +23,50 @@ function shuffleDraw(count: number): Omit<DrawnCard, "position">[] {
   }))
 }
 
+// Spread picker: honor explicit user requests, otherwise let Haiku decide like a real reader
+const WORD_NUMS: Record<string, number> = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13 }
+const AUTO_SPREADS = SPREADS.filter(s => s.positions.length >= 4 && s.positions.length <= 10)
+
+async function pickSpread(question: string) {
+  const lower = question.toLowerCase()
+
+  // Explicit numeric request ("give me a 5 card reading")
+  const numMatch = lower.match(/\b(\d+)\s*cards?\b/)
+  if (numMatch) {
+    const n = parseInt(numMatch[1])
+    const found = SPREADS.find(s => s.positions.length === n)
+    if (found) return found
+  }
+  // Explicit word-number request ("one card please")
+  for (const [w, n] of Object.entries(WORD_NUMS)) {
+    if (new RegExp(`\\b${w}\\s*cards?\\b`).test(lower)) {
+      const found = SPREADS.find(s => s.positions.length === n)
+      if (found) return found
+    }
+  }
+  // Named spread request
+  if (lower.includes("celtic cross")) return SPREADS.find(s => s.name === "The Celtic Cross")!
+  if (lower.includes("horseshoe"))   return SPREADS.find(s => s.name === "The Horseshoe")!
+  if (lower.includes("year ahead") || (lower.includes("year") && lower.includes("ahead"))) return SPREADS.find(s => s.name === "The Year Ahead")!
+  if (lower.includes("full spread")) return SPREADS.find(s => s.name === "The Full Spread")!
+
+  // No explicit request — let Haiku pick like a real reader
+  try {
+    const res = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 20,
+      messages: [{
+        role: "user",
+        content: `You're a professional tarot reader choosing a spread for this question: "${question.slice(0, 300)}"\n\nPick one:\n${AUTO_SPREADS.map(s => `${s.name} (${s.positions.length} cards) — ${s.description}`).join("\n")}\n\nReply with only the spread name, exactly as written.`,
+      }],
+    })
+    const name = res.content[0].type === "text" ? res.content[0].text.trim() : ""
+    return AUTO_SPREADS.find(s => s.name === name) ?? SPREADS.find(s => s.name === "The Celtic Cross")!
+  } catch {
+    return SPREADS.find(s => s.name === "The Celtic Cross")!
+  }
+}
+
 function buildSystemPrompt(
   userName: string | null,
   userDetails: { notes?: string | null; concerns?: string | null; birthDate?: string | null } | null,
@@ -30,7 +75,8 @@ function buildSystemPrompt(
   totalExchanges: number,
   preDrawnCards?: DrawnCard[],
   voiceMode = false,
-  language: Language = "en"
+  language: Language = "en",
+  streaming = false
 ) {
   const exchangesUsed = totalExchanges - exchangesLeft
   const memory = userDetails
@@ -44,7 +90,16 @@ ${pastReadingSummary ? `- What came up in their last reading: ${pastReadingSumma
     : `- This person is new to you. Their name: ${userName || "unknown"}.`
 
   const cardSection = preDrawnCards
-    ? `CARDS HAVE BEEN DRAWN. Your FIRST line of response must be exactly this (the UI needs it to display the cards):
+    ? streaming
+      // Streaming mode: cards are already emitted to the UI separately — just start reading
+      ? `THE CARDS HAVE BEEN DEALT and are already displayed to the person. Begin reading immediately.
+
+The cards are:
+${preDrawnCards.map((c, i) => `  ${i + 1}. ${c.position}: ${c.name}${c.reversed ? " (REVERSED)" : " (upright)"}`).join("\n")}
+
+THIS IS THE FULL READING. Every single card must be read — all ${preDrawnCards.length} of them. Do not skip any. Do not summarize. Each card gets its own full paragraph: name the card, describe a specific visual detail from the actual image, then connect that image directly to this person's situation and question. Reversals get their own attention — what is blocked or turned inward. Show how the cards speak to each other as a complete story. End with one question that only this exact spread could have produced. No bullet points. No card list at the end. The reading IS the prose.`
+      // Non-streaming: Claude must output CARDS_DRAWN token for the UI
+      : `CARDS HAVE BEEN DRAWN. Your FIRST line of response must be exactly this (the UI needs it to display the cards):
 CARDS_DRAWN: ${JSON.stringify(preDrawnCards)}
 
 The cards drawn are:
@@ -157,7 +212,7 @@ export async function POST(
       ...transcript.filter((m) => m.role === "user").map((m) => m.content),
       message,
     ].join(" ")
-    const spread = chooseSpreadsForConcern(allUserText)
+    const spread = await pickSpread(allUserText)
     spreadName = spread.name
 
     const drawn = shuffleDraw(spread.positions.length)
@@ -189,7 +244,8 @@ export async function POST(
     reading.exchangesTotal,
     preDrawnCards,
     voiceMode,
-    language as Language
+    language as Language,
+    true  // always streaming now
   )
 
   const anthropicMessages: Anthropic.MessageParam[] = []
@@ -225,80 +281,94 @@ You have just appeared. Welcome them by name, warmly and briefly — one sentenc
 
   anthropicMessages.push({ role: "user", content: userContent })
 
-  const resp = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: voiceMode ? 300 : preDrawnCards ? 1800 : 700,
-    system: systemPrompt,
-    messages: anthropicMessages,
-  })
-  let galileoRaw = resp.content[0].type === "text" ? resp.content[0].text : ""
+  const clarifierAlreadyDrawn = transcript.some(
+    (m: StoredMessage) => m.cards?.some(c => c.position === "Clarifying")
+  )
 
-  // Handle clarifying card request — draw server-side from unused cards
-  let clarifyingCardDrawn = false
-  if (galileoRaw.includes("CLARIFYING_CARD_REQUESTED")) {
-    const usedNames = new Set(allCards)
-    const remaining = TAROT_DECK.filter((c) => !usedNames.has(c.name))
-    if (remaining.length > 0) {
-      const pick = remaining[Math.floor(Math.random() * remaining.length)]
-      const clarifier: DrawnCard = { name: pick.name, position: "Clarifying", reversed: Math.random() < 0.33 }
-      allCards.push(clarifier.name)
-      galileoRaw = galileoRaw.replace(/CLARIFYING_CARD_REQUESTED/g, `\nCARDS_DRAWN: ${JSON.stringify([clarifier])}\n`)
-      clarifyingCardDrawn = true
-    } else {
-      galileoRaw = galileoRaw.replace(/CLARIFYING_CARD_REQUESTED/g, "")
-    }
-  }
-
-  // Extract CARDS_DRAWN — valid if we pre-drew this exchange OR drew a clarifying card
-  let cards: { name: string; position?: string; reversed?: boolean }[] | undefined
-  let cleanedResponse = galileoRaw
-
-  const cardsMatch = galileoRaw.match(/CARDS_DRAWN:\s*(\[.*?\])/s)
-  if (cardsMatch) {
-    if (preDrawnCards || clarifyingCardDrawn) {
-      try { cards = JSON.parse(cardsMatch[1]) } catch { /* ignore */ }
-    }
-  } else if (preDrawnCards) {
-    cards = preDrawnCards
-  }
-
-  // Always strip CARDS_DRAWN token from displayed text — catch any malformed output
-  cleanedResponse = galileoRaw
-    .replace(/CARDS_DRAWN:\s*\[[\s\S]*?\]/g, "")
-    .replace(/CARDS_DRAWN:[^\n]*/g, "")
-    .trim()
-
-  transcript.push({ role: "user", content: message })
-  transcript.push({ role: "galileo", content: cleanedResponse, cards })
-
-  const question = reading.question || message
   const newExchangesUsed = reading.exchangesUsed + 1
   const isComplete = newExchangesUsed >= reading.exchangesTotal
+  const question = reading.question || message
+  const userId = session.user.id
 
-  await prisma.readingSession.update({
-    where: { id: sessionId },
-    data: {
-      transcript: JSON.stringify(transcript),
-      cardsDrawn: JSON.stringify(allCards),
-      spread: spreadName,
-      question,
-      exchangesUsed: newExchangesUsed,
-      status: isComplete ? "complete" : "active",
-      completedAt: isComplete ? new Date() : null,
-    },
-  })
+  return sseResponse(async (emit) => {
+    // Emit pre-drawn cards immediately so the UI shows them before Galileo starts speaking
+    if (preDrawnCards) emit("cards", { cards: preDrawnCards, spread: spreadName })
 
-  if (reading.user.details === null) {
-    await prisma.userDetails.create({
-      data: { userId: session.user.id, concerns: JSON.stringify([question]) },
+    // Stream the main response
+    let galileoRaw = await streamClaude(emit, {
+      model: "claude-sonnet-4-6",
+      max_tokens: voiceMode ? 300 : preDrawnCards ? 1800 : 700,
+      system: systemPrompt,
+      messages: anthropicMessages,
     })
-  }
 
-  return Response.json({
-    response: cleanedResponse,
-    cards: cards || [],
-    exchangesUsed: newExchangesUsed,
-    exchangesTotal: reading.exchangesTotal,
-    isComplete,
+    // Clarifying card — detected after stream completes, second call streams its reading
+    let clarifyingCardDrawn = false
+    if (galileoRaw.includes("CLARIFYING_CARD_REQUESTED") && !clarifierAlreadyDrawn) {
+      const usedNames = new Set(allCards)
+      const remaining = TAROT_DECK.filter((c) => !usedNames.has(c.name))
+      if (remaining.length > 0) {
+        const pick = remaining[Math.floor(Math.random() * remaining.length)]
+        const clarifier: DrawnCard = { name: pick.name, position: "Clarifying", reversed: Math.random() < 0.33 }
+        allCards.push(clarifier.name)
+        clarifyingCardDrawn = true
+        galileoRaw = galileoRaw.replace(/CLARIFYING_CARD_REQUESTED/g, "")
+
+        emit("cards", { cards: [clarifier], spread: spreadName })
+
+        const cardLabel = `${clarifier.name}${clarifier.reversed ? " (reversed)" : " (upright)"}`
+        const clarifyText = await streamClaude(emit, {
+          model: "claude-sonnet-4-6",
+          max_tokens: 550,
+          system: systemPrompt,
+          messages: [
+            ...anthropicMessages,
+            { role: "assistant" as const, content: galileoRaw.trim() },
+            { role: "user" as const, content: `The clarifying card drawn is: ${cardLabel}. Read it now — describe the actual imagery on the card and what it says in the context of this spread and this question. 5-7 sentences.` },
+          ],
+        })
+        galileoRaw = galileoRaw.trim() + "\n\n" + clarifyText
+      } else {
+        galileoRaw = galileoRaw.replace(/CLARIFYING_CARD_REQUESTED/g, "")
+      }
+    } else if (galileoRaw.includes("CLARIFYING_CARD_REQUESTED")) {
+      galileoRaw = galileoRaw.replace(/CLARIFYING_CARD_REQUESTED/g, "")
+    }
+
+    // Strip any CARDS_DRAWN token Claude emitted (shouldn't happen but be safe)
+    const cleanedResponse = galileoRaw
+      .replace(/CARDS_DRAWN:\s*\[[\s\S]*?\]/g, "")
+      .replace(/CARDS_DRAWN:[^\n]*/g, "")
+      .trim()
+
+    // Determine cards for transcript
+    const cards: { name: string; position?: string; reversed?: boolean }[] | undefined =
+      clarifyingCardDrawn
+        ? [...(preDrawnCards || []), ...(allCards.slice(-(1)).map(n => ({ name: n, position: "Clarifying" })))]
+        : preDrawnCards || undefined
+
+    transcript.push({ role: "user", content: message })
+    transcript.push({ role: "galileo", content: cleanedResponse, cards })
+
+    await prisma.readingSession.update({
+      where: { id: sessionId },
+      data: {
+        transcript: JSON.stringify(transcript),
+        cardsDrawn: JSON.stringify(allCards),
+        spread: spreadName,
+        question,
+        exchangesUsed: newExchangesUsed,
+        status: isComplete ? "complete" : "active",
+        completedAt: isComplete ? new Date() : null,
+      },
+    })
+
+    if (reading.user.details === null) {
+      await prisma.userDetails.create({
+        data: { userId, concerns: JSON.stringify([question]) },
+      })
+    }
+
+    emit("done", { response: cleanedResponse, cards: cards || [], exchangesUsed: newExchangesUsed, exchangesTotal: reading.exchangesTotal, isComplete })
   })
 }

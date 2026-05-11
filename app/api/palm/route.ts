@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import Anthropic from "@anthropic-ai/sdk"
 import { languageInstruction, type Language } from "@/lib/language"
+import { sseResponse } from "@/lib/streamSSE"
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -43,9 +44,8 @@ export async function POST(req: Request) {
       })
 
   if (!palmSession) {
-    // TESTING: free session for all — remove before launch
     palmSession = await prisma.readingSession.create({
-      data: { userId: session.user.id, type: "palm", status: "active", exchangesTotal: 5 },
+      data: { userId: session.user.id, type: "palm", status: "active", exchangesTotal: 1 },
       include: { user: true },
     }) as unknown as typeof palmSession
   }
@@ -77,10 +77,7 @@ export async function POST(req: Request) {
       content = [{ type: "text", text: "The person has presented their hand for reading." }]
     }
 
-    const resp = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: voiceMode ? 1000 : 2200,
-      system: `${buildSystem(userName, palmSession!.exchangesTotal, language)}
+    const system = `${buildSystem(userName, palmSession!.exchangesTotal, language)}
 
 YOUR OPENING READING — deliver it now, fully and immediately. No preamble. No "I see your hand before me." Just begin reading.
 
@@ -95,32 +92,27 @@ Write 5-7 rich paragraphs covering ALL of this:
 
 No question at the end. Close with a final statement — one true thing they can carry with them.
 
-Be authoritative. Be warm. Be specific. Give them everything.`,
-      messages: [{ role: "user", content }],
-    })
+Be authoritative. Be warm. Be specific. Give them everything.`
 
-    const reading = resp.content[0].type === "text" ? resp.content[0].text : ""
+    const sessionId = palmSession!.id
 
-    const transcript = [{ role: "galileo", content: reading }]
+    return sseResponse(async (emit) => {
+      let reading = ""
+      const enc = new TextEncoder()
+      const stream = anthropic.messages.stream({ model: "claude-sonnet-4-6", max_tokens: voiceMode ? 1000 : 2200, system, messages: [{ role: "user", content }] })
+      for await (const ev of stream) {
+        if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") {
+          reading += ev.delta.text
+          emit("delta", { text: ev.delta.text })
+        }
+      }
+      void enc // suppress unused warning
 
-    // Mark complete and save the reading to transcript
-    await prisma.readingSession.update({
-      where: { id: palmSession!.id },
-      data: {
-        status: "complete",
-        completedAt: new Date(),
-        question: "Palm reading",
-        transcript: JSON.stringify(transcript),
-      },
-    })
-
-    return Response.json({
-      reading,
-      sessionId: palmSession!.id,
-      exchangesUsed: 1,
-      exchangesTotal: 1,
-      isComplete: true,
-      isGreeting: true,
+      await prisma.readingSession.update({
+        where: { id: sessionId },
+        data: { status: "complete", completedAt: new Date(), question: "Palm reading", transcript: JSON.stringify([{ role: "galileo", content: reading }]) },
+      })
+      emit("done", { reading, sessionId, exchangesUsed: 1, exchangesTotal: 1, isComplete: true })
     })
   }
 

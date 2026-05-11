@@ -224,8 +224,12 @@ export function getSpreadLayout(spreadName: string | null): SpreadLayout | null 
 }
 
 export function drawCards(count: number): TarotCard[] {
-  const shuffled = [...TAROT_DECK].sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, count)
+  const deck = [...TAROT_DECK]
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]]
+  }
+  return deck.slice(0, count)
 }
 
 const NUMBER_WORDS: Record<string, number> = {
@@ -265,7 +269,7 @@ export function chooseSpreadsForConcern(concern: string): SpreadType {
   }
 
   // Topic-based
-  if (lower.includes("love") || lower.includes("relationship") || lower.includes("partner") || lower.includes("heart") || lower.includes("dating") || lower.includes("marriage")) {
+  if (lower.includes("love") || lower.includes("relationship") || lower.includes("partner") || lower.includes("dating") || lower.includes("marriage") || lower.includes("my heart") || lower.includes("crush") || lower.includes("ex ") || lower.includes(" ex ")) {
     return SPREADS.find(s => s.name === "The Heart's Truth")!
   }
   if (lower.includes("decision") || lower.includes("choose") || lower.includes("stuck") || lower.includes("path") || lower.includes("should i") || lower.includes("career")) {
@@ -275,9 +279,6 @@ export function chooseSpreadsForConcern(concern: string): SpreadType {
     return SPREADS.find(s => s.name === "The Shadow and Light")!
   }
 
-  // Short single-word / very brief prompts → focused single card
-  if (lower.length < 20) return SPREADS[0]
-
-  // Default: Celtic Cross — it's a full $10 reading, give them a real spread
+  // Default: Celtic Cross — full reading, give them a real spread
   return SPREADS.find(s => s.name === "The Celtic Cross")!
 }

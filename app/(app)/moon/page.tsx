@@ -9,6 +9,7 @@ import { getMoonData, type MoonData } from "@/lib/moon"
 
 import { speakStreaming } from "@/lib/speak"
 import { playBoxOpen, playSessionEnd } from "@/lib/sounds"
+import { readSSE, nextBoundary } from "@/lib/readSSE"
 
 function useDraggable() {
   const [pos, setPos] = useState({ x: 0, y: 0 })
@@ -80,19 +81,30 @@ export default function MoonPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: "__OPENING__", language }),
     })
-    const data = await res.json()
-    if (!res.ok) { setLoading(false); voice.setLoading(false); return }
+    if (!res.ok || !res.body) { setLoading(false); voice.setLoading(false); return }
 
-    if (data.moonData) setMoonInfo(data.moonData)
-    setReading(data.reading)
-    setIsComplete(true)
-    voice.setLoading(false)
-    setLoading(false)
+    let pending = "", fullText = ""
+    const chain = { current: Promise.resolve() as Promise<void> }
+    const queueSentence = (text: string) => {
+      if (voice.mode === "text" || !text.trim()) return
+      voice.setAvatarState("speaking")
+      chain.current = chain.current.then(() => speakStreaming(text, simliSendRef.current))
+    }
 
-    playSessionEnd()
-    voice.setAvatarState("speaking")
-    await speakStreaming(data.reading, simliSendRef.current)
+    await readSSE(res.body, (data) => {
+      if (data.type === "moon") setMoonInfo(data.moonData as typeof moonInfo)
+      else if (data.type === "delta") {
+        fullText += data.text as string; pending += data.text as string
+        setReading(fullText); voice.setLoading(false); setLoading(false)
+        const b = nextBoundary(pending); if (b !== -1) { queueSentence(pending.slice(0, b)); pending = pending.slice(b) }
+      } else if (data.type === "done") {
+        queueSentence(pending.trim()); pending = ""
+      }
+    })
+    await chain.current
     voice.setAvatarState("idle")
+    playSessionEnd()
+    setIsComplete(true)
   }
 
   return (
@@ -122,6 +134,26 @@ export default function MoonPage() {
           onReady={handleGalileoReady}
           onSendAudio={(fn) => { simliSendRef.current = fn }}
         />
+      </div>
+
+      {/* Voice mode selector */}
+      <div style={{
+        position: "fixed", bottom: 16, right: 20, zIndex: 46,
+        display: "flex", gap: 5, padding: "5px",
+        background: "rgba(10,5,32,0.8)", borderRadius: 8,
+        border: "1px solid rgba(42,26,85,0.6)", backdropFilter: "blur(8px)",
+      }}>
+        {([
+          { key: "text" as const, label: "MUTE" },
+          { key: "aloud" as const, label: "ALOUD" },
+        ] as const).map(({ key, label }) => (
+          <button key={key} onClick={() => voice.setMode(key)} style={{
+            padding: "5px 12px", borderRadius: 5, border: "none",
+            background: voice.mode === key ? "rgba(165,180,252,0.2)" : "transparent",
+            color: voice.mode === key ? "#a5b4fc" : "#4a3870",
+            fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.12em", cursor: "pointer",
+          }}>{label}</button>
+        ))}
       </div>
 
       {/* Moon wheel */}

@@ -42,6 +42,7 @@ export default function PalmPage() {
   useEffect(() => { voice.open() }, []) // eslint-disable-line
 
   const speakWithSimli = useCallback(async (text: string) => {
+    if (voice.mode === "text") return
     voice.setAvatarState("speaking")
     await speakStreaming(text, simliSendRef.current)
     voice.setAvatarState("idle")
@@ -80,11 +81,11 @@ export default function PalmPage() {
     if (!res.ok) { setLoading(false); voice.setLoading(false); return }
 
     setReading(data.reading)
-    setIsComplete(true)
     voice.setLoading(false)
     setLoading(false)
+    if (voice.mode !== "text") await speakWithSimli(data.reading)
     playSessionEnd()
-    await speakWithSimli(data.reading)
+    setIsComplete(true)
   }
 
   return (

@@ -9,11 +9,12 @@ export const config = {
     "/moon/:path*",
     "/palm/:path*",
     "/astrology/:path*",
-    "/pay/:path*",
     "/yes-no/:path*",
     "/dream/:path*",
     "/guide/:path*",
     "/love/:path*",
     "/aura/:path*",
+    "/demo/:path*",
+    "/demo",
   ],
 }
