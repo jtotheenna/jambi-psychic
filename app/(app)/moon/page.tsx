@@ -58,11 +58,8 @@ export default function MoonPage() {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
   }, [reading])
 
-  // Reading starts automatically when Galileo's face appears after TV static
-  // This ensures Simli is ready and he speaks at the right moment
-  const handleGalileoReady = useCallback(() => {
-    if (!hasEntered) enterReading()
-  }, [hasEntered]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Auto-start reading on mount
+  useEffect(() => { enterReading() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function enterReading() {
     const silentAudio = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
