@@ -179,14 +179,14 @@ export default function DemoPage() {
       }}>
 
         {/* Domain watermark — inside the frame, always visible in recording */}
-        <div style={{ position: "absolute", bottom: 20, left: 0, right: 0, textAlign: "center", zIndex: 50, pointerEvents: "none" }}>
+        <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, textAlign: "center", zIndex: 50, pointerEvents: "none" }}>
           <div style={{ fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.3em", color: "rgba(201,168,76,0.85)", textShadow: "0 0 24px rgba(201,168,76,0.5)" }}>
             ASKGALILEO.LIVE
           </div>
         </div>
 
         {/* Frame content — never scrolls, everything fits */}
-        <div style={{ width: "100%", flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 12px 44px", gap: 10 }}>
+        <div style={{ width: "100%", flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 12px 56px", gap: 10 }}>
 
           {/* Title */}
           <div style={{ textAlign: "center", flexShrink: 0 }}>
@@ -266,7 +266,7 @@ export default function DemoPage() {
                 <div style={{ fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.22em", color: "#c9a84c", textShadow: "0 0 28px rgba(201,168,76,0.7)" }}>
                   THE CARDS DON&apos;T LIE.
                 </div>
-                <a href="/signup" style={{ padding: "12px 36px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.6)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.2em", textDecoration: "none" }}>
+                <a href="/signup" style={{ padding: "12px 36px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.6)", background: "rgba(10,5,32,0.92)", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.12em", textDecoration: "none", display: "block" }}>
                   GET YOUR READING ✦
                 </a>
               </div>
