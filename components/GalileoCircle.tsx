@@ -164,7 +164,7 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
 
           {/* Idle loop — drop /public/galileo-idle.webm to activate; jpg shows until then */}
           <video
-            src="/galileo-idle.webm"
+            src="/galileo-idle-v2.webm"
             autoPlay
             loop
             muted

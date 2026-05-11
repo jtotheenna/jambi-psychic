@@ -102,7 +102,7 @@ export default function RecordIdlePage() {
             </a>
           </div>
           <div style={{ marginTop: 10, fontSize: 12, color: "#4a3870" }}>
-            → save to <code style={{ color: "#c9a84c" }}>/public/galileo-idle.webm</code> then redeploy
+            → save to <code style={{ color: "#c9a84c" }}>/public/galileo-idle-v2.webm</code> then redeploy
           </div>
         </div>
       )}
