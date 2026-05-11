@@ -197,26 +197,41 @@ export default function DemoPage() {
           {/* Circle — hero, centered */}
           <GalileoCircle state={avatarState} size={200} showName={false} showStars={false} />
 
-          {/* Features — 2-col grid, slides in after hook, fades out before cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, width: "100%", opacity: hideFeatures ? 0 : 1, transition: "opacity 0.35s ease", pointerEvents: "none" }}>
-            {FEATURES.map((f, i) => (
-              <div key={f.label} style={{
-                opacity: showFeatures && !hideFeatures ? 1 : 0,
-                transform: showFeatures && !hideFeatures ? "translateY(0)" : "translateY(10px)",
-                transition: `opacity 0.3s ease ${i * 60}ms, transform 0.3s ease ${i * 60}ms`,
-                display: "flex", alignItems: "center", gap: 7,
-                padding: "8px 10px", borderRadius: 7,
-                border: `1px solid ${f.color}30`, background: `${f.color}0d`,
-              }}>
-                <span style={{ fontSize: 14, color: f.color, filter: `drop-shadow(0 0 5px ${f.color})`, flexShrink: 0 }}>{f.icon}</span>
-                <span style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.08em", color: f.color, opacity: 0.9, lineHeight: 1.3 }}>{f.label.toUpperCase()}</span>
-              </div>
-            ))}
-          </div>
+          {/* Shared slot — features live here, cards replace them in the same space */}
+          <div style={{ position: "relative", width: "100%", minHeight: 172 }}>
 
-          {/* Cards — 3 cards, deal one by one */}
-          {dealtCards > 0 && (
-            <div style={{ display: "flex", gap: 10, justifyContent: "center", width: "100%", padding: "0 8px" }}>
+            {/* Features grid */}
+            <div style={{
+              position: "absolute", inset: 0,
+              display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7,
+              opacity: showFeatures && !hideFeatures ? 1 : 0,
+              transition: "opacity 0.35s ease",
+              pointerEvents: hideFeatures ? "none" : "auto",
+            }}>
+              {FEATURES.map((f, i) => (
+                <div key={f.label} style={{
+                  opacity: showFeatures && !hideFeatures ? 1 : 0,
+                  transform: showFeatures && !hideFeatures ? "translateY(0)" : "translateY(10px)",
+                  transition: `opacity 0.3s ease ${i * 60}ms, transform 0.3s ease ${i * 60}ms`,
+                  display: "flex", alignItems: "center", gap: 7,
+                  padding: "8px 10px", borderRadius: 7,
+                  border: `1px solid ${f.color}30`, background: `${f.color}0d`,
+                  alignSelf: "start",
+                }}>
+                  <span style={{ fontSize: 14, color: f.color, filter: `drop-shadow(0 0 5px ${f.color})`, flexShrink: 0 }}>{f.icon}</span>
+                  <span style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.08em", color: f.color, opacity: 0.9, lineHeight: 1.3 }}>{f.label.toUpperCase()}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Cards — fade in at the exact same position */}
+            <div style={{
+              position: "absolute", inset: 0,
+              display: "flex", gap: 10, alignItems: "flex-start",
+              opacity: hideFeatures ? 1 : 0,
+              transition: "opacity 0.4s ease 0.1s",
+              pointerEvents: hideFeatures ? "auto" : "none",
+            }}>
               {DEMO_CARDS.map((card, i) => {
                 const data = TAROT_DECK.find(c => c.name === card.name)
                 const visible = i < dealtCards
@@ -240,7 +255,7 @@ export default function DemoPage() {
                 )
               })}
             </div>
-          )}
+          </div>
 
           {/* CTA */}
           {showCta && (
