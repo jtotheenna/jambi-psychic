@@ -181,7 +181,7 @@ Open with one sentence that sets a specific mood — not a generic "welcome." Th
   if (drawnCards) {
     anthropicMessages.push({
       role: "user",
-      content: `${userContent}\n\n[THE ${spreadName?.toUpperCase() || "SPREAD"} HAS BEEN DEALT:\n${drawnCards.map(c => `  ${c.position}: ${c.name} (${c.suit}) — ${c.uprightMeaning}`).join("\n")}]\n\nThis is the full reading. Only 5 exchanges total — read ALL the cards now, completely. Name every card, interpret every position specifically for this person and their question. Give everything now.`
+      content: `${userContent}\n\n[THE ${spreadName?.toUpperCase() || "SPREAD"} HAS BEEN DEALT:\n${drawnCards.map(c => `  ${c.position}: ${c.name} (${c.suit}) — ${c.uprightMeaning}`).join("\n")}]\n\nThis is the full reading. Only ${cartSession!.exchangesTotal} exchanges total — read ALL the cards now, completely. Name every card, interpret every position specifically for this person and their question. Give everything now.`
     })
   } else {
     anthropicMessages.push({ role: "user", content: userContent })

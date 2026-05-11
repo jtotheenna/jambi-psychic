@@ -40,9 +40,32 @@ export default function CartomancyPage() {
   const [allCards, setAllCards] = useState<CardDrawn[]>([])
   const [expandedCard, setExpandedCard] = useState<CardDrawn | null>(null)
 
+  const [micListening, setMicListening] = useState(false)
+  const micRef = useRef<InstanceType<typeof window.SpeechRecognition> | null>(null)
+
   const voice = useGalileoVoice()
   const language = "en"
   useEffect(() => { voice.open() }, []) // eslint-disable-line
+
+  function toggleMic() {
+    if (micListening) {
+      micRef.current?.stop()
+      return
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) return
+    const rec = new SR()
+    rec.lang = "en-US"; rec.continuous = false; rec.interimResults = false
+    rec.onstart = () => setMicListening(true)
+    rec.onend   = () => setMicListening(false)
+    rec.onerror = () => setMicListening(false)
+    rec.onresult = (e: SpeechRecognitionEvent) => {
+      const text = e.results[0]?.[0]?.transcript?.trim()
+      if (text) sendMessage(text)
+    }
+    micRef.current = rec
+    rec.start()
+  }
 
   const speakWithSimli = useCallback(async (text: string) => {
     voice.setAvatarState("speaking")
@@ -90,6 +113,8 @@ export default function CartomancyPage() {
       } else if (data.type === "done") {
         queueSentence(pending.trim()); pending = ""
         if (data.sessionId && !sessionId) setSessionId(data.sessionId as string)
+        if (data.exchangesTotal) setExchangesTotal(data.exchangesTotal as number)
+        setExchangesUsed(data.exchangesUsed as number ?? 0)
       }
     })
     await audioChainRef.current
@@ -315,6 +340,13 @@ export default function CartomancyPage() {
           <div style={{ padding: 16, background: "rgba(10,5,32,0.6)", borderRadius: 12, border: "1px solid rgba(42,26,85,0.6)", backdropFilter: "blur(8px)" }}>
             <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
               <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage() } }} disabled={loading} placeholder="Speak freely. Galileo is listening..." rows={2} style={{ flex: 1, background: "transparent", border: "none", outline: "none", resize: "none", color: "#ddd8f0", fontFamily: "'EB Garamond', serif", fontSize: 17, lineHeight: 1.6 }} />
+              <button
+                onClick={toggleMic}
+                disabled={loading}
+                style={{ width: 40, height: 40, borderRadius: "50%", border: `1px solid ${micListening ? "rgba(165,180,252,0.8)" : "rgba(232,121,160,0.4)"}`, background: micListening ? "rgba(165,180,252,0.2)" : "rgba(42,26,85,0.3)", color: micListening ? "#a5b4fc" : "#e879a0", fontSize: 16, cursor: loading ? "not-allowed" : "pointer", flexShrink: 0, animation: micListening ? "moonPulse 1s ease-in-out infinite" : "none" }}
+              >
+                🎙
+              </button>
               <button onClick={() => sendMessage()} disabled={loading || !input.trim()} style={{ padding: "10px 20px", borderRadius: 8, height: 40, border: "1px solid rgba(232,121,160,0.4)", background: loading || !input.trim() ? "rgba(42,26,85,0.3)" : "rgba(232,121,160,0.1)", color: loading || !input.trim() ? "#4a3870" : "#e879a0", fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.15em", cursor: loading || !input.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
                 {loading ? "♠" : "SEND ✦"}
               </button>
