@@ -111,6 +111,7 @@ export default function DemoPage() {
   const [avatarState, setAvatarState] = useState<"idle"|"thinking"|"speaking"|"closed">("idle")
   const [phase, setPhase]             = useState<"ready"|"running"|"done">("ready")
   const [showFeatures, setShowFeatures] = useState(false)
+  const [hideFeatures, setHideFeatures] = useState(false)
   const [dealtCards, setDealtCards]   = useState(0)
   const [showCta, setShowCta]         = useState(false)
 
@@ -131,7 +132,9 @@ export default function DemoPage() {
     setShowFeatures(true)
     await speak(INTRO)
 
-    // Only NOW — after he's finished speaking — deal the cards with chimes
+    // Features fade out, then cards deal in underneath him
+    setHideFeatures(true)
+    await new Promise(r => setTimeout(r, 400))
     setAvatarState("thinking")
     playOpenChime()
     await new Promise(r => setTimeout(r, 800))
@@ -194,12 +197,12 @@ export default function DemoPage() {
           {/* Circle — hero, centered */}
           <GalileoCircle state={avatarState} size={200} showName={false} showStars={false} />
 
-          {/* Features — 2-col grid, slides in after hook */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, width: "100%" }}>
+          {/* Features — 2-col grid, slides in after hook, fades out before cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, width: "100%", opacity: hideFeatures ? 0 : 1, transition: "opacity 0.35s ease", pointerEvents: "none" }}>
             {FEATURES.map((f, i) => (
               <div key={f.label} style={{
-                opacity: showFeatures ? 1 : 0,
-                transform: showFeatures ? "translateY(0)" : "translateY(10px)",
+                opacity: showFeatures && !hideFeatures ? 1 : 0,
+                transform: showFeatures && !hideFeatures ? "translateY(0)" : "translateY(10px)",
                 transition: `opacity 0.3s ease ${i * 60}ms, transform 0.3s ease ${i * 60}ms`,
                 display: "flex", alignItems: "center", gap: 7,
                 padding: "8px 10px", borderRadius: 7,
@@ -258,7 +261,7 @@ export default function DemoPage() {
           )}
 
           {phase === "done" && (
-            <button onClick={() => { setPhase("ready"); setShowFeatures(false); setDealtCards(0); setShowCta(false); setAvatarState("idle") }}
+            <button onClick={() => { setPhase("ready"); setShowFeatures(false); setHideFeatures(false); setDealtCards(0); setShowCta(false); setAvatarState("idle") }}
               style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#2a1a55", background: "none", border: "none", cursor: "pointer", letterSpacing: "0.1em" }}>
               REPLAY
             </button>
