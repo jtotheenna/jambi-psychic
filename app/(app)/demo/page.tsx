@@ -185,20 +185,22 @@ export default function DemoPage() {
           </div>
         </div>
 
-        {/* Scrollable content — fits inside the frame */}
-        <div style={{ width: "100%", flex: 1, overflowY: "hidden", display: "flex", flexDirection: "column", alignItems: "center", padding: "16px 12px 80px", gap: 16 }}>
+        {/* Frame content — never scrolls, everything fits */}
+        <div style={{ width: "100%", flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 12px 44px", gap: 10 }}>
 
           {/* Title */}
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 20, letterSpacing: "0.15em" }} className="text-shimmer">GALILEO</div>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.3em", color: "#4a3870", marginTop: 3 }}>THE CELESTIAL ORACLE</div>
+          <div style={{ textAlign: "center", flexShrink: 0 }}>
+            <div style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 18, letterSpacing: "0.15em" }} className="text-shimmer">GALILEO</div>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.3em", color: "#4a3870", marginTop: 2 }}>THE CELESTIAL ORACLE</div>
           </div>
 
           {/* Circle — hero, centered */}
-          <GalileoCircle state={avatarState} size={200} showName={false} showStars={false} />
+          <div style={{ flexShrink: 0 }}>
+            <GalileoCircle state={avatarState} size={160} showName={false} showStars={false} />
+          </div>
 
           {/* Shared slot — features live here, cards replace them in the same space */}
-          <div style={{ position: "relative", width: "100%", minHeight: 172 }}>
+          <div style={{ position: "relative", width: "100%", minHeight: 148, flexShrink: 0 }}>
 
             {/* Features grid */}
             <div style={{
@@ -257,30 +259,32 @@ export default function DemoPage() {
             </div>
           </div>
 
-          {/* CTA */}
-          {showCta && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, animation: "fadeUp 0.7s ease-out forwards" }}>
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.22em", color: "#c9a84c", textShadow: "0 0 28px rgba(201,168,76,0.7)" }}>
-                THE CARDS DON&apos;T LIE.
+          {/* CTA / BEGIN — pinned to bottom area, never pushed off */}
+          <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+            {showCta && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, animation: "fadeUp 0.7s ease-out forwards" }}>
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.22em", color: "#c9a84c", textShadow: "0 0 28px rgba(201,168,76,0.7)" }}>
+                  THE CARDS DON&apos;T LIE.
+                </div>
+                <a href="/signup" style={{ padding: "12px 36px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.6)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.2em", textDecoration: "none" }}>
+                  GET YOUR READING ✦
+                </a>
               </div>
-              <a href="/signup" style={{ padding: "14px 40px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.6)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.2em", textDecoration: "none" }}>
-                GET YOUR READING ✦
-              </a>
-            </div>
-          )}
+            )}
 
-          {phase === "ready" && (
-            <button onClick={runDemo} style={{ padding: "16px 56px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.15), rgba(79,70,229,0.15))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.2em", cursor: "pointer", animation: "breathe 4s ease-in-out infinite" }}>
-              BEGIN ✦
-            </button>
-          )}
+            {phase === "ready" && (
+              <button onClick={runDemo} style={{ padding: "14px 52px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.15), rgba(79,70,229,0.15))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.2em", cursor: "pointer", animation: "breathe 4s ease-in-out infinite" }}>
+                BEGIN ✦
+              </button>
+            )}
 
-          {phase === "done" && (
-            <button onClick={() => { setPhase("ready"); setShowFeatures(false); setHideFeatures(false); setDealtCards(0); setShowCta(false); setAvatarState("idle") }}
-              style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#2a1a55", background: "none", border: "none", cursor: "pointer", letterSpacing: "0.1em" }}>
-              REPLAY
-            </button>
-          )}
+            {phase === "done" && (
+              <button onClick={() => { setPhase("ready"); setShowFeatures(false); setHideFeatures(false); setDealtCards(0); setShowCta(false); setAvatarState("idle") }}
+                style={{ fontFamily: "'Cinzel', serif", fontSize: 9, color: "#2a1a55", background: "none", border: "none", cursor: "pointer", letterSpacing: "0.1em" }}>
+                REPLAY
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </>
