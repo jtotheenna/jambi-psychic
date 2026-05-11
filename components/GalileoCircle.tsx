@@ -162,9 +162,8 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
             }}
           />
 
-          {/* Idle loop — drop /public/galileo-idle.webm to activate; jpg shows until then */}
+          {/* Idle loop — MP4 for universal support, webm fallback */}
           <video
-            src="/galileo-idle-v2.webm"
             autoPlay
             loop
             muted
@@ -178,7 +177,10 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
               opacity: faceVisible ? 1 : 0,
               transition: "opacity 0.6s ease",
             }}
-          />
+          >
+            <source src="/galileo-idle.mp4" type="video/mp4" />
+            <source src="/galileo-idle-v2.webm" type="video/webm" />
+          </video>
 
           {/* Scan lines */}
           <div style={{
