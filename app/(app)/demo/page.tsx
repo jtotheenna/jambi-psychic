@@ -52,13 +52,11 @@ function playRevealChime(i: number) {
   setTimeout(() => chime(r * 2,    0.12, 1000), 380)
 }
 
-// Five dramatic cards for the spread reveal
+// Three cards — clean for the narrow 9:16 frame
 const DEMO_CARDS = [
-  { name: "The High Priestess", position: "The situation"   },
-  { name: "The Lovers",         position: "What crosses you" },
-  { name: "The Tower",          position: "The root"        },
-  { name: "The Star",           position: "What crowns you" },
-  { name: "The Moon",           position: "The outcome"     },
+  { name: "The High Priestess", position: "The situation" },
+  { name: "The Tower",          position: "The shadow"    },
+  { name: "The Star",           position: "The outcome"   },
 ]
 
 const HOOK    = `The cards have been waiting for you.`
@@ -126,23 +124,24 @@ export default function DemoPage() {
     await initSounds()
     try { new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==").play().catch(() => {}) } catch {}
 
-    // Hook — plays while just Galileo visible
+    // Hook — Galileo alone, nothing else happening
     await speak(HOOK)
 
-    // Features slide in while he describes the product
+    // Features slide in, then he describes the product
     setShowFeatures(true)
     await speak(INTRO)
 
-    // Cards deal — WAV-based chimes via Audio element, no AudioContext needed
+    // Only NOW — after he's finished speaking — deal the cards with chimes
     setAvatarState("thinking")
     playOpenChime()
-    await new Promise(r => setTimeout(r, 700))
+    await new Promise(r => setTimeout(r, 800))
 
     for (let i = 0; i < DEMO_CARDS.length; i++) {
       setDealtCards(i + 1)
       playRevealChime(i)
-      await new Promise(r => setTimeout(r, 480))
+      await new Promise(r => setTimeout(r, 600))
     }
+    await new Promise(r => setTimeout(r, 400))
 
     await new Promise(r => setTimeout(r, 500))
 
@@ -154,9 +153,6 @@ export default function DemoPage() {
     setShowCta(true)
     setPhase("done")
   }
-
-  const left  = FEATURES.slice(0, 4)
-  const right = FEATURES.slice(4)
 
   return (
     <>
@@ -187,102 +183,76 @@ export default function DemoPage() {
         </div>
 
         {/* Scrollable content — fits inside the frame */}
-        <div style={{ width: "100%", flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 12px 80px", gap: 18 }}>
+        <div style={{ width: "100%", flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", padding: "16px 12px 80px", gap: 16 }}>
 
           {/* Title */}
-          <div style={{ textAlign: "center", paddingTop: 6 }}>
-            <div style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 18, letterSpacing: "0.15em" }} className="text-shimmer">GALILEO</div>
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.3em", color: "#4a3870", marginTop: 3 }}>THE CELESTIAL ORACLE</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 20, letterSpacing: "0.15em" }} className="text-shimmer">GALILEO</div>
+            <div style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.3em", color: "#4a3870", marginTop: 3 }}>THE CELESTIAL ORACLE</div>
           </div>
 
-          {/* Face + feature columns */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%" }}>
+          {/* Circle — hero, centered */}
+          <GalileoCircle state={avatarState} size={200} showName={false} showStars={false} />
 
-            {/* Left */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
-              {left.map((f, i) => (
-                <div key={f.label} style={{
-                  opacity: showFeatures ? 1 : 0,
-                  transform: showFeatures ? "translateX(0)" : "translateX(-20px)",
-                  transition: `opacity 0.35s ease ${i * 100}ms, transform 0.35s ease ${i * 100}ms`,
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "8px 10px", borderRadius: 7,
-                  border: `1px solid ${f.color}28`, background: `${f.color}0a`,
-                }}>
-                  <span style={{ fontSize: 15, color: f.color, filter: `drop-shadow(0 0 6px ${f.color})`, flexShrink: 0 }}>{f.icon}</span>
-                  <span style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.1em", color: f.color, opacity: 0.9, lineHeight: 1.3 }}>{f.label.toUpperCase()}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Galileo */}
-            <div style={{ flexShrink: 0 }}>
-              <GalileoCircle
-                state={avatarState}
-                size={200}
-                showName={false}
-                showStars={false}
-              />
-            </div>
-
-            {/* Right */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
-              {right.map((f, i) => (
-                <div key={f.label} style={{
-                  opacity: showFeatures ? 1 : 0,
-                  transform: showFeatures ? "translateX(0)" : "translateX(20px)",
-                  transition: `opacity 0.35s ease ${i * 100 + 50}ms, transform 0.35s ease ${i * 100 + 50}ms`,
-                  display: "flex", alignItems: "center", gap: 6, flexDirection: "row-reverse",
-                  padding: "8px 10px", borderRadius: 7,
-                  border: `1px solid ${f.color}28`, background: `${f.color}0a`,
-                }}>
-                  <span style={{ fontSize: 15, color: f.color, filter: `drop-shadow(0 0 6px ${f.color})`, flexShrink: 0 }}>{f.icon}</span>
-                  <span style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.1em", color: f.color, opacity: 0.9, lineHeight: 1.3, textAlign: "right" }}>{f.label.toUpperCase()}</span>
-                </div>
-              ))}
-            </div>
+          {/* Features — 2-col grid, slides in after hook */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, width: "100%" }}>
+            {FEATURES.map((f, i) => (
+              <div key={f.label} style={{
+                opacity: showFeatures ? 1 : 0,
+                transform: showFeatures ? "translateY(0)" : "translateY(10px)",
+                transition: `opacity 0.3s ease ${i * 60}ms, transform 0.3s ease ${i * 60}ms`,
+                display: "flex", alignItems: "center", gap: 7,
+                padding: "8px 10px", borderRadius: 7,
+                border: `1px solid ${f.color}30`, background: `${f.color}0d`,
+              }}>
+                <span style={{ fontSize: 14, color: f.color, filter: `drop-shadow(0 0 5px ${f.color})`, flexShrink: 0 }}>{f.icon}</span>
+                <span style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.08em", color: f.color, opacity: 0.9, lineHeight: 1.3 }}>{f.label.toUpperCase()}</span>
+              </div>
+            ))}
           </div>
 
-          {/* Cards spread */}
-          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "nowrap", width: "100%", padding: "0 4px" }}>
-            {DEMO_CARDS.map((card, i) => {
-              const data = TAROT_DECK.find(c => c.name === card.name)
-              const visible = i < dealtCards
-              return (
-                <div key={card.name} style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 5, flex: 1,
-                  opacity: visible ? 1 : 0,
-                  transform: visible ? "translateY(0) scale(1)" : "translateY(20px) scale(0.92)",
-                  transition: "opacity 0.5s ease, transform 0.5s ease",
-                }}>
-                  <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 6, overflow: "hidden", border: "1px solid rgba(201,168,76,0.4)", boxShadow: "0 6px 24px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,168,76,0.1)" }}>
-                    {data && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={`/cards/${slug(card.name)}.jpg`} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                    )}
+          {/* Cards — 3 cards, deal one by one */}
+          {dealtCards > 0 && (
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", width: "100%", padding: "0 8px" }}>
+              {DEMO_CARDS.map((card, i) => {
+                const data = TAROT_DECK.find(c => c.name === card.name)
+                const visible = i < dealtCards
+                return (
+                  <div key={card.name} style={{
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1,
+                    opacity: visible ? 1 : 0,
+                    transform: visible ? "translateY(0) scale(1)" : "translateY(16px) scale(0.9)",
+                    transition: "opacity 0.45s ease, transform 0.45s ease",
+                  }}>
+                    <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: 7, overflow: "hidden", border: "1px solid rgba(201,168,76,0.5)", boxShadow: "0 8px 28px rgba(0,0,0,0.8), 0 0 0 1px rgba(201,168,76,0.12)" }}>
+                      {data && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={`/cards/${slug(card.name)}.jpg`} alt={card.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                      )}
+                    </div>
+                    <div style={{ fontFamily: "'Cinzel', serif", fontSize: 7, letterSpacing: "0.07em", color: "#7a6230", textAlign: "center", lineHeight: 1.3 }}>
+                      {card.position.toUpperCase()}
+                    </div>
                   </div>
-                  <div style={{ fontFamily: "'Cinzel', serif", fontSize: 6, letterSpacing: "0.07em", color: "#4a3870", textAlign: "center", lineHeight: 1.3 }}>
-                    {card.position}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
 
           {/* CTA */}
           {showCta && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, animation: "fadeUp 0.7s ease-out forwards" }}>
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 15, letterSpacing: "0.22em", color: "#c9a84c", textShadow: "0 0 28px rgba(201,168,76,0.7)" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, animation: "fadeUp 0.7s ease-out forwards" }}>
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.22em", color: "#c9a84c", textShadow: "0 0 28px rgba(201,168,76,0.7)" }}>
                 THE CARDS DON&apos;T LIE.
               </div>
-              <a href="/signup" style={{ padding: "16px 48px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.6)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.2em", textDecoration: "none" }}>
+              <a href="/signup" style={{ padding: "14px 40px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.6)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.2em", textDecoration: "none" }}>
                 GET YOUR READING ✦
               </a>
             </div>
           )}
 
           {phase === "ready" && (
-            <button onClick={runDemo} style={{ padding: "18px 60px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.15), rgba(79,70,229,0.15))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 14, letterSpacing: "0.2em", cursor: "pointer", animation: "breathe 4s ease-in-out infinite" }}>
+            <button onClick={runDemo} style={{ padding: "16px 56px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: "linear-gradient(135deg, rgba(201,168,76,0.15), rgba(79,70,229,0.15))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.2em", cursor: "pointer", animation: "breathe 4s ease-in-out infinite" }}>
               BEGIN ✦
             </button>
           )}
