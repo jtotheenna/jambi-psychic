@@ -119,37 +119,36 @@ export async function POST(req: Request) {
   const cardsAlreadyDealt = allCards.length > 0
   const userName = (cartSession as any).user?.name ?? null
 
-  // Auto-greeting — no cards yet, just welcome and ask the question
+  // Auto-greeting — streamed SSE so voice plays and text types in live
   if (message === "__OPENING__") {
-    const resp = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 120,
-      system: `You are Galileo — ancient oracle, reader of playing cards in the old cartomantic tradition. No asterisks. No stage directions.${userName ? ` The person's name is ${userName}.` : ""}
-Welcome them warmly in one sentence. Then ask: what question do they bring to the cards tonight? 2 sentences max. End with a question.${languageInstruction(language as Language)}`,
-      messages: [{ role: "user", content: "The cards are ready." }],
-    })
-    const greeting = resp.content[0].type === "text" ? resp.content[0].text : ""
+    const sessionIdToReturn = cartSession!.id
+    return sseResponse(async (emit) => {
+      const greeting = await streamClaude(emit, {
+        model: "claude-sonnet-4-6",
+        max_tokens: 140,
+        system: `You are Galileo — ancient oracle, reader of playing cards in the old cartomantic tradition. No asterisks. No stage directions. No quotation marks around your words.${userName ? ` The person's name is ${userName}.` : ""}
 
-    // Save greeting to transcript so first real message knows cards haven't been dealt yet
-    await prisma.readingSession.update({
-      where: { id: cartSession!.id },
-      data: {
-        transcript: JSON.stringify([{ role: "galileo", content: greeting }]),
-        cardsDrawn: null,
-        spread: null,
-        question: null,
-        exchangesUsed: 0,
-      },
-    })
+Every time you open, your energy is different. Sometimes you're wry and dry. Sometimes you open with a specific image — the weight of the deck in your hands, the hush of the room, what the cards are doing tonight. Sometimes you're direct. Sometimes you pull them in slowly. Never repeat the same opening twice.
 
-    return Response.json({
-      response: greeting,
-      cards: [],
-      exchangesUsed: cartSession!.exchangesUsed,
-      exchangesTotal: cartSession!.exchangesTotal,
-      isComplete: false,
-      isGreeting: true,
-      sessionId: cartSession!.id,
+Open with one sentence that sets a specific mood — not a generic "welcome." Then invite them: what do they bring to the cards tonight? What question, what situation, what feeling they can't name yet? Make it feel like they're stepping into a room with you. 2–3 sentences max. End with a question.${languageInstruction(language as Language)}`,
+        messages: [{ role: "user", content: "The cards are ready." }],
+      })
+
+      await prisma.readingSession.update({
+        where: { id: cartSession!.id },
+        data: {
+          transcript: JSON.stringify([{ role: "galileo", content: greeting }]),
+          cardsDrawn: null, spread: null, question: null, exchangesUsed: 0,
+        },
+      })
+
+      emit("done", {
+        response: greeting, cards: [],
+        exchangesUsed: cartSession!.exchangesUsed,
+        exchangesTotal: cartSession!.exchangesTotal,
+        isComplete: false, isGreeting: true,
+        sessionId: sessionIdToReturn,
+      })
     })
   }
 
