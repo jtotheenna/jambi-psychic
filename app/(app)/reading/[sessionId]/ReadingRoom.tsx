@@ -45,15 +45,11 @@ function findCardData(name: string) {
 // Sticky bar: Galileo on the left, card thumbnails on the right
 function ReadingBar({
   avatarState,
-  simliSendRef,
-  simliActiveRef,
   cards,
   spread,
   onCardClick,
 }: {
   avatarState: AvatarState
-  simliSendRef: React.MutableRefObject<((pcm: Uint8Array) => void) | null>
-  simliActiveRef: React.MutableRefObject<boolean>
   cards: { card: { name: string; position?: string; reversed?: boolean }; idx: number }[]
   spread: string | null
   onCardClick: (cardData: NonNullable<ReturnType<typeof findCardData>>, meta: { position?: string; reversed?: boolean }) => void
@@ -79,8 +75,6 @@ function ReadingBar({
             size={124}
             showName={false}
             showStars={false}
-            onSendAudio={(fn) => { simliSendRef.current = fn }}
-            onSimliConnected={(yes) => { simliActiveRef.current = yes }}
           />
         </div>
 
@@ -161,8 +155,6 @@ export default function ReadingRoom({
 
   const voice = useGalileoVoice()
   const language = "en"
-  const simliSendRef    = useRef<((pcm: Uint8Array) => void) | null>(null)
-  const simliActiveRef  = useRef(false)
   const prefetchedRef   = useRef<{ response: string } | null>(null)
   const audioChainRef   = useRef<Promise<void>>(Promise.resolve())
 
@@ -256,7 +248,7 @@ export default function ReadingRoom({
     }
     setAvatarState("speaking")
 
-    await speakStreaming(text, simliSendRef.current)
+    await speakStreaming(text)
     setAvatarState("idle")
     if (voiceModeRef.current) setTimeout(() => startAutoListening(), 600)
   }
@@ -434,7 +426,7 @@ export default function ReadingRoom({
       const queueSentence = (t: string) => {
         if (voice.mode === "text" || !t.trim()) return
         setAvatarState("speaking")
-        audioChainRef.current = audioChainRef.current.then(() => speakStreaming(t, simliSendRef.current))
+        audioChainRef.current = audioChainRef.current.then(() => speakStreaming(t))
       }
 
       setLoading(false)
@@ -550,8 +542,6 @@ export default function ReadingRoom({
       {/* Reading bar — Galileo left, cards right, sticky below nav */}
       <ReadingBar
         avatarState={avatarState}
-        simliSendRef={simliSendRef}
-        simliActiveRef={simliActiveRef}
         cards={readingBarCards}
         spread={spread}
         onCardClick={(cardData, meta) => { setExpandedCard(cardData); setExpandedCardMeta(meta) }}

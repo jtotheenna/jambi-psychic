@@ -244,7 +244,6 @@ export default function YesNoPage() {
   const [loading, setLoading] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
   const [showReading, setShowReading] = useState(false)
-  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const voice = useGalileoVoice()
   const language = "en"
   useEffect(() => { voice.open() }, []) // eslint-disable-line
@@ -273,7 +272,7 @@ export default function YesNoPage() {
     const queueSentence = (text: string) => {
       if (voice.mode === "text" || !text.trim()) return
       voice.setAvatarState("speaking")
-      audioChainRef.current = audioChainRef.current.then(() => speakStreaming(text, simliSendRef.current))
+      audioChainRef.current = audioChainRef.current.then(() => speakStreaming(text))
     }
 
     await readSSE(res.body, (data) => {
@@ -313,7 +312,6 @@ export default function YesNoPage() {
           isListening={voice.isListening}
           interimTranscript={voice.interimTranscript}
           voiceSupported={voice.voiceSupported}
-          onSendAudio={(fn) => { simliSendRef.current = fn }}
         />
 
         {/* Question input */}

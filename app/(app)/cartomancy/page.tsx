@@ -40,15 +40,13 @@ export default function CartomancyPage() {
   const [allCards, setAllCards] = useState<CardDrawn[]>([])
   const [expandedCard, setExpandedCard] = useState<CardDrawn | null>(null)
 
-  const simliSendRef   = useRef<((pcm: Uint8Array) => void) | null>(null)
-  const simliActiveRef = useRef(false)
   const voice = useGalileoVoice()
   const language = "en"
   useEffect(() => { voice.open() }, []) // eslint-disable-line
 
   const speakWithSimli = useCallback(async (text: string) => {
     voice.setAvatarState("speaking")
-    await speakStreaming(text, simliSendRef.current)
+    await speakStreaming(text)
     voice.setAvatarState("idle")
   }, [voice])
 
@@ -59,7 +57,7 @@ export default function CartomancyPage() {
     const queueSentence = (text: string) => {
       if (voice.mode === "text" || !text.trim()) return
       voice.setAvatarState("speaking")
-      audioChainRef.current = audioChainRef.current.then(() => speakStreaming(text, simliSendRef.current))
+      audioChainRef.current = audioChainRef.current.then(() => speakStreaming(text))
     }
     return queueSentence
   }
@@ -174,8 +172,6 @@ export default function CartomancyPage() {
               size={124}
               showName={false}
               showStars={false}
-              onSendAudio={(fn) => { simliSendRef.current = fn }}
-              onSimliConnected={(yes) => { simliActiveRef.current = yes }}
             />
           </div>
 

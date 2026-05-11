@@ -53,7 +53,6 @@ export default function MoonPage() {
   const language = "en"
   const scrollRef = useRef<HTMLDivElement>(null)
   const wheelDrag = useDraggable()
-  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -88,7 +87,7 @@ export default function MoonPage() {
     const queueSentence = (text: string) => {
       if (voice.mode === "text" || !text.trim()) return
       voice.setAvatarState("speaking")
-      chain.current = chain.current.then(() => speakStreaming(text, simliSendRef.current))
+      chain.current = chain.current.then(() => speakStreaming(text))
     }
 
     await readSSE(res.body, (data) => {
@@ -132,7 +131,6 @@ export default function MoonPage() {
           showName={false}
           showStars={false}
           onReady={handleGalileoReady}
-          onSendAudio={(fn) => { simliSendRef.current = fn }}
         />
       </div>
 

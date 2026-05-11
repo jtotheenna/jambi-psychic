@@ -107,7 +107,6 @@ export default function AuraPage() {
   const [imageError, setImageError] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
-  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const voice = useGalileoVoice()
   const language = "en"
   useEffect(() => { voice.open() }, []) // eslint-disable-line
@@ -174,7 +173,7 @@ export default function AuraPage() {
     setLoading(false)
     if (voice.mode !== "text") {
       voice.setAvatarState("speaking")
-      await speakStreaming(data.reading, simliSendRef.current)
+      await speakStreaming(data.reading)
       voice.setAvatarState("idle")
     }
     playSessionEnd()
@@ -200,7 +199,6 @@ export default function AuraPage() {
             isListening={voice.isListening}
             interimTranscript={voice.interimTranscript}
             voiceSupported={voice.voiceSupported}
-            onSendAudio={(fn) => { simliSendRef.current = fn }}
           />
         </div>
 

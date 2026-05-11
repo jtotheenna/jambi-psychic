@@ -95,7 +95,6 @@ export default function AstrologyPage() {
   const [chart, setChart] = useState<NatalChart | null>(null)
   const [error, setError] = useState("")
   const [hasBeenRead, setHasBeenRead] = useState(false)
-  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const voice = useGalileoVoice()
   const language = "en"
   useEffect(() => { voice.open() }, []) // eslint-disable-line
@@ -136,7 +135,7 @@ export default function AstrologyPage() {
       setHasBeenRead(true)
       if (voice.mode !== "text") {
         voice.setAvatarState("speaking")
-        await speakStreaming(data.reading, simliSendRef.current)
+        await speakStreaming(data.reading)
         voice.setAvatarState("idle")
       }
       playSessionEnd()
@@ -247,7 +246,6 @@ export default function AstrologyPage() {
             isListening={voice.isListening}
             interimTranscript={voice.interimTranscript}
             voiceSupported={voice.voiceSupported}
-            onSendAudio={(fn) => { simliSendRef.current = fn }}
           />
         </div>
 

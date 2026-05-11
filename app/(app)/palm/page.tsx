@@ -35,7 +35,6 @@ export default function PalmPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageError, setImageError] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const voice = useGalileoVoice()
   const language = "en"
 
@@ -44,7 +43,7 @@ export default function PalmPage() {
   const speakWithSimli = useCallback(async (text: string) => {
     if (voice.mode === "text") return
     voice.setAvatarState("speaking")
-    await speakStreaming(text, simliSendRef.current)
+    await speakStreaming(text)
     voice.setAvatarState("idle")
   }, [voice])
 
@@ -108,7 +107,6 @@ export default function PalmPage() {
             interimTranscript={voice.interimTranscript}
             voiceSupported={voice.voiceSupported}
             startOpen
-            onSendAudio={(fn) => { simliSendRef.current = fn }}
           />
         </div>
 

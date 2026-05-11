@@ -13,10 +13,12 @@ export default function RecordWelcomePage() {
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef   = useRef<Blob[]>([])
 
-  const [status,    setStatus]    = useState("Connecting to Simli…")
-  const [connected, setConnected] = useState(false)
-  const [recording, setRecording] = useState(false)
-  const [videoUrl,  setVideoUrl]  = useState<string | null>(null)
+  const [status,       setStatus]       = useState("Connecting to Simli…")
+  const [connected,    setConnected]    = useState(false)
+  const [recording,    setRecording]    = useState(false)
+  const [videoUrl,     setVideoUrl]     = useState<string | null>(null)
+  const [idleUrl,      setIdleUrl]      = useState<string | null>(null)
+  const [idleRecording, setIdleRecording] = useState(false)
   const sendAudioRef = useRef<((pcm: Uint8Array) => void) | null>(null)
 
   const initSimli = useCallback(async () => {
@@ -126,6 +128,29 @@ export default function RecordWelcomePage() {
     recorder.stop()
   }
 
+  async function recordIdle() {
+    if (!connected || !videoRef.current) return
+    const stream = videoRef.current.srcObject as MediaStream
+    if (!stream) { setStatus("No video stream yet — wait a moment and try again"); return }
+
+    const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9" })
+    const chunks: Blob[] = []
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data) }
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: "video/webm" })
+      setIdleUrl(URL.createObjectURL(blob))
+      setIdleRecording(false)
+      setStatus("Idle recorded! Preview below. Download and save as /public/galileo-idle.webm")
+    }
+
+    recorderRef.current = recorder
+    recorder.start(100)
+    setIdleRecording(true)
+    setStatus("Recording idle… 5 seconds…")
+    await new Promise(r => setTimeout(r, 5000))
+    recorder.stop()
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "#04020e", color: "#ddd8f0", padding: "40px 24px", fontFamily: "monospace" }}>
       <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: 22, marginBottom: 8 }}>Welcome Video Recorder</h1>
@@ -144,18 +169,28 @@ export default function RecordWelcomePage() {
         <audio ref={audioRef} autoPlay muted />
       </div>
 
-      <button
-        onClick={recordWelcome}
-        disabled={!connected || recording}
-        style={{ padding: "14px 40px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: connected && !recording ? "rgba(201,168,76,0.15)" : "rgba(42,26,85,0.3)", color: connected && !recording ? "#c9a84c" : "#4a3870", fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.2em", cursor: connected && !recording ? "pointer" : "not-allowed", marginBottom: 32 }}
-      >
-        {recording ? "● RECORDING…" : "RECORD WELCOME"}
-      </button>
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 32 }}>
+        <button
+          onClick={recordWelcome}
+          disabled={!connected || recording || idleRecording}
+          style={{ padding: "14px 40px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.5)", background: connected && !recording && !idleRecording ? "rgba(201,168,76,0.15)" : "rgba(42,26,85,0.3)", color: connected && !recording && !idleRecording ? "#c9a84c" : "#4a3870", fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.2em", cursor: connected && !recording && !idleRecording ? "pointer" : "not-allowed" }}
+        >
+          {recording ? "● RECORDING…" : "RECORD WELCOME"}
+        </button>
+
+        <button
+          onClick={recordIdle}
+          disabled={!connected || recording || idleRecording}
+          style={{ padding: "14px 40px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.5)", background: connected && !recording && !idleRecording ? "rgba(165,180,252,0.12)" : "rgba(42,26,85,0.3)", color: connected && !recording && !idleRecording ? "#a5b4fc" : "#4a3870", fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.2em", cursor: connected && !recording && !idleRecording ? "pointer" : "not-allowed" }}
+        >
+          {idleRecording ? "● RECORDING IDLE…" : "RECORD IDLE LOOP (5s)"}
+        </button>
+      </div>
 
       {videoUrl && (
-        <div>
+        <div style={{ marginBottom: 40 }}>
           <div style={{ marginBottom: 12, fontSize: 13, color: "#a5b4fc" }}>
-            Preview (right-click → Save Video As):
+            Welcome preview:
           </div>
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video src={videoUrl} controls style={{ width: 300, height: 300, borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(201,168,76,0.5)" }} />
@@ -163,6 +198,24 @@ export default function RecordWelcomePage() {
             <a href={videoUrl} download="galileo-speaking.webm" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(165,180,252,0.1)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.15em", textDecoration: "none" }}>
               DOWNLOAD galileo-speaking.webm
             </a>
+          </div>
+        </div>
+      )}
+
+      {idleUrl && (
+        <div>
+          <div style={{ marginBottom: 12, fontSize: 13, color: "#a5b4fc" }}>
+            Idle loop preview — loops cleanly?
+          </div>
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <video src={idleUrl} autoPlay loop muted controls style={{ width: 300, height: 300, borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(165,180,252,0.5)" }} />
+          <div style={{ marginTop: 12 }}>
+            <a href={idleUrl} download="galileo-idle.webm" style={{ padding: "10px 24px", borderRadius: 8, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(165,180,252,0.1)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.15em", textDecoration: "none" }}>
+              DOWNLOAD galileo-idle.webm
+            </a>
+          </div>
+          <div style={{ marginTop: 10, fontSize: 12, color: "#4a3870" }}>
+            → save to <code style={{ color: "#c9a84c" }}>/public/galileo-idle.webm</code>
           </div>
         </div>
       )}

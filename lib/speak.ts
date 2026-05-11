@@ -1,4 +1,4 @@
-// Shared AudioContext — reused across all TTS calls so iOS doesn't suspend between sentences
+// Shared AudioContext — keeps iOS from suspending between sentences
 let _sharedCtx: AudioContext | null = null
 function getAudioCtx(): AudioContext | null {
   if (typeof window === "undefined") return null
@@ -8,10 +8,29 @@ function getAudioCtx(): AudioContext | null {
   return _sharedCtx
 }
 
-export async function speakStreaming(
-  text: string,
-  sendToSimli: ((pcm: Uint8Array) => void) | null
-): Promise<void> {
+let _currentSource: AudioBufferSourceNode | null = null
+let _currentFallbackAudio: HTMLAudioElement | null = null
+let _paused = false
+
+export function stopSpeaking() {
+  _paused = true
+  try { _currentSource?.stop(0); _currentSource = null } catch { /* ignore */ }
+  try {
+    if (_currentFallbackAudio) {
+      _currentFallbackAudio.pause()
+      _currentFallbackAudio.src = ""
+      _currentFallbackAudio = null
+    }
+  } catch { /* ignore */ }
+}
+
+export function resumeSpeaking() {
+  _paused = false
+}
+
+export async function speakStreaming(text: string): Promise<void> {
+  if (_paused) return
+
   const res = await fetch("/api/tts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -29,78 +48,43 @@ export async function speakStreaming(
     chunks.push(value)
     totalBytes += value.byteLength
   }
-  if (!totalBytes) return
+  if (!totalBytes || _paused) return
 
   const all = new Uint8Array(totalBytes)
   let off = 0
   for (const c of chunks) { all.set(c, off); off += c.byteLength }
+
+  // Try Web Audio first — shared context survives between sentences on iOS
   const mp3Buffer = all.buffer.slice(all.byteOffset, all.byteOffset + all.byteLength) as ArrayBuffer
+  try {
+    const ctx = getAudioCtx()
+    if (!ctx) throw new Error("no ctx")
+    try { await ctx.resume() } catch { /* ignore */ }
+    if (ctx.state !== "running") throw new Error("suspended")
 
-  if (sendToSimli) {
-    try {
-      const ctx = getAudioCtx()
-      if (!ctx) throw new Error("No AudioContext")
-      try { await ctx.resume() } catch { /* ignore */ }
+    const decoded = await ctx.decodeAudioData(mp3Buffer)
+    const source = ctx.createBufferSource()
+    source.buffer = decoded
+    source.connect(ctx.destination)
+    _currentSource = source
 
-      // If context still isn't running after resume, bail to plain Audio element
-      if (ctx.state !== "running") {
-        throw new Error("AudioContext suspended")
-      }
+    await new Promise<void>(resolve => {
+      source.onended = () => { if (_currentSource === source) _currentSource = null; resolve() }
+      source.start(0)
+    })
+    return
+  } catch { /* fall through */ }
 
-      const decoded = await ctx.decodeAudioData(mp3Buffer)
-      const source = ctx.createBufferSource()
-      source.buffer = decoded
-
-      // ScriptProcessorNode captures audio AS it plays and sends to Simli immediately.
-      // This is frame-perfect: same samples that hit the speaker go to Simli with zero delay.
-      const nativeRate = ctx.sampleRate        // e.g. 44100 or 48000
-      const simliRate  = 16000
-      const bufSize    = 4096                  // samples per frame at native rate
-
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
-      const processor = ctx.createScriptProcessor(bufSize, 1, 1)
-
-      processor.onaudioprocess = (e: AudioProcessingEvent) => {
-        const native = e.inputBuffer.getChannelData(0)  // float32 at native rate
-        // Downsample to 16kHz for Simli using linear interpolation
-        const outLen = Math.round(native.length * simliRate / nativeRate)
-        const i16 = new Int16Array(outLen)
-        for (let i = 0; i < outLen; i++) {
-          const pos = i * nativeRate / simliRate
-          const lo  = Math.floor(pos), hi = Math.min(lo + 1, native.length - 1)
-          const frac = pos - lo
-          const sample = native[lo] * (1 - frac) + native[hi] * frac
-          i16[i] = Math.max(-32768, Math.min(32767, sample * 32768))
-        }
-        sendToSimli!(new Uint8Array(i16.buffer))
-      }
-
-      // source → processor → speakers
-      // processor.onaudioprocess fires for every frame going to speakers — perfect sync
-      source.connect(processor)
-      processor.connect(ctx.destination)
-
-      await new Promise<void>(resolve => {
-        source.onended = () => {
-          processor.disconnect()
-          // Don't close the shared context — it stays alive for the next sentence
-          resolve()
-        }
-        source.start(0)
-      })
-      return
-    } catch {
-      // Web Audio failed — fall through to plain MP3 playback
-    }
-  }
-
-  // No Simli or Web Audio unavailable — plain MP3 via Audio element
+  // Fallback — plain Audio element
+  if (_paused) return
   const blob = new Blob([all], { type: "audio/mpeg" })
   const src  = URL.createObjectURL(blob)
   await new Promise<void>(resolve => {
     const audio = new Audio(src)
-    audio.onended = () => { URL.revokeObjectURL(src); resolve() }
-    audio.onerror = () => { URL.revokeObjectURL(src); resolve() }
-    audio.play().catch(() => { URL.revokeObjectURL(src); resolve() })
+    _currentFallbackAudio = audio
+    const done = () => { URL.revokeObjectURL(src); if (_currentFallbackAudio === audio) _currentFallbackAudio = null; resolve() }
+    audio.onended = done
+    audio.onerror = done
+    audio.play().catch(done)
   })
 }

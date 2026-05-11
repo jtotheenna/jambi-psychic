@@ -27,7 +27,6 @@ export default function DreamPage() {
   const [isListening, setIsListening] = useState(false)
   const [micSupported, setMicSupported] = useState(false)
   const recognitionRef = useRef<InstanceType<NonNullable<typeof SpeechRecognition>> | null>(null)
-  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const voice = useGalileoVoice()
   const language = "en"
@@ -80,7 +79,7 @@ export default function DreamPage() {
     const queueSentence = (text: string) => {
       if (voice.mode === "text" || !text.trim()) return
       voice.setAvatarState("speaking")
-      chain.current = chain.current.then(() => speakStreaming(text, simliSendRef.current))
+      chain.current = chain.current.then(() => speakStreaming(text))
     }
 
     const setTextThrottled1 = rafThrottle((t: string) => setMessages(prev => [...prev.slice(0, -1), { role: "galileo", content: t }]))
@@ -123,7 +122,7 @@ export default function DreamPage() {
     const queueSentence = (text: string) => {
       if (voice.mode === "text" || !text.trim()) return
       voice.setAvatarState("speaking")
-      chain.current = chain.current.then(() => speakStreaming(text, simliSendRef.current))
+      chain.current = chain.current.then(() => speakStreaming(text))
     }
 
     const setTextThrottled2 = rafThrottle((t: string) => setMessages(prev => [...prev.slice(0, -1), { role: "galileo", content: t }]))
@@ -165,7 +164,6 @@ export default function DreamPage() {
             isListening={voice.isListening}
             interimTranscript={voice.interimTranscript}
             voiceSupported={voice.voiceSupported}
-            onSendAudio={(fn) => { simliSendRef.current = fn }}
           />
         </div>
 

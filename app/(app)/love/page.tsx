@@ -24,7 +24,6 @@ export default function LovePage() {
   const [isComplete, setIsComplete] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
   const audioChainRef = useRef<Promise<void>>(Promise.resolve())
   const voice = useGalileoVoice()
   const language = "en"
@@ -58,7 +57,7 @@ export default function LovePage() {
       setLoading(false)
       if (voice.mode !== "text") {
         voice.setAvatarState("speaking")
-        await speakStreaming(data.response, simliSendRef.current)
+        await speakStreaming(data.response)
       }
     }
     voice.setAvatarState("idle")
@@ -88,7 +87,7 @@ export default function LovePage() {
     const queueSentence = (text: string) => {
       if (voice.mode === "text" || !text.trim()) return
       voice.setAvatarState("speaking")
-      audioChainRef.current = audioChainRef.current.then(() => speakStreaming(text, simliSendRef.current))
+      audioChainRef.current = audioChainRef.current.then(() => speakStreaming(text))
     }
 
     // Add galileo message slot immediately so it updates in place
@@ -135,7 +134,6 @@ export default function LovePage() {
             isListening={voice.isListening}
             interimTranscript={voice.interimTranscript}
             voiceSupported={voice.voiceSupported}
-            onSendAudio={(fn) => { simliSendRef.current = fn }}
           />
         </div>
 

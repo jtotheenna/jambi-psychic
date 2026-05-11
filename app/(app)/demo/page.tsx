@@ -115,7 +115,6 @@ export default function DemoPage() {
   const [showFeatures, setShowFeatures] = useState(false)
   const [dealtCards, setDealtCards]   = useState(0)
   const [showCta, setShowCta]         = useState(false)
-  const simliSendRef = useRef<((pcm: Uint8Array) => void) | null>(null)
 
   async function runDemo() {
     if (phase !== "ready") return
@@ -223,7 +222,6 @@ export default function DemoPage() {
                 size={200}
                 showName={false}
                 showStars={false}
-                onSendAudio={fn => { simliSendRef.current = fn }}
               />
             </div>
 

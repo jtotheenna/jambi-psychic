@@ -12,25 +12,23 @@ type Props = {
   interimTranscript: string
   voiceSupported: boolean
   startOpen?: boolean
-  onSendAudio?: (fn: (pcm: Uint8Array) => void) => void
 }
 
-const MODES: { key: VoiceMode; label: string; desc: string }[] = [
-  { key: "text",           label: "MUTE",          desc: "No voice" },
-  { key: "aloud",          label: "READ ALOUD",    desc: "Galileo speaks" },
-  { key: "conversational", label: "CONVERSATION",  desc: "Voice back and forth" },
+const MODES: { key: VoiceMode; label: string }[] = [
+  { key: "text",           label: "MUTE"         },
+  { key: "aloud",          label: "READ ALOUD"   },
+  { key: "conversational", label: "CONVERSATION" },
 ]
 
 export default function GalileoPanel({
   avatarState, hasStarted, mode, setMode, isListening, interimTranscript, voiceSupported,
-  startOpen = true, onSendAudio,
+  startOpen = true,
 }: Props) {
   const resolvedState = hasStarted ? avatarState : startOpen ? "idle" : "closed"
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-      {/* Avatar */}
-      <GalileoCircle state={resolvedState} size={200} onSendAudio={onSendAudio} />
+      <GalileoCircle state={resolvedState} size={200} />
 
       {/* Mode selector */}
       <div style={{

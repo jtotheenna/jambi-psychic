@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import { playGalileoSpeak, playCardReveal, playSessionEnd } from "./sounds"
+import { stopSpeaking, resumeSpeaking } from "./speak"
 
 export type VoiceMode = "text" | "aloud" | "conversational"
 export type AvatarState = "closed" | "idle" | "thinking" | "speaking"
@@ -156,8 +157,18 @@ export function useGalileoVoice() {
     stopListening()
   }
 
+  function setModeAndSync(m: VoiceMode) {
+    if (m === "text") {
+      stopSpeaking()
+      recognitionRef.current?.stop()
+    } else {
+      resumeSpeaking()
+    }
+    setMode(m)
+  }
+
   return {
-    mode, setMode,
+    mode, setMode: setModeAndSync,
     avatarState, setAvatarState,
     isListening,
     interimTranscript,
