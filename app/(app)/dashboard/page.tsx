@@ -58,10 +58,13 @@ export default async function DashboardPage() {
     <button type="submit" style={{ padding: "9px 20px", borderRadius: 7, border: `1px solid ${border}`, background: `linear-gradient(135deg, ${color.replace("0.3","0.1")}, rgba(79,70,229,0.1))`, color: color.replace(/rgba\([^,]+,[^,]+,[^,]+,/, "rgba(").replace(/[\d.]+\)$/, "1)"), fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
   )
 
-  // Build a Stripe payment URL for a reading type, or null if no link configured
+  const isAdmin = user!.email === process.env.ADMIN_EMAIL
+
+  // Admin bypasses payment — everyone else goes through Stripe
   const payBtn = (type: string, color: string, border: string) => {
+    if (isAdmin) return beginBtn(color, border)
     const link = buildPaymentUrl(type, user!.id, user!.email)
-    if (!link) return beginBtn(color, border) // fallback to free if no Stripe link
+    if (!link) return beginBtn(color, border)
     return (
       <a href={link} style={{ padding: "9px 20px", borderRadius: 7, border: `1px solid ${border}`, background: `linear-gradient(135deg, ${color.replace("0.3","0.1")}, rgba(79,70,229,0.1))`, color: color.replace(/rgba\([^,]+,[^,]+,[^,]+,/, "rgba(").replace(/[\d.]+\)$/, "1)"), fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", cursor: "pointer", whiteSpace: "nowrap", textDecoration: "none" }}>BEGIN ✦</a>
     )
