@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { buildPaymentUrl, getPaymentLink } from "@/lib/stripe"
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -57,6 +58,15 @@ export default async function DashboardPage() {
     <button type="submit" style={{ padding: "9px 20px", borderRadius: 7, border: `1px solid ${border}`, background: `linear-gradient(135deg, ${color.replace("0.3","0.1")}, rgba(79,70,229,0.1))`, color: color.replace(/rgba\([^,]+,[^,]+,[^,]+,/, "rgba(").replace(/[\d.]+\)$/, "1)"), fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", cursor: "pointer", whiteSpace: "nowrap" }}>BEGIN ✦</button>
   )
 
+  // Build a Stripe payment URL for a reading type, or null if no link configured
+  const payBtn = (type: string, color: string, border: string) => {
+    const link = buildPaymentUrl(type, user!.id, user!.email)
+    if (!link) return beginBtn(color, border) // fallback to free if no Stripe link
+    return (
+      <a href={link} style={{ padding: "9px 20px", borderRadius: 7, border: `1px solid ${border}`, background: `linear-gradient(135deg, ${color.replace("0.3","0.1")}, rgba(79,70,229,0.1))`, color: color.replace(/rgba\([^,]+,[^,]+,[^,]+,/, "rgba(").replace(/[\d.]+\)$/, "1)"), fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", cursor: "pointer", whiteSpace: "nowrap", textDecoration: "none" }}>BEGIN ✦</a>
+    )
+  }
+
   const abandonBtn = (id: string) => (
     <form action={async () => { "use server"; await prisma.readingSession.update({ where: { id }, data: { status: "complete", completedAt: new Date() } }); redirect("/dashboard") }}>
       <button type="submit" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, color: "#4a3870", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>abandon</button>
@@ -93,15 +103,15 @@ export default async function DashboardPage() {
 
           {card("★", "TAROT READING", "rgba(201,168,76,0.3)", "rgba(201,168,76,0.2)",
             "Any question. A fully shuffled 78-card deck. He reads every card aloud.",
-            "$15 · 5 QUESTIONS · SPOKEN ALOUD",
-            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 5 } }); redirect(`/reading/${r.id}`) }}>{beginBtn("rgba(201,168,76,0.3)", "rgba(201,168,76,0.4)")}</form>,
+            "$15 · 4 QUESTIONS · SPOKEN ALOUD",
+            activeTarot ? <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 4 } }); redirect(`/reading/${r.id}`) }}>{beginBtn("rgba(201,168,76,0.3)", "rgba(201,168,76,0.4)")}</form> : payBtn("tarot", "rgba(201,168,76,0.3)", "rgba(201,168,76,0.4)"),
             activeTarot, activeTarot ? `/reading/${activeTarot.id}` : undefined, activeTarot ? abandonBtn(activeTarot.id) : undefined
           )}
 
           {card("♠", "CARTOMANCY", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.2)",
             "The old language of playing cards. Direct, sharp, and strangely accurate.",
-            "$15 · 5 QUESTIONS · SPOKEN ALOUD",
-            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 5 } }); redirect("/cartomancy") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>,
+            "$15 · 4 QUESTIONS · SPOKEN ALOUD",
+            activeCartomancy ? <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 4 } }); redirect("/cartomancy") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form> : payBtn("cartomancy", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)"),
             activeCartomancy, "/cartomancy", activeCartomancy ? abandonBtn(activeCartomancy.id) : undefined
           )}
 
@@ -186,7 +196,7 @@ export default async function DashboardPage() {
           {card("♡", "LOVE ORACLE", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.2)",
             "Ask about a relationship, a person, or your own heart. He speaks what needs to be seen.",
             "$15 · 5 EXCHANGES · SPOKEN ALOUD",
-            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "love", status: "active", exchangesTotal: 5 } }); redirect("/love") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>,
+            <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "love", status: "active", exchangesTotal: 4 } }); redirect("/love") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>,
             activeLove, "/love", activeLove ? abandonBtn(activeLove.id) : undefined
           )}
         </div>

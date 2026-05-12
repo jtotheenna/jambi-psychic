@@ -29,9 +29,9 @@ export const PRICES: Record<string, number> = {
 
 // Exchanges per reading type
 export const EXCHANGES: Record<string, number> = {
-  tarot:      5,
-  cartomancy: 5,
-  love:       5,
+  tarot:      4,
+  cartomancy: 4,
+  love:       4,
   palm:       1,
   astrology:  1,
   aura:       1,
@@ -43,7 +43,10 @@ export const EXCHANGES: Record<string, number> = {
 
 // Env var name for each type's Stripe Payment Link
 export function paymentLinkEnvKey(type: string): string {
-  return `STRIPE_LINK_${type.replace(/-/g, "_").toUpperCase()}`
+  // Match Railway env var naming: STRIPE_{TYPE}_LINK
+  // Special case: astrology uses STRIPE_NATAL_LINK
+  if (type === "astrology") return "STRIPE_NATAL_LINK"
+  return `STRIPE_${type.replace(/-/g, "_").toUpperCase()}_LINK`
 }
 
 export function getPaymentLink(type: string): string | null {

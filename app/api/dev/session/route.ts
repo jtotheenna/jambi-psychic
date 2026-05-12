@@ -14,7 +14,7 @@ export async function POST() {
     data: {
       userId: session.user.id,
       status: "active",
-      exchangesTotal: 5,
+      exchangesTotal: 4,
     },
   })
 
