@@ -193,7 +193,7 @@ export default function LandingPage() {
         </div>
 
         {/* Title */}
-        <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(44px, 9vw, 84px)", letterSpacing: "0.15em", marginBottom: 8, lineHeight: 1 }} className="text-shimmer">
+        <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(44px, 9vw, 84px)", letterSpacing: "0.15em", marginBottom: 8, lineHeight: 1, color: "#f0cc6e" }}>
           GALILEO
         </h1>
         <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.5em", color: "#9a8ab8", marginBottom: 28 }}>
