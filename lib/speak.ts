@@ -1,25 +1,13 @@
-// Shared AudioContext — keeps iOS from suspending between sentences
-let _sharedCtx: AudioContext | null = null
-function getAudioCtx(): AudioContext | null {
-  if (typeof window === "undefined") return null
-  if (!_sharedCtx || _sharedCtx.state === "closed") {
-    try { _sharedCtx = new AudioContext() } catch { return null }
-  }
-  return _sharedCtx
-}
-
-let _currentSource: AudioBufferSourceNode | null = null
-let _currentFallbackAudio: HTMLAudioElement | null = null
+let _currentAudio: HTMLAudioElement | null = null
 let _paused = false
 
 export function stopSpeaking() {
   _paused = true
-  try { _currentSource?.stop(0); _currentSource = null } catch { /* ignore */ }
   try {
-    if (_currentFallbackAudio) {
-      _currentFallbackAudio.pause()
-      _currentFallbackAudio.src = ""
-      _currentFallbackAudio = null
+    if (_currentAudio) {
+      _currentAudio.pause()
+      _currentAudio.src = ""
+      _currentAudio = null
     }
   } catch { /* ignore */ }
 }
@@ -54,35 +42,17 @@ export async function speakStreaming(text: string): Promise<void> {
   let off = 0
   for (const c of chunks) { all.set(c, off); off += c.byteLength }
 
-  // Try Web Audio first — shared context survives between sentences on iOS
-  const mp3Buffer = all.buffer.slice(all.byteOffset, all.byteOffset + all.byteLength) as ArrayBuffer
-  try {
-    const ctx = getAudioCtx()
-    if (!ctx) throw new Error("no ctx")
-    try { await ctx.resume() } catch { /* ignore */ }
-    if (ctx.state !== "running") throw new Error("suspended")
-
-    const decoded = await ctx.decodeAudioData(mp3Buffer)
-    const source = ctx.createBufferSource()
-    source.buffer = decoded
-    source.connect(ctx.destination)
-    _currentSource = source
-
-    await new Promise<void>(resolve => {
-      source.onended = () => { if (_currentSource === source) _currentSource = null; resolve() }
-      source.start(0)
-    })
-    return
-  } catch { /* fall through */ }
-
-  // Fallback — plain Audio element
-  if (_paused) return
   const blob = new Blob([all], { type: "audio/mpeg" })
-  const src  = URL.createObjectURL(blob)
+  const src = URL.createObjectURL(blob)
+
   await new Promise<void>(resolve => {
     const audio = new Audio(src)
-    _currentFallbackAudio = audio
-    const done = () => { URL.revokeObjectURL(src); if (_currentFallbackAudio === audio) _currentFallbackAudio = null; resolve() }
+    _currentAudio = audio
+    const done = () => {
+      URL.revokeObjectURL(src)
+      if (_currentAudio === audio) _currentAudio = null
+      resolve()
+    }
     audio.onended = done
     audio.onerror = done
     audio.play().catch(done)

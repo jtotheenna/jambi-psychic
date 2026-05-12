@@ -17,13 +17,13 @@ export async function textToSpeech(text: string): Promise<ReadableStream | null>
       },
       body: JSON.stringify({
         text,
-        model_id: "eleven_flash_v2_5",
+        model_id: "eleven_turbo_v2_5",
         output_format: "mp3_44100_128",
         voice_settings: {
-          stability: 0.6,
+          stability: 0.75,
           similarity_boost: 0.8,
-          style: 0.4,
-          use_speaker_boost: true,
+          style: 0.3,
+          use_speaker_boost: false,
         },
       }),
     }
@@ -41,7 +41,7 @@ export async function textToSpeechStreamed(text: string): Promise<ReadableStream
   return new Promise((resolve) => {
     const url =
       `wss://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}/stream-input` +
-      `?model_id=eleven_flash_v2_5&output_format=pcm_16000&optimize_streaming_latency=4` +
+      `?model_id=eleven_turbo_v2_5&output_format=pcm_16000&optimize_streaming_latency=4` +
       `&xi_api_key=${ELEVENLABS_API_KEY}`
 
     // Node 22 has built-in WebSocket
@@ -60,7 +60,7 @@ export async function textToSpeechStreamed(text: string): Promise<ReadableStream
       // after just 50 chars (lowest possible latency)
       ws.send(JSON.stringify({
         text: " ",
-        voice_settings: { stability: 0.6, similarity_boost: 0.8, style: 0.4, use_speaker_boost: true },
+        voice_settings: { stability: 0.75, similarity_boost: 0.8, style: 0.3, use_speaker_boost: false },
         generation_config: { chunk_length_schedule: [50, 100, 150, 250] },
       }))
       // Send full text in one message
