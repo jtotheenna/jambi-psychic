@@ -15,6 +15,7 @@ export default function RecordIdlePage() {
   const [connected, setConnected] = useState(false)
   const [recording, setRecording] = useState(false)
   const [idleUrl,   setIdleUrl]   = useState<string | null>(null)
+  const [duration,  setDuration]  = useState(15)
 
   const initSimli = useCallback(async () => {
     try {
@@ -60,18 +61,27 @@ export default function RecordIdlePage() {
     recorderRef.current = recorder
     recorder.start(100)
     setRecording(true)
-    setStatus("Recording… 5 seconds…")
-    await new Promise(r => setTimeout(r, 5000))
+    setStatus(`Recording… ${duration} seconds…`)
+    await new Promise(r => setTimeout(r, duration * 1000))
     recorder.stop()
   }
 
   return (
     <div style={{ minHeight: "100vh", background: "#04020e", color: "#ddd8f0", padding: "40px 24px", fontFamily: "monospace" }}>
       <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: 22, marginBottom: 8 }}>Idle Loop Recorder</h1>
-      <p style={{ color: "#7a8ba8", marginBottom: 32, fontSize: 13 }}>
-        Records 5 seconds of Galileo&apos;s natural idle animation.<br />
-        Download and save to <code style={{ color: "#c9a84c" }}>/public/galileo-idle.webm</code>.
+      <p style={{ color: "#7a8ba8", marginBottom: 24, fontSize: 13 }}>
+        Records Galileo&apos;s natural idle animation. Longer = smoother loop.<br />
+        Download and save to <code style={{ color: "#c9a84c" }}>/public/galileo-idle.webm</code> then redeploy.
       </p>
+
+      <div style={{ display: "flex", gap: 10, marginBottom: 24, alignItems: "center" }}>
+        <span style={{ fontSize: 12, color: "#7a8ba8" }}>Duration:</span>
+        {[5, 10, 15, 20, 30].map(s => (
+          <button key={s} onClick={() => setDuration(s)} style={{ padding: "6px 14px", borderRadius: 6, border: `1px solid ${duration === s ? "rgba(165,180,252,0.6)" : "rgba(42,26,85,0.6)"}`, background: duration === s ? "rgba(165,180,252,0.15)" : "transparent", color: duration === s ? "#a5b4fc" : "#4a3870", fontFamily: "'Cinzel', serif", fontSize: 10, cursor: "pointer" }}>
+            {s}s
+          </button>
+        ))}
+      </div>
 
       <div style={{ marginBottom: 24, padding: "12px 16px", borderRadius: 8, background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.3)", fontSize: 13 }}>
         STATUS: {status}
