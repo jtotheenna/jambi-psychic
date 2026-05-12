@@ -182,8 +182,8 @@ export default function LandingPage() {
       {/* ── HERO ── */}
       <div style={{ width: "100%", maxWidth: 720, textAlign: "center", padding: "56px 24px 48px", display: "flex", flexDirection: "column", alignItems: "center" }}>
 
-        {/* Live circle — stands alone, no buttons overlapping */}
-        <div style={{ marginBottom: 24 }}>
+        {/* Live circle — stands completely alone */}
+        <div style={{ marginBottom: 32 }}>
           <GalileoCircle
             state={speaking ? "speaking" : "idle"}
             size={220}
@@ -191,23 +191,6 @@ export default function LandingPage() {
             showStars={false}
           />
         </div>
-
-        {/* Hear button — clearly below the face */}
-        <button
-          onClick={hearGalileo}
-          disabled={speaking}
-          style={{
-            padding: "11px 32px", borderRadius: 8, cursor: speaking ? "default" : "pointer",
-            border: `1px solid ${speaking ? "rgba(165,180,252,0.6)" : "rgba(165,180,252,0.35)"}`,
-            background: speaking ? "rgba(79,70,229,0.2)" : "rgba(79,70,229,0.07)",
-            color: speaking ? "#c8d4e8" : "#9a8ab8",
-            fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.22em",
-            transition: "all 0.25s ease", marginBottom: 40,
-            boxShadow: speaking ? "0 0 24px rgba(165,180,252,0.15)" : "none",
-          }}
-        >
-          {speaking ? "GALILEO IS SPEAKING…" : "HEAR GALILEO ✦"}
-        </button>
 
         {/* Title */}
         <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(44px, 9vw, 84px)", letterSpacing: "0.15em", marginBottom: 8, lineHeight: 1 }} className="text-shimmer">
@@ -226,9 +209,26 @@ export default function LandingPage() {
         <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(15px, 3vw, 18px)", color: "#8878a8", lineHeight: 1.8, maxWidth: 500, margin: "0 auto 12px" }}>
           A talking AI oracle who reads tarot, cartomancy, palms, dreams, the moon, and the hidden patterns around you — then speaks your reading aloud in his old, wise voice.
         </p>
-        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#6a5a8a", lineHeight: 1.7, maxWidth: 440, margin: "0 auto 40px", fontStyle: "italic" }}>
+        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#6a5a8a", lineHeight: 1.7, maxWidth: 440, margin: "0 auto 32px", fontStyle: "italic" }}>
           Readings start at $5. Every reading is spoken aloud. Galileo remembers you across every visit.
         </p>
+
+        {/* Hear button — after all the text, clearly separate from the face */}
+        <button
+          onClick={hearGalileo}
+          disabled={speaking}
+          style={{
+            padding: "11px 32px", borderRadius: 8, cursor: speaking ? "default" : "pointer",
+            border: `1px solid ${speaking ? "rgba(165,180,252,0.6)" : "rgba(165,180,252,0.35)"}`,
+            background: speaking ? "rgba(79,70,229,0.2)" : "rgba(79,70,229,0.07)",
+            color: speaking ? "#c8d4e8" : "#9a8ab8",
+            fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.22em",
+            transition: "all 0.25s ease", marginBottom: 40,
+            boxShadow: speaking ? "0 0 24px rgba(165,180,252,0.15)" : "none",
+          }}
+        >
+          {speaking ? "GALILEO IS SPEAKING…" : "HEAR GALILEO ✦"}
+        </button>
 
         {/* CTAs */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>

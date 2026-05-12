@@ -160,21 +160,6 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
             transition: "background 0.6s ease",
           }} />
 
-          {/* Static jpg — shows instantly, hidden once Simli live kicks in */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/galileo.jpg"
-            alt=""
-            style={{
-              position: "absolute", top: "-10%", left: 0,
-              width: "100%", height: "120%",
-              objectFit: "cover", objectPosition: "center top",
-              zIndex: 1,
-              opacity: showLive ? 0 : 1,
-              transition: "opacity 0.8s ease",
-            }}
-          />
-
           {/* Simli live — fades in as soon as frames arrive, natural idle blinking */}
           <video
             ref={videoRef}
