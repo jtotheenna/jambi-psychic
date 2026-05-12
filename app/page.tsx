@@ -182,8 +182,8 @@ export default function LandingPage() {
       {/* ── HERO ── */}
       <div style={{ width: "100%", maxWidth: 720, textAlign: "center", padding: "56px 24px 48px", display: "flex", flexDirection: "column", alignItems: "center" }}>
 
-        {/* Live circle */}
-        <div style={{ marginBottom: 16 }}>
+        {/* Live circle — stands alone, no buttons overlapping */}
+        <div style={{ marginBottom: 24 }}>
           <GalileoCircle
             state={speaking ? "speaking" : "idle"}
             size={220}
@@ -192,12 +192,7 @@ export default function LandingPage() {
           />
         </div>
 
-        {/* Welcome line */}
-        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#4a3870", fontStyle: "italic", marginBottom: 20, letterSpacing: "0.02em" }}>
-          Welcome, seeker. Choose your reading, ask your question, and Galileo will speak your message aloud.
-        </p>
-
-        {/* Hear button */}
+        {/* Hear button — clearly below the face */}
         <button
           onClick={hearGalileo}
           disabled={speaking}
@@ -207,14 +202,11 @@ export default function LandingPage() {
             background: speaking ? "rgba(79,70,229,0.2)" : "rgba(79,70,229,0.07)",
             color: speaking ? "#c8d4e8" : "#9a8ab8",
             fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.22em",
-            transition: "all 0.25s ease", display: "flex", alignItems: "center", gap: 10, marginBottom: 40,
+            transition: "all 0.25s ease", marginBottom: 40,
             boxShadow: speaking ? "0 0 24px rgba(165,180,252,0.15)" : "none",
           }}
         >
-          <span style={{ width: 20, height: 20, borderRadius: "50%", border: `1px solid ${speaking ? "rgba(165,180,252,0.6)" : "rgba(165,180,252,0.35)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9 }}>
-            {speaking ? "◼" : "▶"}
-          </span>
-          {speaking ? "GALILEO IS SPEAKING…" : "HEAR GALILEO FIRST ✦"}
+          {speaking ? "GALILEO IS SPEAKING…" : "HEAR GALILEO ✦"}
         </button>
 
         {/* Title */}
