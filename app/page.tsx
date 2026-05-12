@@ -185,7 +185,6 @@ export default function LandingPage() {
         {/* Live circle — stands completely alone */}
         <div style={{ marginBottom: 32 }}>
           <GalileoCircle
-            liveSimli
             state={speaking ? "speaking" : "idle"}
             size={220}
             showName={false}
