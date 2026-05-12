@@ -29,7 +29,7 @@ export default async function AnalyticsPage() {
     totalSessions, todaySessions, weekSessions,
     completedSessions, paidSessions,
     totalRevenueCents, weekRevenueCents,
-    readingBreakdown, recentSessions,
+    readingBreakdown, recentSessions, allQuestions,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { createdAt: { gte: today } } }),
@@ -46,6 +46,12 @@ export default async function AnalyticsPage() {
       take: 8,
       orderBy: { createdAt: "desc" },
       include: { user: { select: { name: true, email: true } } },
+    }),
+    prisma.readingSession.findMany({
+      where: { question: { not: null } },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: { question: true, type: true, createdAt: true, purchaseId: true, user: { select: { name: true } } },
     }),
   ])
 
@@ -133,6 +139,35 @@ ${readingBreakdown.map(r => `${r.type}: ${r._count} sessions`).join("\n")}
               <div style={{ fontSize: 12, color: "#7a8ba8" }}>{s2.user.name || s2.user.email.split("@")[0]}</div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* All questions people asked */}
+      <div style={{ marginTop: 40 }}>
+        <div style={{ ...s, fontSize: 9, letterSpacing: "0.2em", color: "#4a3870", marginBottom: 20 }}>WHAT PEOPLE ARE ASKING</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {allQuestions.map((q, i) => (
+            <div key={i} style={{ padding: "16px 20px", borderRadius: 8, border: `1px solid ${q.purchaseId ? "rgba(165,180,252,0.2)" : "rgba(42,26,85,0.4)"}`, background: q.purchaseId ? "rgba(165,180,252,0.05)" : "rgba(10,5,32,0.4)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, gap: 12 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ ...s, fontSize: 7, letterSpacing: "0.15em", color: "#4a3870", textTransform: "uppercase" }}>{q.type}</span>
+                  {q.purchaseId && <span style={{ ...s, fontSize: 7, letterSpacing: "0.1em", color: "#a5b4fc" }}>PAID</span>}
+                  {q.user.name && <span style={{ fontSize: 11, color: "#7a8ba8" }}>{q.user.name}</span>}
+                </div>
+                <span style={{ fontSize: 11, color: "#4a3870", flexShrink: 0 }}>
+                  {new Date(q.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                </span>
+              </div>
+              <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 16, color: "#ddd8f0", fontStyle: "italic", lineHeight: 1.5 }}>
+                "{q.question}"
+              </div>
+            </div>
+          ))}
+          {allQuestions.length === 0 && (
+            <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 16, color: "#4a3870", fontStyle: "italic" }}>
+              No questions yet — they're coming.
+            </div>
+          )}
         </div>
       </div>
     </div>
