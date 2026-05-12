@@ -7,9 +7,10 @@ type Props = {
   size?: number
   showName?: boolean
   showStars?: boolean
+  liveSimli?: boolean   // true = connect Simli (landing/demo), false = recorded loop (readings)
 }
 
-export default function GalileoCircle({ state, size = 200, showName = true, showStars = true }: Props) {
+export default function GalileoCircle({ state, size = 200, showName = true, showStars = true, liveSimli = false }: Props) {
   const [internalState, setInternalState] = useState<typeof state>("idle")
   const [simliReady,    setSimliReady]    = useState(false)
   const [videoPlaying,  setVideoPlaying]  = useState(false)
@@ -34,8 +35,10 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
   // Keep internalState in sync
   useEffect(() => { setInternalState(state) }, [state])
 
-  // Simli connection — idle only, no audio sent, so no mouth movement
+  // Simli connection — only when liveSimli=true (landing page + demo)
+  // Reading pages use the recorded idle loop instead
   useEffect(() => {
+    if (!liveSimli) return
     mountedRef.current = true
 
     async function connect() {
@@ -159,6 +162,21 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
             animation: isThinking ? "glowPulse 1.4s ease-in-out infinite" : isSpeaking ? "glowPulse 0.9s ease-in-out infinite" : "glowPulse 4s ease-in-out infinite",
             transition: "background 0.6s ease",
           }} />
+
+          {/* Recorded idle loop — used on reading pages (no Simli connection needed) */}
+          {!liveSimli && (
+            <video
+              src="/galileo-idle.mp4"
+              autoPlay loop muted playsInline
+              onError={e => { (e.currentTarget as HTMLVideoElement).style.display = "none" }}
+              style={{
+                position: "absolute", top: "-10%", left: 0,
+                width: "100%", height: "120%",
+                objectFit: "cover", objectPosition: "center top",
+                zIndex: 2,
+              }}
+            />
+          )}
 
           {/* Simli live — fades in as soon as frames arrive, natural idle blinking */}
           <video

@@ -196,7 +196,7 @@ export default function DemoPage() {
 
           {/* Circle — hero, centered */}
           <div style={{ flexShrink: 0 }}>
-            <GalileoCircle state={avatarState} size={160} showName={false} showStars={false} />
+            <GalileoCircle liveSimli state={avatarState} size={160} showName={false} showStars={false} />
           </div>
 
           {/* Shared slot — features live here, cards replace them in the same space */}
