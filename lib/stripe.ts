@@ -29,9 +29,9 @@ export const PRICES: Record<string, number> = {
 
 // Exchanges per reading type
 export const EXCHANGES: Record<string, number> = {
-  tarot:      4,
-  cartomancy: 4,
-  love:       4,
+  tarot:      5,
+  cartomancy: 5,
+  love:       5,
   palm:       1,
   astrology:  1,
   aura:       1,

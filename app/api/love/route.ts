@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 
   if (!loveSession) {
     loveSession = await prisma.readingSession.create({
-      data: { userId: session.user.id, type: "love", status: "active", exchangesTotal: 4 },
+      data: { userId: session.user.id, type: "love", status: "active", exchangesTotal: 5 },
       include: { user: { include: { details: true } } },
     }) as unknown as typeof loveSession
   }

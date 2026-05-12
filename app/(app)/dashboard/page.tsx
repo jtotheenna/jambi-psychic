@@ -115,8 +115,8 @@ export default async function DashboardPage() {
             "Any question. A fully shuffled 78-card deck. He reads every card aloud.",
             "$15 · SPOKEN ALOUD",
             activeTarot
-              ? <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 4 } }); redirect(`/reading/${r.id}`) }}>{beginBtn("rgba(201,168,76,0.3)", "rgba(201,168,76,0.4)")}</form>
-              : payBtn("tarot", "rgba(201,168,76,0.3)", "rgba(201,168,76,0.4)", <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 4 } }); redirect(`/reading/${r.id}`) }}>{beginBtn("rgba(201,168,76,0.3)", "rgba(201,168,76,0.4)")}</form>),
+              ? <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 5 } }); redirect(`/reading/${r.id}`) }}>{beginBtn("rgba(201,168,76,0.3)", "rgba(201,168,76,0.4)")}</form>
+              : payBtn("tarot", "rgba(201,168,76,0.3)", "rgba(201,168,76,0.4)", <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 5 } }); redirect(`/reading/${r.id}`) }}>{beginBtn("rgba(201,168,76,0.3)", "rgba(201,168,76,0.4)")}</form>),
             activeTarot, activeTarot ? `/reading/${activeTarot.id}` : undefined, activeTarot ? abandonBtn(activeTarot.id) : undefined
           )}
 
@@ -124,8 +124,8 @@ export default async function DashboardPage() {
             "The old language of playing cards. Direct, sharp, and strangely accurate.",
             "$15 · SPOKEN ALOUD",
             activeCartomancy
-              ? <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 4 } }); redirect("/cartomancy") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>
-              : payBtn("cartomancy", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)", <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 4 } }); redirect("/cartomancy") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>),
+              ? <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 5 } }); redirect("/cartomancy") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>
+              : payBtn("cartomancy", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)", <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 5 } }); redirect("/cartomancy") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>),
             activeCartomancy, "/cartomancy", activeCartomancy ? abandonBtn(activeCartomancy.id) : undefined
           )}
 
@@ -213,8 +213,8 @@ export default async function DashboardPage() {
             "Ask about a relationship, a person, or your own heart. He speaks what needs to be seen.",
             "$15 · SPOKEN ALOUD",
             activeLove
-              ? <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "love", status: "active", exchangesTotal: 4 } }); redirect("/love") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>
-              : payBtn("love", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)", <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "love", status: "active", exchangesTotal: 4 } }); redirect("/love") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>),
+              ? <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "love", status: "active", exchangesTotal: 5 } }); redirect("/love") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>
+              : payBtn("love", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)", <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "love", status: "active", exchangesTotal: 5 } }); redirect("/love") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>),
             activeLove, "/love", activeLove ? abandonBtn(activeLove.id) : undefined
           )}
         </div>
