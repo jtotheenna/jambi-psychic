@@ -25,7 +25,9 @@ function shuffleDraw(count: number): Omit<DrawnCard, "position">[] {
 
 // Spread picker: honor explicit user requests, otherwise let Haiku decide like a real reader
 const WORD_NUMS: Record<string, number> = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13 }
-const AUTO_SPREADS = SPREADS.filter(s => s.positions.length >= 4 && s.positions.length <= 10)
+
+// All spreads available for auto-pick — Haiku chooses based on question complexity
+const AUTO_SPREADS = SPREADS.filter(s => s.positions.length <= 10)
 
 async function pickSpread(question: string) {
   const lower = question.toLowerCase()
@@ -50,20 +52,32 @@ async function pickSpread(question: string) {
   if (lower.includes("year ahead") || (lower.includes("year") && lower.includes("ahead"))) return SPREADS.find(s => s.name === "The Year Ahead")!
   if (lower.includes("full spread")) return SPREADS.find(s => s.name === "The Full Spread")!
 
-  // No explicit request — let Haiku pick like a real reader
+  // Let Haiku pick like a real reader — matching spread depth to question complexity
   try {
     const res = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 20,
+      system: `You are an expert tarot reader choosing the RIGHT spread for a question.
+
+RULES:
+- Simple/direct questions ("does he like me", "will I get the job", "quick answer") → 1-3 cards
+- Everyday questions with some context needed → 3-5 cards
+- Decisions with multiple paths → 5 cards (The Crossroads)
+- Love/relationship questions → 4 cards (The Heart's Truth) unless complex
+- Questions about deep patterns, recurring issues, complex life situations → 6-8 cards
+- Only use 10-card Celtic Cross for truly complex, layered situations that need the full picture
+- Never default to Celtic Cross just because it's the biggest — match depth to the question
+
+Reply with ONLY the exact spread name from the list.`,
       messages: [{
         role: "user",
-        content: `You're a professional tarot reader choosing a spread for this question: "${question.slice(0, 300)}"\n\nPick one:\n${AUTO_SPREADS.map(s => `${s.name} (${s.positions.length} cards) — ${s.description}`).join("\n")}\n\nReply with only the spread name, exactly as written.`,
+        content: `Question: "${question.slice(0, 300)}"\n\nSpreads:\n${AUTO_SPREADS.map(s => `${s.name} (${s.positions.length} cards) — ${s.description}`).join("\n")}`,
       }],
     })
     const name = res.content[0].type === "text" ? res.content[0].text.trim() : ""
-    return AUTO_SPREADS.find(s => s.name === name) ?? SPREADS.find(s => s.name === "The Celtic Cross")!
+    return AUTO_SPREADS.find(s => s.name === name) ?? SPREADS.find(s => s.name === "Past, Present, Future")!
   } catch {
-    return SPREADS.find(s => s.name === "The Celtic Cross")!
+    return SPREADS.find(s => s.name === "Past, Present, Future")!
   }
 }
 
