@@ -96,7 +96,7 @@ export default async function DashboardPage() {
       {/* Header */}
       <div style={{ marginBottom: 44, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
         <div>
-          <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 20, letterSpacing: "0.1em" }} className="text-shimmer">GALILEO</h1>
+          <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: 20, letterSpacing: "0.1em", color: "#f0cc6e" }}>GALILEO</h1>
           <div style={{ fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.25em", color: "#a5b4fc", marginTop: 2 }}>
             {user.name ? `WELCOME BACK, ${user.name.toUpperCase()}` : "YOUR READINGS"}
           </div>

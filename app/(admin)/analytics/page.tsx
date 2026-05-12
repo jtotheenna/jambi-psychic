@@ -16,7 +16,8 @@ async function getInsights(data: string) {
 
 export default async function AnalyticsPage() {
   const session = await auth()
-  if (!session?.user || session.user.email !== process.env.ADMIN_EMAIL) redirect("/dashboard")
+  if (!session?.user) redirect("/login")
+  if (session.user.email?.toLowerCase().trim() !== (process.env.ADMIN_EMAIL ?? "").toLowerCase().trim()) redirect("/dashboard")
 
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
