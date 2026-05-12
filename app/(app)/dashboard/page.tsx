@@ -106,14 +106,14 @@ export default async function DashboardPage() {
 
           {card("★", "TAROT READING", "rgba(201,168,76,0.3)", "rgba(201,168,76,0.2)",
             "Any question. A fully shuffled 78-card deck. He reads every card aloud.",
-            "$15 · 4 QUESTIONS · SPOKEN ALOUD",
+            "$15 · SPOKEN ALOUD",
             activeTarot ? <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; const r = await prisma.readingSession.create({ data: { userId: s.user.id, type: "tarot", status: "active", exchangesTotal: 4 } }); redirect(`/reading/${r.id}`) }}>{beginBtn("rgba(201,168,76,0.3)", "rgba(201,168,76,0.4)")}</form> : payBtn("tarot", "rgba(201,168,76,0.3)", "rgba(201,168,76,0.4)"),
             activeTarot, activeTarot ? `/reading/${activeTarot.id}` : undefined, activeTarot ? abandonBtn(activeTarot.id) : undefined
           )}
 
           {card("♠", "CARTOMANCY", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.2)",
             "The old language of playing cards. Direct, sharp, and strangely accurate.",
-            "$15 · 4 QUESTIONS · SPOKEN ALOUD",
+            "$15 · SPOKEN ALOUD",
             activeCartomancy ? <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "cartomancy", status: "active", exchangesTotal: 4 } }); redirect("/cartomancy") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form> : payBtn("cartomancy", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)"),
             activeCartomancy, "/cartomancy", activeCartomancy ? abandonBtn(activeCartomancy.id) : undefined
           )}
@@ -198,7 +198,7 @@ export default async function DashboardPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {card("♡", "LOVE ORACLE", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.2)",
             "Ask about a relationship, a person, or your own heart. He speaks what needs to be seen.",
-            "$15 · 4 EXCHANGES · SPOKEN ALOUD",
+            "$15 · SPOKEN ALOUD",
             <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "love", status: "active", exchangesTotal: 4 } }); redirect("/love") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>,
             activeLove, "/love", activeLove ? abandonBtn(activeLove.id) : undefined
           )}
