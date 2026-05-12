@@ -168,7 +168,6 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
             <video
               src="/galileo-idle.mp4"
               autoPlay loop muted playsInline
-              onError={e => { (e.currentTarget as HTMLVideoElement).style.display = "none" }}
               style={{
                 position: "absolute", top: "-10%", left: 0,
                 width: "100%", height: "120%",
