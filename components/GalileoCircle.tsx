@@ -178,23 +178,25 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
             />
           )}
 
-          {/* Simli live — fades in as soon as frames arrive, natural idle blinking */}
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            onPlaying={() => setVideoPlaying(true)}
-            style={{
-              position: "absolute", top: "-10%", left: 0,
-              width: "100%", height: "120%",
-              objectFit: "cover", objectPosition: "center top",
-              zIndex: 2,
-              opacity: showLive ? 1 : 0,
-              transition: "opacity 0.8s ease",
-              filter: "brightness(1.02) contrast(1.03) saturate(0.95)",
-            }}
-          />
+          {/* Simli live — only rendered when liveSimli=true */}
+          {liveSimli && (
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              onPlaying={() => setVideoPlaying(true)}
+              style={{
+                position: "absolute", top: "-10%", left: 0,
+                width: "100%", height: "120%",
+                objectFit: "cover", objectPosition: "center top",
+                zIndex: 2,
+                opacity: showLive ? 1 : 0,
+                transition: "opacity 0.8s ease",
+                filter: "brightness(1.02) contrast(1.03) saturate(0.95)",
+              }}
+            />
+          )}
 
           {/* Scan lines */}
           <div style={{ position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none", backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 3px)" }} />
