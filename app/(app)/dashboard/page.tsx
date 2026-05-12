@@ -130,7 +130,7 @@ export default async function DashboardPage() {
 
           {card("☽", "MOON READING", "rgba(165,180,252,0.3)", "rgba(165,180,252,0.2)",
             "The live moon phase, read through the Medicine Wheel. The sky is already set.",
-            "$5 · ONE COMPLETE READING · SPOKEN ALOUD",
+            "$7 · ONE COMPLETE READING · SPOKEN ALOUD",
             <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "moon", status: "active", exchangesTotal: 1 } }); redirect("/moon") }}>{beginBtn("rgba(165,180,252,0.3)", "rgba(165,180,252,0.4)")}</form>
           )}
 
@@ -157,7 +157,7 @@ export default async function DashboardPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {card("✋", "PALM READING", "rgba(200,212,232,0.25)", "rgba(200,212,232,0.2)",
             "Upload a photo of your palm. Galileo reads your lines, mounts, and soul — spoken aloud.",
-            "$10 · FULL HAND READING · SPOKEN ALOUD",
+            "$7 · FULL HAND READING · SPOKEN ALOUD",
             <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "palm", status: "active", exchangesTotal: 1 } }); redirect("/palm") }}>{beginBtn("rgba(200,212,232,0.25)", "rgba(200,212,232,0.35)")}</form>,
             activePalm, "/palm", activePalm ? abandonBtn(activePalm.id) : undefined
           )}
@@ -195,7 +195,7 @@ export default async function DashboardPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {card("♡", "LOVE ORACLE", "rgba(232,121,160,0.3)", "rgba(232,121,160,0.2)",
             "Ask about a relationship, a person, or your own heart. He speaks what needs to be seen.",
-            "$15 · 5 EXCHANGES · SPOKEN ALOUD",
+            "$15 · 4 EXCHANGES · SPOKEN ALOUD",
             <form action={async () => { "use server"; const s = await auth(); if (!s?.user) return; await prisma.readingSession.create({ data: { userId: s.user.id, type: "love", status: "active", exchangesTotal: 4 } }); redirect("/love") }}>{beginBtn("rgba(232,121,160,0.3)", "rgba(232,121,160,0.4)")}</form>,
             activeLove, "/love", activeLove ? abandonBtn(activeLove.id) : undefined
           )}

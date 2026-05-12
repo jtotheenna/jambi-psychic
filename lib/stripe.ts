@@ -13,16 +13,16 @@ export const stripe = new Proxy({} as Stripe, {
   get(_, prop) { return getStripe()[prop as keyof Stripe] },
 })
 
-// Prices (in cents)
+// Prices (in cents) — must match Stripe payment links
 export const PRICES: Record<string, number> = {
   tarot:      1500,
   cartomancy: 1500,
   love:       1500,
-  palm:       1000,
-  astrology:  1000,
+  palm:        700,
+  astrology:   700,
   aura:       1200,
   dream:      1200,
-  moon:        500,
+  moon:        700,
   guide:       500,
   "yes-no":    500,
 }
