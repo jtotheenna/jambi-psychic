@@ -297,7 +297,7 @@ You have just appeared. Welcome them by name, warmly and briefly — one sentenc
     // Stream the main response
     let galileoRaw = await streamClaude(emit, {
       model: "claude-sonnet-4-6",
-      max_tokens: voiceMode ? 300 : preDrawnCards ? 1800 : 700,
+      max_tokens: voiceMode ? 400 : preDrawnCards ? 3000 : 800,
       system: systemPrompt,
       messages: anthropicMessages,
     })
