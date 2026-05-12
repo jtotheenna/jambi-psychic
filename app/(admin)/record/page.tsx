@@ -61,7 +61,7 @@ export default function RecordIdlePage() {
     recorderRef.current = recorder
     recorder.start(100)
     setRecording(true)
-    setStatus(`Recording… ${duration} seconds…`)
+    setStatus(`Recording… ${duration >= 60 ? `${duration/60} minute${duration > 60 ? "s" : ""}` : `${duration} seconds`}… don't close the tab`)
     await new Promise(r => setTimeout(r, duration * 1000))
     recorder.stop()
   }
@@ -76,9 +76,9 @@ export default function RecordIdlePage() {
 
       <div style={{ display: "flex", gap: 10, marginBottom: 24, alignItems: "center" }}>
         <span style={{ fontSize: 12, color: "#7a8ba8" }}>Duration:</span>
-        {[5, 10, 15, 20, 30].map(s => (
+        {[5, 10, 15, 30, 60, 300].map(s => (
           <button key={s} onClick={() => setDuration(s)} style={{ padding: "6px 14px", borderRadius: 6, border: `1px solid ${duration === s ? "rgba(165,180,252,0.6)" : "rgba(42,26,85,0.6)"}`, background: duration === s ? "rgba(165,180,252,0.15)" : "transparent", color: duration === s ? "#a5b4fc" : "#4a3870", fontFamily: "'Cinzel', serif", fontSize: 10, cursor: "pointer" }}>
-            {s}s
+            {s >= 60 ? `${s/60}m` : `${s}s`}
           </button>
         ))}
       </div>
