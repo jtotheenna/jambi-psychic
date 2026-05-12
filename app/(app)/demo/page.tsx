@@ -78,7 +78,7 @@ function slug(name: string) {
   return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
 }
 
-// Reliable MP3 playback — no AudioContext complexity
+// Demo TTS — called during recording only, not live to visitors
 async function speak(text: string): Promise<void> {
   const res = await fetch("/api/demo-tts", {
     method: "POST",
