@@ -80,7 +80,7 @@ function slug(name: string) {
 
 // Reliable MP3 playback — no AudioContext complexity
 async function speak(text: string): Promise<void> {
-  const res = await fetch("/api/tts", {
+  const res = await fetch("/api/demo-tts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
