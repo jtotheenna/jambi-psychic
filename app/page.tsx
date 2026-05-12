@@ -300,6 +300,50 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* Divider */}
+      <div style={{ width: "100%", maxWidth: 480, height: 1, background: "linear-gradient(to right, transparent, rgba(79,70,229,0.5), transparent)", marginBottom: 64 }} />
+
+      {/* ── TESTIMONIALS ── */}
+      <div style={{ width: "100%", maxWidth: 680, padding: "0 24px", marginBottom: 80 }}>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.4em", color: "#9a8ab8", textAlign: "center", marginBottom: 48 }}>WHAT PEOPLE ARE SAYING</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {[
+            {
+              quote: "I asked about a job I'd been going back and forth on for weeks. He named the exact fear I hadn't said out loud. I accepted the offer the next day.",
+              name: "Marisa T.",
+              reading: "Tarot Reading",
+              color: "#c9a84c",
+            },
+            {
+              quote: "The palm reading was genuinely uncanny. He described my relationship with my mother from a photo of my hand. I don't know how.",
+              name: "Devon K.",
+              reading: "Palm Reading",
+              color: "#c8d4e8",
+            },
+            {
+              quote: "I asked a yes or no question I'd been too scared to ask anyone. He said 'not yet — and here is why.' That answer changed how I moved through the next month.",
+              name: "Rae S.",
+              reading: "Yes or No Oracle",
+              color: "#a5b4fc",
+            },
+          ].map(({ quote, name, reading, color }, i) => (
+            <div key={i} style={{ padding: "28px 32px", borderRadius: 12, border: "1px solid rgba(42,26,85,0.6)", background: "linear-gradient(135deg, rgba(10,5,32,0.8), rgba(20,10,50,0.5))", position: "relative" }}>
+              <div style={{ position: "absolute", top: 20, left: 26, fontFamily: "'EB Garamond', serif", fontSize: 48, color: "rgba(201,168,76,0.12)", lineHeight: 1, userSelect: "none" }}>"</div>
+              <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 19, color: "#ddd8f0", fontStyle: "italic", lineHeight: 1.75, margin: "0 0 20px", paddingLeft: 8 }}>
+                "{quote}"
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 1, height: 28, background: `linear-gradient(to bottom, ${color}, transparent)` }} />
+                <div>
+                  <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", color: "#ddd8f0" }}>{name}</div>
+                  <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 13, color, marginTop: 2 }}>{reading}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* ── FINAL CTA ── */}
       <div style={{ width: "100%", maxWidth: 600, padding: "40px 24px", marginBottom: 64, borderRadius: 16, border: "1px solid rgba(201,168,76,0.2)", background: "linear-gradient(135deg, rgba(20,10,50,0.8), rgba(10,5,32,0.9))", textAlign: "center", boxShadow: "0 0 80px rgba(79,70,229,0.1)" }}>
         <div style={{ fontSize: 32, marginBottom: 16, filter: "drop-shadow(0 0 12px rgba(201,168,76,0.4))" }}>☽</div>
