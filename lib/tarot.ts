@@ -115,10 +115,22 @@ export const SPREADS: SpreadType[] = [
     bestFor: ["2 card", "two card"],
   },
   {
+    name: "The Mirror",
+    positions: ["What you show the world", "What is actually true underneath"],
+    description: "Two cards for self-honesty — the mask and what's beneath it",
+    bestFor: ["fooling myself", "honest", "truth", "denial", "really happening"],
+  },
+  {
     name: "Past, Present, Future",
     positions: ["What was", "What is", "What is becoming"],
     description: "The arc of your situation",
     bestFor: ["3 card", "three card", "past present future", "general guidance"],
+  },
+  {
+    name: "The Threshold",
+    positions: ["What you are leaving behind", "Where you stand right now", "What you are stepping into"],
+    description: "Three cards for transition — not past/present/future but the crossing itself",
+    bestFor: ["transition", "change", "moving on", "leaving", "new chapter", "ending", "beginning"],
   },
   {
     name: "The Heart's Truth",
@@ -127,10 +139,28 @@ export const SPREADS: SpreadType[] = [
     bestFor: ["4 card", "four card", "love", "relationship", "partner", "romance"],
   },
   {
+    name: "The Wound and Gift",
+    positions: ["The wound", "How it shows up in your life", "The gift hidden inside it", "How to use it"],
+    description: "Four cards for healing — the pain and what it's actually giving you",
+    bestFor: ["healing", "hurt", "pain", "pattern", "keep happening", "why do i", "trauma", "wound"],
+  },
+  {
+    name: "The Body of the Question",
+    positions: ["The head — what you think", "The heart — what you feel", "The gut — what you know", "The hands — what to do", "The feet — where to go"],
+    description: "Five cards for when head and heart are at war",
+    bestFor: ["torn", "head and heart", "don't know what i want", "confused", "conflicted", "overthinking"],
+  },
+  {
     name: "The Crossroads",
     positions: ["Where you stand", "What pulls you left", "What pulls you right", "What you fear", "What will guide you"],
     description: "Five cards for decisions",
     bestFor: ["5 card", "five card", "decision", "choice", "crossroads", "stuck"],
+  },
+  {
+    name: "The Root and the Reach",
+    positions: ["What grounds you", "What you are reaching for", "What blocks the distance between them", "What feeds you", "What is calling you", "What is already yours"],
+    description: "Six cards for feeling stuck — what holds you and what pulls you forward",
+    bestFor: ["stuck", "can't move", "blocked", "frustrated", "stagnant", "not moving", "what's holding me"],
   },
   {
     name: "The Shadow and Light",
