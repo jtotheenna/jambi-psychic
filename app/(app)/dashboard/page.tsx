@@ -167,7 +167,7 @@ export default async function DashboardPage() {
 
           {card("🌈", "AURA PHOTO READING", "rgba(129,140,248,0.3)", "rgba(129,140,248,0.2)",
             "Upload a photo. Galileo reads the actual colors detected in your field — spoken aloud.",
-            "$12 · FULL AURA READING · SPOKEN ALOUD",
+            "$7 · FULL AURA READING · SPOKEN ALOUD",
             <Link href="/aura" style={{ padding: "9px 20px", borderRadius: 7, border: "1px solid rgba(129,140,248,0.4)", background: "rgba(129,140,248,0.08)", color: "#818cf8", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", textDecoration: "none", whiteSpace: "nowrap" }}>BEGIN ✦</Link>
           )}
         </div>
@@ -180,7 +180,7 @@ export default async function DashboardPage() {
 
           {card("☁", "DREAM INTERPRETATION", "rgba(165,180,252,0.3)", "rgba(165,180,252,0.2)",
             "Describe your dream. Galileo reads the symbols, the emotion, and what lies beneath it.",
-            "$12 · ONE COMPLETE READING · SPOKEN ALOUD",
+            "$7 · ONE COMPLETE READING · SPOKEN ALOUD",
             <Link href="/dream" style={{ padding: "9px 20px", borderRadius: 7, border: "1px solid rgba(165,180,252,0.4)", background: "rgba(165,180,252,0.08)", color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.15em", textDecoration: "none", whiteSpace: "nowrap" }}>BEGIN ✦</Link>
           )}
 
