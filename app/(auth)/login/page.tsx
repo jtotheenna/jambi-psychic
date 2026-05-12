@@ -157,6 +157,11 @@ function LoginForm() {
             First time?{" "}
             <Link href="/signup" style={{ color: "#a5b4fc", textDecoration: "none" }}>Open the box</Link>
           </div>
+          <div style={{ marginTop: 10, textAlign: "center" }}>
+            <Link href="/forgot-password" style={{ fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", color: "#4a3870", textDecoration: "none" }}>
+              FORGOT YOUR WORD?
+            </Link>
+          </div>
         </div>
       </div>
 

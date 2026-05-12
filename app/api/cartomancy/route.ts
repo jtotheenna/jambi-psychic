@@ -8,7 +8,7 @@ import { sseResponse, streamClaude } from "@/lib/streamSSE"
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
 const CART_WORD_NUMS: Record<string, number> = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7 }
-const CART_AUTO = CARTOMANCY_SPREADS.filter(s => s.positions.length >= 5)
+const CART_AUTO = CARTOMANCY_SPREADS.filter(s => s.positions.length <= 7)
 
 async function pickCartomancySpread(question: string) {
   const lower = question.toLowerCase()
@@ -34,9 +34,11 @@ async function pickCartomancySpread(question: string) {
     const res = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 20,
+      system: `You are an expert cartomancer choosing the RIGHT spread for a question.
+RULES: Simple/direct questions → 1-3 cards. Everyday questions → 3-5 cards. Love questions → The Love Draw (5). Decisions → The Decision (5). Complex situations → The Cross (5) or Horseshoe (7). Never use more cards than the question needs. Reply with ONLY the exact spread name.`,
       messages: [{
         role: "user",
-        content: `You're a professional cartomancer (playing card reader) choosing a spread for this question: "${question.slice(0, 300)}"\n\nPick one:\n${CART_AUTO.map(s => `${s.name} (${s.positions.length} cards) — ${s.description}`).join("\n")}\n\nReply with only the spread name, exactly as written.`,
+        content: `Question: "${question.slice(0, 300)}"\n\nSpreads:\n${CART_AUTO.map(s => `${s.name} (${s.positions.length} cards) — ${s.description}`).join("\n")}`,
       }],
     })
     const name = res.content[0].type === "text" ? res.content[0].text.trim() : ""
@@ -230,7 +232,7 @@ Open with one sentence that sets a specific mood — not a generic "welcome." Th
 
     const response = await streamClaude(emit, {
       model: "claude-sonnet-4-6",
-      max_tokens: voiceMode ? 300 : drawnCards ? 1600 : 700,
+      max_tokens: voiceMode ? 400 : drawnCards ? 2500 : 800,
       system: systemPrompt,
       messages: anthropicMessages,
     })
