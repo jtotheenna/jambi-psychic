@@ -92,10 +92,28 @@ export const CARTOMANCY_SPREADS: CartomancySpread[] = [
     bestFor: ["yes or no", "one card", "quick", "daily", "simple"],
   },
   {
+    name: "The Mirror",
+    positions: ["What you show the world", "What is actually true underneath"],
+    description: "Two cards — the mask and what's beneath it",
+    bestFor: ["fooling myself", "honest", "truth", "denial", "really happening", "am i"],
+  },
+  {
     name: "Past, Present, Future",
     positions: ["What was", "What is", "What is coming"],
     description: "Three cards across time",
     bestFor: ["3 card", "three card", "past present future", "general", "what's happening"],
+  },
+  {
+    name: "The Threshold",
+    positions: ["What you are leaving behind", "Where you stand right now", "What you are stepping into"],
+    description: "Three cards for transition — leaving, standing, entering",
+    bestFor: ["transition", "change", "moving on", "leaving", "new chapter", "ending"],
+  },
+  {
+    name: "The Wound and Gift",
+    positions: ["The wound", "How it shows up in your life", "The gift hidden inside it", "How to use it"],
+    description: "Four cards for healing — the pain and what it's actually giving you",
+    bestFor: ["healing", "hurt", "pain", "keep happening", "why do i", "pattern", "wound"],
   },
   {
     name: "The Cross",
