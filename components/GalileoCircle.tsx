@@ -168,11 +168,13 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
             <video
               src="/galileo-idle.mp4"
               autoPlay loop muted playsInline
+              controls={false}
+              disablePictureInPicture
               style={{
                 position: "absolute", top: "-10%", left: 0,
                 width: "100%", height: "120%",
                 objectFit: "cover", objectPosition: "center top",
-                zIndex: 2,
+                zIndex: 2, pointerEvents: "none",
               }}
             />
           )}
