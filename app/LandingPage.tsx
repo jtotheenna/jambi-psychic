@@ -213,71 +213,54 @@ export default function LandingPage({ guestLinks = {} }: { guestLinks?: Record<s
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 1 }}>
 
       {/* ── HERO ── */}
-      <div style={{ width: "100%", maxWidth: 720, textAlign: "center", padding: "56px 24px 48px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ width: "100%", maxWidth: 620, textAlign: "center", padding: "56px 24px 48px", display: "flex", flexDirection: "column", alignItems: "center" }}>
 
-        {/* Live circle + hear button directly below */}
+        {/* Live circle */}
         <div style={{ marginBottom: 28, display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-          <GalileoCircle
-            state={speaking ? "speaking" : "idle"}
-            size={220}
-            showName={false}
-            showStars={false}
-          />
-          <button
-            onClick={hearGalileo}
-            disabled={speaking}
-            className="hide-on-mobile"
-            style={{
-              padding: "11px 32px", borderRadius: 8, cursor: speaking ? "default" : "pointer",
-              border: `1px solid ${speaking ? "rgba(165,180,252,0.6)" : "rgba(165,180,252,0.35)"}`,
-              background: speaking ? "rgba(79,70,229,0.2)" : "rgba(79,70,229,0.07)",
-              color: speaking ? "#c8d4e8" : "#9a8ab8",
-              fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.22em",
-              transition: "all 0.25s ease",
-              boxShadow: speaking ? "0 0 24px rgba(165,180,252,0.15)" : "none",
-            }}
-          >
+          <GalileoCircle state={speaking ? "speaking" : "idle"} size={220} showName={false} showStars={false} />
+          <button onClick={hearGalileo} disabled={speaking} className="hide-on-mobile" style={{ padding: "11px 32px", borderRadius: 8, cursor: speaking ? "default" : "pointer", border: `1px solid ${speaking ? "rgba(165,180,252,0.6)" : "rgba(165,180,252,0.35)"}`, background: speaking ? "rgba(79,70,229,0.2)" : "rgba(79,70,229,0.07)", color: speaking ? "#c8d4e8" : "#9a8ab8", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.22em", transition: "all 0.25s ease", boxShadow: speaking ? "0 0 24px rgba(165,180,252,0.15)" : "none" }}>
             {speaking ? "GALILEO IS SPEAKING…" : "HEAR GALILEO ✦"}
           </button>
         </div>
 
         {/* Title */}
-        <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(44px, 9vw, 84px)", letterSpacing: "0.15em", marginBottom: 8, lineHeight: 1, color: "#f0cc6e" }}>
-          GALILEO
-        </h1>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.5em", color: "#9a8ab8", marginBottom: 28 }}>
-          THE CELESTIAL ORACLE
-        </div>
+        <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(44px, 9vw, 84px)", letterSpacing: "0.15em", marginBottom: 8, lineHeight: 1, color: "#f0cc6e" }}>GALILEO</h1>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.5em", color: "#9a8ab8", marginBottom: 32 }}>THE CELESTIAL ORACLE</div>
 
         {/* Hook */}
-        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(22px, 5vw, 30px)", lineHeight: 1.7, color: "#ddd8f0", fontStyle: "italic", maxWidth: 520, margin: "0 auto 16px" }}>
-          Bring him what you're carrying. He has been waiting.
+        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(22px, 5vw, 30px)", lineHeight: 1.65, color: "#ddd8f0", fontStyle: "italic", maxWidth: 500, margin: "0 auto 12px" }}>
+          Ask him what you cannot stop thinking about.
+        </p>
+        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(16px, 3vw, 20px)", color: "#8878a8", lineHeight: 1.7, maxWidth: 440, margin: "0 auto 32px" }}>
+          He answers out loud, in his own voice. Start with one question for $5.
         </p>
 
-        {/* Explanation */}
-        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(15px, 3vw, 18px)", color: "#8878a8", lineHeight: 1.8, maxWidth: 500, margin: "0 auto 12px" }}>
-          A talking AI oracle who reads tarot, cartomancy, palms, dreams, the moon, and the hidden patterns around you — then speaks your reading aloud in his old, wise voice.
-        </p>
-        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#6a5a8a", lineHeight: 1.7, maxWidth: 440, margin: "0 auto 32px", fontStyle: "italic" }}>
-          Readings start at $5. Every reading is spoken aloud. Galileo remembers you across every visit.
-        </p>
-
-        {/* CTAs */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-          <Link href="/signup" style={{
-            padding: "20px 64px", borderRadius: 8,
-            border: "1px solid rgba(201,168,76,0.7)",
-            background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))",
-            color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.28em",
-            textDecoration: "none", display: "inline-block",
-            boxShadow: "0 0 60px rgba(201,168,76,0.12), 0 4px 24px rgba(0,0,0,0.5)",
-          }}>
-            START MY READING ✦
-          </Link>
-          <Link href="/login" style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#6a5a8a", textDecoration: "none", fontStyle: "italic" }}>
-            I have been here before
-          </Link>
+        {/* Primary CTA — yes/no $5 */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 28 }}>
+          {guestLinks["yes-no"] ? (
+            <a href={guestLinks["yes-no"]} style={{ padding: "20px 56px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.7)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.25em", textDecoration: "none", display: "inline-block", boxShadow: "0 0 60px rgba(201,168,76,0.12), 0 4px 24px rgba(0,0,0,0.5)" }}>
+              ASK A $5 QUESTION ✦
+            </a>
+          ) : (
+            <Link href="/signup" style={{ padding: "20px 56px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.7)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.25em", textDecoration: "none", display: "inline-block" }}>
+              ASK A $5 QUESTION ✦
+            </Link>
+          )}
+          <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#4a3870", fontStyle: "italic", margin: 0 }}>
+            No app. No subscription. Just ask and listen.
+          </p>
         </div>
+
+        {/* Sample questions */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", maxWidth: 500, marginBottom: 28 }}>
+          {["What am I not seeing?", "Should I let this go?", "What is the energy around this person?", "What do I need to hear tonight?"].map(q => (
+            <div key={q} style={{ padding: "8px 16px", borderRadius: 20, border: "1px solid rgba(42,26,85,0.6)", background: "rgba(10,5,32,0.4)", fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#6a5a8a", fontStyle: "italic" }}>{q}</div>
+          ))}
+        </div>
+
+        <Link href="/login" style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#4a3870", textDecoration: "none", fontStyle: "italic" }}>
+          I have been here before
+        </Link>
       </div>
 
       {/* Divider */}
@@ -308,17 +291,8 @@ export default function LandingPage({ guestLinks = {} }: { guestLinks?: Record<s
         <div style={{ borderTop: "1px solid rgba(42,26,85,0.5)", paddingTop: 36 }}>
           <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.3em", color: "#6a5a8a", marginBottom: 20 }}>PEOPLE ASK HIM THINGS LIKE</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
-            {[
-              "What am I not seeing?",
-              "Should I let this go?",
-              "What is the energy around this person?",
-              "What do I need to hear tonight?",
-              "Is this the right path?",
-              "What is blocking me?",
-            ].map((q) => (
-              <div key={q} style={{ padding: "8px 16px", borderRadius: 20, border: "1px solid rgba(42,26,85,0.6)", background: "rgba(10,5,32,0.4)", fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#8878a8", fontStyle: "italic" }}>
-                {q}
-              </div>
+            {["What am I not seeing?", "Should I let this go?", "What is the energy around this person?", "What do I need to hear tonight?", "Is this the right path?", "What is blocking me?"].map((q) => (
+              <div key={q} style={{ padding: "8px 16px", borderRadius: 20, border: "1px solid rgba(42,26,85,0.6)", background: "rgba(10,5,32,0.4)", fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#8878a8", fontStyle: "italic" }}>{q}</div>
             ))}
           </div>
         </div>

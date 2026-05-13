@@ -26,6 +26,13 @@ function WelcomeForm() {
     const data = await res.json()
     if (!res.ok) { setError(data.error ?? "Something went wrong."); setLoading(false); return }
 
+    // Existing account — just sign them in with their real password
+    if (data.existing) {
+      setError("You already have an account. Sign in with your existing word.")
+      setLoading(false)
+      return
+    }
+
     const result = await signIn("credentials", { email, password, redirect: false })
     if (result?.error) { setError("Could not sign in. Try again."); setLoading(false); return }
     router.push("/dashboard")

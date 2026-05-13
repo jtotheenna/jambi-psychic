@@ -36,9 +36,9 @@ export async function POST(req: NextRequest) {
 
       let user = await prisma.user.findUnique({ where: { email } })
       if (!user) {
-        const tempPassword = await bcrypt.hash(`GUEST:${crypto.randomBytes(16).toString("hex")}`, 10)
+        // Mark as guest with plain sentinel — activate route checks this before setting password
         user = await prisma.user.create({
-          data: { email, name: session.customer_details?.name ?? null, passwordHash: tempPassword },
+          data: { email, name: session.customer_details?.name ?? null, passwordHash: "GUEST" },
         })
       }
       resolvedUserId = user.id

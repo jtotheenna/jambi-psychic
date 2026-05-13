@@ -10,6 +10,11 @@ export async function POST(req: Request) {
   const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
   if (!user) return Response.json({ error: "No account found for this email." }, { status: 404 })
 
+  // Existing account — don't overwrite their real password
+  if (user.passwordHash !== "GUEST") {
+    return Response.json({ existing: true }, { status: 200 })
+  }
+
   const hash = await bcrypt.hash(password, 10)
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash: hash } })
 
