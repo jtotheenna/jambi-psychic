@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Anthropic from "@anthropic-ai/sdk"
+import AnalyticsChat from "./AnalyticsChat"
 
 async function getInsights(data: string) {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
@@ -146,6 +147,8 @@ ${readingBreakdown.map(r => `${r.type}: ${r._count} sessions`).join("\n")}
           ))}
         </div>
       </div>
+
+      <AnalyticsChat dataContext={dataForAI} />
 
       {/* All questions people asked */}
       <div style={{ marginTop: 40 }}>
