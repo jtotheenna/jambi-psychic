@@ -24,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className="h-full" style={{ background: "#04020e" }}>
       <head>
         <style>{`body { background: #04020e; }`}</style>
+        <meta name="google-site-verification" content="VwxAfnWtF6soMvoNTS4lb4zLA-3t6MgAl4k3jCRskE0" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
