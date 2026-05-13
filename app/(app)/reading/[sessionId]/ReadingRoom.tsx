@@ -11,6 +11,7 @@ import { TAROT_DECK } from "@/lib/tarot"
 import { playBoxOpen, playCardReveal, playGalileoSpeak, playSessionEnd } from "@/lib/sounds"
 import { speakStreaming } from "@/lib/speak"
 import { readSSE, nextBoundary, rafThrottle } from "@/lib/readSSE"
+import { generateShareCard } from "@/lib/shareCard"
 
 // Browser Speech Recognition (voice input)
 const SpeechRecognition =
@@ -830,28 +831,55 @@ export default function ReadingRoom({
                 fontSize: 16,
                 color: "#7a8ba8",
                 fontStyle: "italic",
-                marginBottom: 24,
+                marginBottom: 28,
               }}
             >
               The reading is complete. The cards have spoken everything they carry.
             </p>
-            <a
-              href="/dashboard"
-              style={{
-                padding: "12px 32px",
-                borderRadius: 8,
-                border: "1px solid rgba(201,168,76,0.4)",
-                background: "rgba(201,168,76,0.08)",
-                color: "#c9a84c",
-                fontFamily: "'Cinzel', serif",
-                fontSize: 11,
-                letterSpacing: "0.2em",
-                textDecoration: "none",
-                display: "inline-block",
-              }}
-            >
-              RETURN TO YOUR READINGS
-            </a>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+              <button
+                onClick={async () => {
+                  const lastGalileo = [...messages].reverse().find(m => m.role === "galileo")
+                  const quote = lastGalileo?.content ?? ""
+                  const dataUrl = await generateShareCard({
+                    readingType: "Tarot Reading",
+                    spread,
+                    cards: cardsDrawn,
+                    quote,
+                  })
+                  const a = document.createElement("a")
+                  a.href = dataUrl
+                  a.download = "galileo-reading.png"
+                  a.click()
+                }}
+                style={{
+                  padding: "13px 36px", borderRadius: 8, cursor: "pointer",
+                  border: "1px solid rgba(165,180,252,0.4)",
+                  background: "rgba(79,70,229,0.12)",
+                  color: "#a5b4fc", fontFamily: "'Cinzel', serif",
+                  fontSize: 11, letterSpacing: "0.2em",
+                }}
+              >
+                SAVE YOUR READING ✦
+              </button>
+              <a
+                href="/dashboard"
+                style={{
+                  padding: "12px 32px",
+                  borderRadius: 8,
+                  border: "1px solid rgba(201,168,76,0.4)",
+                  background: "rgba(201,168,76,0.08)",
+                  color: "#c9a84c",
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: 11,
+                  letterSpacing: "0.2em",
+                  textDecoration: "none",
+                  display: "inline-block",
+                }}
+              >
+                RETURN TO YOUR READINGS
+              </a>
+            </div>
           </div>
         )}
       </div>
