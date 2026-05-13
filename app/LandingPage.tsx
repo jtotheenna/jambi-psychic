@@ -270,8 +270,8 @@ export default function LandingPage({ guestLinks = {} }: { guestLinks?: Record<s
           ))}
         </div>
 
-        <Link href="/login" style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#4a3870", textDecoration: "none", fontStyle: "italic" }}>
-          I have been here before
+        <Link href="/login" style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.2em", color: "#8878a8", textDecoration: "none", padding: "10px 24px", borderRadius: 6, border: "1px solid rgba(42,26,85,0.6)", background: "rgba(10,5,32,0.4)" }}>
+          I HAVE BEEN HERE BEFORE ✦
         </Link>
       </div>
 
