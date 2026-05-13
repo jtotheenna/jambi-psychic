@@ -213,7 +213,7 @@ export default function LandingPage({ guestLinks = {} }: { guestLinks?: Record<s
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 1 }}>
 
       {/* ── HERO ── */}
-      <div style={{ width: "100%", maxWidth: 620, textAlign: "center", padding: "56px 24px 48px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ width: "100%", maxWidth: 620, textAlign: "center", padding: "clamp(28px, 6vw, 56px) 20px clamp(24px, 5vw, 48px)", display: "flex", flexDirection: "column", alignItems: "center" }}>
 
         {/* Live circle + sample button right under */}
         <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
@@ -250,11 +250,11 @@ export default function LandingPage({ guestLinks = {} }: { guestLinks?: Record<s
         {/* Primary CTA */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: 24 }}>
           {guestLinks["yes-no"] ? (
-            <a href={guestLinks["yes-no"]} style={{ padding: "18px 52px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.7)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.25em", textDecoration: "none", display: "inline-block", boxShadow: "0 0 60px rgba(201,168,76,0.12), 0 4px 24px rgba(0,0,0,0.5)" }}>
+            <a href={guestLinks["yes-no"]} style={{ padding: "18px 0", borderRadius: 8, border: "1px solid rgba(201,168,76,0.7)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.25em", textDecoration: "none", display: "block", width: "100%", maxWidth: 340, boxShadow: "0 0 60px rgba(201,168,76,0.12), 0 4px 24px rgba(0,0,0,0.5)" }}>
               ASK A $5 QUESTION ✦
             </a>
           ) : (
-            <Link href="/signup" style={{ padding: "18px 52px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.7)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.25em", textDecoration: "none", display: "inline-block" }}>
+            <Link href="/signup" style={{ padding: "18px 0", borderRadius: 8, border: "1px solid rgba(201,168,76,0.7)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.25em", textDecoration: "none", display: "block", width: "100%", maxWidth: 340 }}>
               ASK A $5 QUESTION ✦
             </Link>
           )}
@@ -270,7 +270,7 @@ export default function LandingPage({ guestLinks = {} }: { guestLinks?: Record<s
           ))}
         </div>
 
-        <Link href="/login" style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.2em", color: "#8878a8", textDecoration: "none", padding: "10px 24px", borderRadius: 6, border: "1px solid rgba(42,26,85,0.6)", background: "rgba(10,5,32,0.4)" }}>
+        <Link href="/login" style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.2em", color: "#8878a8", textDecoration: "none", padding: "12px 0", borderRadius: 6, border: "1px solid rgba(42,26,85,0.6)", background: "rgba(10,5,32,0.4)", display: "block", width: "100%", maxWidth: 340, textAlign: "center" }}>
           I HAVE BEEN HERE BEFORE ✦
         </Link>
       </div>
