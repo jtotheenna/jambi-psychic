@@ -2,6 +2,8 @@ import { NextRequest } from "next/server"
 import { stripe } from "@/lib/stripe"
 import { prisma } from "@/lib/prisma"
 import { EXCHANGES } from "@/lib/stripe"
+import bcrypt from "bcryptjs"
+import crypto from "crypto"
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
@@ -26,9 +28,25 @@ export async function POST(req: NextRequest) {
 
     const amountCents = session.amount_total ?? 0
 
+    // Guest checkout — create or find account from Stripe email
+    let resolvedUserId = userId
+    if (userId === "guest") {
+      const email = session.customer_details?.email?.toLowerCase()
+      if (!email) return Response.json({ ok: true })
+
+      let user = await prisma.user.findUnique({ where: { email } })
+      if (!user) {
+        const tempPassword = await bcrypt.hash(`GUEST:${crypto.randomBytes(16).toString("hex")}`, 10)
+        user = await prisma.user.create({
+          data: { email, name: session.customer_details?.name ?? null, passwordHash: tempPassword },
+        })
+      }
+      resolvedUserId = user.id
+    }
+
     const purchase = await prisma.purchase.create({
       data: {
-        userId,
+        userId: resolvedUserId,
         amountCents,
         stripePaymentIntentId: typeof session.payment_intent === "string"
           ? session.payment_intent
@@ -39,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     await prisma.readingSession.create({
       data: {
-        userId,
+        userId: resolvedUserId,
         purchaseId: purchase.id,
         type,
         status: "active",
