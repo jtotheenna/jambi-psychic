@@ -57,6 +57,14 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
 }
 
+model PageView {
+  id        String   @id @default(cuid())
+  path      String
+  createdAt DateTime @default(now())
+
+  @@index([path, createdAt])
+}
+
 model Purchase {
   id                    String          @id @default(cuid())
   userId                String

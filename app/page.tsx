@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 import GalileoCircle from "@/components/GalileoCircle"
 
 // ── Reading data ──────────────────────────────────────────────────────────────
@@ -150,6 +150,10 @@ function ReadingCard({ icon, name, price, color, glow, border, tagline, desc, hr
 export default function LandingPage() {
   const [speaking, setSpeaking] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  useEffect(() => {
+    fetch("/api/pageview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: "/" }) }).catch(() => {})
+  }, [])
 
   // Pre-load on mount so the button fires instantly
   useState(() => {

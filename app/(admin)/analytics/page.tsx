@@ -30,6 +30,7 @@ export default async function AnalyticsPage() {
     completedSessions, paidSessions,
     totalRevenueCents, weekRevenueCents,
     readingBreakdown, recentSessions, allQuestions,
+    landingToday, landingWeek, landingTotal,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { createdAt: { gte: today } } }),
@@ -53,6 +54,9 @@ export default async function AnalyticsPage() {
       take: 50,
       select: { question: true, type: true, createdAt: true, purchaseId: true, user: { select: { name: true } } },
     }),
+    prisma.pageView.count({ where: { path: "/", createdAt: { gte: today } } }),
+    prisma.pageView.count({ where: { path: "/", createdAt: { gte: week } } }),
+    prisma.pageView.count({ where: { path: "/" } }),
   ])
 
   const totalRevenue = (totalRevenueCents._sum.amountCents ?? 0) / 100
@@ -63,6 +67,7 @@ export default async function AnalyticsPage() {
   const dataForAI = `
 GALILEO — askgalileo.live — AI psychic readings ($5–$15)
 
+LANDING PAGE VISITS: ${landingTotal} total | ${landingWeek} this week | ${landingToday} today
 USERS: ${totalUsers} total | ${weekUsers} this week | ${todayUsers} today
 SESSIONS: ${totalSessions} total | ${weekSessions} this week | ${todaySessions} today
 REVENUE: $${totalRevenue.toFixed(2)} total | $${weekRevenue.toFixed(2)} this week
@@ -95,11 +100,11 @@ ${readingBreakdown.map(r => `${r.type}: ${r._count} sessions`).join("\n")}
 
       {/* Key metrics */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 40 }}>
+        {statCard("LANDING PAGE", landingTotal.toString(), `${landingWeek} this week · ${landingToday} today`)}
         {statCard("TOTAL USERS", totalUsers.toString(), `+${weekUsers} this week`)}
         {statCard("TODAY'S USERS", todayUsers.toString())}
         {statCard("TOTAL REVENUE", `$${totalRevenue.toFixed(2)}`, `$${weekRevenue.toFixed(2)} this week`)}
         {statCard("PAID SESSIONS", paidSessions.toString(), `${conversionRate}% of users`)}
-        {statCard("TOTAL SESSIONS", totalSessions.toString(), `${weekSessions} this week`)}
         {statCard("COMPLETION", `${completionRate}%`, "finished readings")}
       </div>
 
