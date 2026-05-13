@@ -166,8 +166,13 @@ export default function LandingPage() {
     }
   })
 
+  function trackEvent(name: string) {
+    fetch("/api/pageview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: name }) }).catch(() => {})
+  }
+
   function hearGalileo() {
     if (speaking) return
+    trackEvent("/hear-galileo")
     // Safari audio unlock
     const sa = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==")
     sa.volume = 0; sa.play().catch(() => {})
