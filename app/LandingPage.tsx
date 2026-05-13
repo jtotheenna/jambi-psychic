@@ -157,25 +157,41 @@ function ReadingCard({ icon, name, price, color, glow, border, tagline, desc, hr
 
 export default function LandingPage({ guestLinks = {} }: { guestLinks?: Record<string, string | null> }) {
   const [speaking, setSpeaking] = useState(false)
+  const [sampleSpeaking, setSampleSpeaking] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const sampleRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
+    const device = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? "/visit-mobile" : "/visit-desktop"
     fetch("/api/pageview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: "/" }) }).catch(() => {})
-  }, [])
-
-  // Pre-load on mount so the button fires instantly
-  useState(() => {
+    fetch("/api/pageview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: device }) }).catch(() => {})
     if (typeof window !== "undefined") {
       const a = new Audio("/galileo-welcome.mp3")
       a.preload = "auto"
       a.onended = () => setSpeaking(false)
       a.onerror = () => setSpeaking(false)
       audioRef.current = a
+
+      const s = new Audio("/galileo-sample.mp3")
+      s.preload = "auto"
+      s.onended = () => setSampleSpeaking(false)
+      s.onerror = () => setSampleSpeaking(false)
+      sampleRef.current = s
     }
-  })
+  }, [])
 
   function trackEvent(name: string) {
     fetch("/api/pageview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: name }) }).catch(() => {})
+  }
+
+  function playSample() {
+    if (sampleSpeaking) return
+    trackEvent("/hear-sample")
+    setSampleSpeaking(true)
+    if (sampleRef.current) {
+      sampleRef.current.currentTime = 0
+      sampleRef.current.play().catch(() => setSampleSpeaking(false))
+    }
   }
 
   function hearGalileo() {
@@ -210,6 +226,7 @@ export default function LandingPage({ guestLinks = {} }: { guestLinks?: Record<s
           <button
             onClick={hearGalileo}
             disabled={speaking}
+            className="hide-on-mobile"
             style={{
               padding: "11px 32px", borderRadius: 8, cursor: speaking ? "default" : "pointer",
               border: `1px solid ${speaking ? "rgba(165,180,252,0.6)" : "rgba(165,180,252,0.35)"}`,
@@ -265,6 +282,47 @@ export default function LandingPage({ guestLinks = {} }: { guestLinks?: Record<s
 
       {/* Divider */}
       <div style={{ width: "100%", maxWidth: 480, height: 1, background: "linear-gradient(to right, transparent, rgba(79,70,229,0.5), transparent)", marginBottom: 72 }} />
+
+      {/* ── SAMPLE READING ── */}
+      <div style={{ width: "100%", maxWidth: 600, padding: "0 24px", marginBottom: 72, textAlign: "center" }}>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.4em", color: "#9a8ab8", marginBottom: 20 }}>HEAR A REAL READING</div>
+        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 18, color: "#8878a8", fontStyle: "italic", lineHeight: 1.7, marginBottom: 24 }}>
+          "What am I not seeing?"
+        </p>
+        <button
+          onClick={playSample}
+          disabled={sampleSpeaking}
+          style={{
+            padding: "13px 36px", borderRadius: 8, cursor: sampleSpeaking ? "default" : "pointer",
+            border: `1px solid ${sampleSpeaking ? "rgba(201,168,76,0.6)" : "rgba(201,168,76,0.35)"}`,
+            background: sampleSpeaking ? "rgba(201,168,76,0.12)" : "rgba(201,168,76,0.05)",
+            color: sampleSpeaking ? "#f0cc6e" : "#c9a84c",
+            fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.22em",
+            transition: "all 0.25s ease", marginBottom: 40,
+            boxShadow: sampleSpeaking ? "0 0 28px rgba(201,168,76,0.15)" : "none",
+          }}
+        >
+          {sampleSpeaking ? "GALILEO IS SPEAKING…" : "HEAR HIS ANSWER ✦"}
+        </button>
+
+        <div style={{ borderTop: "1px solid rgba(42,26,85,0.5)", paddingTop: 36 }}>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.3em", color: "#6a5a8a", marginBottom: 20 }}>PEOPLE ASK HIM THINGS LIKE</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
+            {[
+              "What am I not seeing?",
+              "Should I let this go?",
+              "What is the energy around this person?",
+              "What do I need to hear tonight?",
+              "Is this the right path?",
+              "What is blocking me?",
+            ].map((q) => (
+              <div key={q} style={{ padding: "8px 16px", borderRadius: 20, border: "1px solid rgba(42,26,85,0.6)", background: "rgba(10,5,32,0.4)", fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#8878a8", fontStyle: "italic" }}>
+                {q}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* ── READINGS ── */}
       <div style={{ width: "100%", maxWidth: 720, padding: "0 20px", marginBottom: 80 }}>

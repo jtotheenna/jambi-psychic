@@ -31,7 +31,7 @@ export default async function AnalyticsPage() {
     completedSessions, paidSessions,
     totalRevenueCents, weekRevenueCents,
     readingBreakdown, recentSessions, allQuestions,
-    landingToday, landingWeek, landingTotal, hearClicks,
+    landingToday, landingWeek, landingTotal, hearClicks, mobileVisits, desktopVisits, sampleClicks,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { createdAt: { gte: today } } }),
@@ -59,6 +59,9 @@ export default async function AnalyticsPage() {
     prisma.pageView.count({ where: { path: "/", createdAt: { gte: week } } }),
     prisma.pageView.count({ where: { path: "/" } }),
     prisma.pageView.count({ where: { path: "/hear-galileo" } }),
+    prisma.pageView.count({ where: { path: "/visit-mobile" } }),
+    prisma.pageView.count({ where: { path: "/visit-desktop" } }),
+    prisma.pageView.count({ where: { path: "/hear-sample" } }),
   ])
 
   const totalRevenue = (totalRevenueCents._sum.amountCents ?? 0) / 100
@@ -105,6 +108,9 @@ ${readingBreakdown.map(r => `${r.type}: ${r._count} sessions`).join("\n")}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 40 }}>
         {statCard("LANDING PAGE", landingTotal.toString(), `${landingWeek} this week · ${landingToday} today`)}
         {statCard("HEARD HIS VOICE", hearClicks.toString(), `${landingTotal > 0 ? Math.round((hearClicks/landingTotal)*100) : 0}% of visitors`)}
+        {statCard("HEARD SAMPLE", sampleClicks.toString(), `${landingTotal > 0 ? Math.round((sampleClicks/landingTotal)*100) : 0}% of visitors`)}
+        {statCard("MOBILE", mobileVisits.toString(), `${landingTotal > 0 ? Math.round((mobileVisits/landingTotal)*100) : 0}% of visitors`)}
+        {statCard("DESKTOP", desktopVisits.toString(), `${landingTotal > 0 ? Math.round((desktopVisits/landingTotal)*100) : 0}% of visitors`)}
         {statCard("TOTAL USERS", totalUsers.toString(), `+${weekUsers} this week`)}
         {statCard("TODAY'S USERS", todayUsers.toString())}
         {statCard("TOTAL REVENUE", `$${totalRevenue.toFixed(2)}`, `$${weekRevenue.toFixed(2)} this week`)}

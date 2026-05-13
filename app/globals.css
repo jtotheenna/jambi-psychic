@@ -169,6 +169,7 @@ body::after {
 
 /* ── Mobile ── */
 @media (max-width: 640px) {
+  .hide-on-mobile { display: none !important; }
   .reading-top { flex-direction: column !important; align-items: center !important; }
   .reading-avatar { width: 100% !important; display: flex; justify-content: center; }
   .reading-cards { width: 100% !important; }
