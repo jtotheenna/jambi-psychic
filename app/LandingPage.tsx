@@ -215,46 +215,58 @@ export default function LandingPage({ guestLinks = {} }: { guestLinks?: Record<s
       {/* ── HERO ── */}
       <div style={{ width: "100%", maxWidth: 620, textAlign: "center", padding: "56px 24px 48px", display: "flex", flexDirection: "column", alignItems: "center" }}>
 
-        {/* Live circle */}
-        <div style={{ marginBottom: 28, display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-          <GalileoCircle state={speaking ? "speaking" : "idle"} size={220} showName={false} showStars={false} />
-          <button onClick={hearGalileo} disabled={speaking} className="hide-on-mobile" style={{ padding: "11px 32px", borderRadius: 8, cursor: speaking ? "default" : "pointer", border: `1px solid ${speaking ? "rgba(165,180,252,0.6)" : "rgba(165,180,252,0.35)"}`, background: speaking ? "rgba(79,70,229,0.2)" : "rgba(79,70,229,0.07)", color: speaking ? "#c8d4e8" : "#9a8ab8", fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.22em", transition: "all 0.25s ease", boxShadow: speaking ? "0 0 24px rgba(165,180,252,0.15)" : "none" }}>
-            {speaking ? "GALILEO IS SPEAKING…" : "HEAR GALILEO ✦"}
+        {/* Live circle + sample button right under */}
+        <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+          <GalileoCircle state={sampleSpeaking ? "speaking" : speaking ? "speaking" : "idle"} size={220} showName={false} showStars={false} />
+          <button
+            onClick={playSample}
+            disabled={sampleSpeaking}
+            style={{
+              padding: "12px 36px", borderRadius: 8, cursor: sampleSpeaking ? "default" : "pointer",
+              border: `1px solid ${sampleSpeaking ? "rgba(201,168,76,0.7)" : "rgba(201,168,76,0.4)"}`,
+              background: sampleSpeaking ? "rgba(201,168,76,0.15)" : "rgba(201,168,76,0.07)",
+              color: sampleSpeaking ? "#f0cc6e" : "#c9a84c",
+              fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.22em",
+              transition: "all 0.25s ease",
+              boxShadow: sampleSpeaking ? "0 0 32px rgba(201,168,76,0.2)" : "none",
+            }}
+          >
+            {sampleSpeaking ? "GALILEO IS SPEAKING…" : "HEAR HIS VOICE ✦"}
           </button>
         </div>
 
         {/* Title */}
         <h1 style={{ fontFamily: "'Cinzel Decorative', serif", fontSize: "clamp(44px, 9vw, 84px)", letterSpacing: "0.15em", marginBottom: 8, lineHeight: 1, color: "#f0cc6e" }}>GALILEO</h1>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.5em", color: "#9a8ab8", marginBottom: 32 }}>THE CELESTIAL ORACLE</div>
+        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.5em", color: "#9a8ab8", marginBottom: 24 }}>THE CELESTIAL ORACLE</div>
 
         {/* Hook */}
-        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(22px, 5vw, 30px)", lineHeight: 1.65, color: "#ddd8f0", fontStyle: "italic", maxWidth: 500, margin: "0 auto 12px" }}>
+        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(20px, 5vw, 28px)", lineHeight: 1.65, color: "#ddd8f0", fontStyle: "italic", maxWidth: 480, margin: "0 auto 10px" }}>
           Ask him what you cannot stop thinking about.
         </p>
-        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(16px, 3vw, 20px)", color: "#8878a8", lineHeight: 1.7, maxWidth: 440, margin: "0 auto 32px" }}>
+        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: "clamp(15px, 3vw, 18px)", color: "#8878a8", lineHeight: 1.7, maxWidth: 400, margin: "0 auto 28px" }}>
           He answers out loud, in his own voice. Start with one question for $5.
         </p>
 
-        {/* Primary CTA — yes/no $5 */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 28 }}>
+        {/* Primary CTA */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: 24 }}>
           {guestLinks["yes-no"] ? (
-            <a href={guestLinks["yes-no"]} style={{ padding: "20px 56px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.7)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.25em", textDecoration: "none", display: "inline-block", boxShadow: "0 0 60px rgba(201,168,76,0.12), 0 4px 24px rgba(0,0,0,0.5)" }}>
+            <a href={guestLinks["yes-no"]} style={{ padding: "18px 52px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.7)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.25em", textDecoration: "none", display: "inline-block", boxShadow: "0 0 60px rgba(201,168,76,0.12), 0 4px 24px rgba(0,0,0,0.5)" }}>
               ASK A $5 QUESTION ✦
             </a>
           ) : (
-            <Link href="/signup" style={{ padding: "20px 56px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.7)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.25em", textDecoration: "none", display: "inline-block" }}>
+            <Link href="/signup" style={{ padding: "18px 52px", borderRadius: 8, border: "1px solid rgba(201,168,76,0.7)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.25em", textDecoration: "none", display: "inline-block" }}>
               ASK A $5 QUESTION ✦
             </Link>
           )}
-          <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#4a3870", fontStyle: "italic", margin: 0 }}>
+          <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#4a3870", fontStyle: "italic", margin: 0 }}>
             No app. No subscription. Just ask and listen.
           </p>
         </div>
 
         {/* Sample questions */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", maxWidth: 500, marginBottom: 28 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", maxWidth: 480, marginBottom: 24 }}>
           {["What am I not seeing?", "Should I let this go?", "What is the energy around this person?", "What do I need to hear tonight?"].map(q => (
-            <div key={q} style={{ padding: "8px 16px", borderRadius: 20, border: "1px solid rgba(42,26,85,0.6)", background: "rgba(10,5,32,0.4)", fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#6a5a8a", fontStyle: "italic" }}>{q}</div>
+            <div key={q} style={{ padding: "7px 14px", borderRadius: 20, border: "1px solid rgba(42,26,85,0.6)", background: "rgba(10,5,32,0.4)", fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#6a5a8a", fontStyle: "italic" }}>{q}</div>
           ))}
         </div>
 
@@ -264,39 +276,7 @@ export default function LandingPage({ guestLinks = {} }: { guestLinks?: Record<s
       </div>
 
       {/* Divider */}
-      <div style={{ width: "100%", maxWidth: 480, height: 1, background: "linear-gradient(to right, transparent, rgba(79,70,229,0.5), transparent)", marginBottom: 72 }} />
-
-      {/* ── SAMPLE READING ── */}
-      <div style={{ width: "100%", maxWidth: 600, padding: "0 24px", marginBottom: 72, textAlign: "center" }}>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.4em", color: "#9a8ab8", marginBottom: 20 }}>HEAR A REAL READING</div>
-        <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 18, color: "#8878a8", fontStyle: "italic", lineHeight: 1.7, marginBottom: 24 }}>
-          "What am I not seeing?"
-        </p>
-        <button
-          onClick={playSample}
-          disabled={sampleSpeaking}
-          style={{
-            padding: "13px 36px", borderRadius: 8, cursor: sampleSpeaking ? "default" : "pointer",
-            border: `1px solid ${sampleSpeaking ? "rgba(201,168,76,0.6)" : "rgba(201,168,76,0.35)"}`,
-            background: sampleSpeaking ? "rgba(201,168,76,0.12)" : "rgba(201,168,76,0.05)",
-            color: sampleSpeaking ? "#f0cc6e" : "#c9a84c",
-            fontFamily: "'Cinzel', serif", fontSize: 10, letterSpacing: "0.22em",
-            transition: "all 0.25s ease", marginBottom: 40,
-            boxShadow: sampleSpeaking ? "0 0 28px rgba(201,168,76,0.15)" : "none",
-          }}
-        >
-          {sampleSpeaking ? "GALILEO IS SPEAKING…" : "HEAR HIS ANSWER ✦"}
-        </button>
-
-        <div style={{ borderTop: "1px solid rgba(42,26,85,0.5)", paddingTop: 36 }}>
-          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.3em", color: "#6a5a8a", marginBottom: 20 }}>PEOPLE ASK HIM THINGS LIKE</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
-            {["What am I not seeing?", "Should I let this go?", "What is the energy around this person?", "What do I need to hear tonight?", "Is this the right path?", "What is blocking me?"].map((q) => (
-              <div key={q} style={{ padding: "8px 16px", borderRadius: 20, border: "1px solid rgba(42,26,85,0.6)", background: "rgba(10,5,32,0.4)", fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#8878a8", fontStyle: "italic" }}>{q}</div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <div style={{ width: "100%", maxWidth: 480, height: 1, background: "linear-gradient(to right, transparent, rgba(79,70,229,0.5), transparent)", marginBottom: 64 }} />
 
       {/* ── READINGS ── */}
       <div style={{ width: "100%", maxWidth: 720, padding: "0 20px", marginBottom: 80 }}>
