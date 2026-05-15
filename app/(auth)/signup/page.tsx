@@ -134,9 +134,9 @@ export default function SignupPage() {
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div>
               <label style={{ display: "block", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#7a8ba8", marginBottom: 8 }}>
-                YOUR NAME
+                YOUR FIRST NAME
               </label>
-              <input name="name" type="text" style={inputStyle}
+              <input name="name" type="text" autoComplete="given-name" style={inputStyle}
                 onFocus={(e) => (e.target.style.borderColor = "rgba(165,180,252,0.5)")}
                 onBlur={(e) => (e.target.style.borderColor = "rgba(42,26,85,0.8)")} />
             </div>
