@@ -15,6 +15,7 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
   const [simliReady,    setSimliReady]    = useState(false)
   const [videoPlaying,  setVideoPlaying]  = useState(false)
   const [effectiveSize, setEffectiveSize] = useState(size)
+  const [videoSrc,      setVideoSrc]      = useState<string | undefined>(undefined)
 
   const videoRef         = useRef<HTMLVideoElement>(null)
   const audioRef         = useRef<HTMLAudioElement>(null)
@@ -34,6 +35,13 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
 
   // Keep internalState in sync
   useEffect(() => { setInternalState(state) }, [state])
+
+  useEffect(() => {
+    if (!liveSimli) {
+      const t = setTimeout(() => setVideoSrc("/galileo-idle.mp4"), 800)
+      return () => clearTimeout(t)
+    }
+  }, [liveSimli])
 
   // Simli connection — only when liveSimli=true (landing page + demo)
   // Reading pages use the recorded idle loop instead
@@ -166,7 +174,7 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
           {/* Recorded idle loop — used on reading pages (no Simli connection needed) */}
           {!liveSimli && (
             <video
-              src="/galileo-idle.mp4"
+              src={videoSrc}
               autoPlay loop muted playsInline
               controls={false}
               disablePictureInPicture
