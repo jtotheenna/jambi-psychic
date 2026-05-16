@@ -170,6 +170,8 @@ export default function GalileoCircle({ state, size = 200, showName = true, show
               autoPlay loop muted playsInline
               controls={false}
               disablePictureInPicture
+              preload="none"
+              poster="/galileo.jpg"
               style={{
                 position: "absolute", top: "-10%", left: 0,
                 width: "100%", height: "120%",
