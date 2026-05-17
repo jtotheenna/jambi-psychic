@@ -7,19 +7,26 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid input." }, { status: 400 })
   }
 
-  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
-  if (!user) return Response.json({ error: "No account found for this email." }, { status: 404 })
+  let user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
 
-  // Existing account — don't overwrite their real password
-  if (user.passwordHash !== "GUEST") {
+  // Existing real account — don't overwrite password
+  if (user && user.passwordHash !== "GUEST") {
     return Response.json({ existing: true }, { status: 200 })
   }
 
   const hash = await bcrypt.hash(password, 10)
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { passwordHash: hash, name: firstName?.trim() || user.name || null },
-  })
+
+  if (!user) {
+    // No account yet (webhook may not have fired) — create it now
+    user = await prisma.user.create({
+      data: { email: email.toLowerCase(), name: firstName?.trim() || null, passwordHash: hash },
+    })
+  } else {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: hash, name: firstName?.trim() || user.name || null },
+    })
+  }
 
   return Response.json({ ok: true })
 }
