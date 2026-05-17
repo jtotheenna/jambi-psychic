@@ -1,16 +1,28 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useState, Suspense, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
+import Link from "next/link"
 
 function WelcomeForm() {
   const params = useSearchParams()
-  const email = params.get("email") ?? ""
   const router = useRouter()
+  const [email, setEmail] = useState(params.get("email") ?? "")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [resolving, setResolving] = useState(false)
+
+  useEffect(() => {
+    const session = params.get("session")
+    if (!session || email) return
+    setResolving(true)
+    fetch(`/api/auth/session-email?session=${session}`)
+      .then(r => r.json())
+      .then(d => { if (d.email) setEmail(d.email) })
+      .finally(() => setResolving(false))
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -26,21 +38,18 @@ function WelcomeForm() {
     const data = await res.json()
     if (!res.ok) { setError(data.error ?? "Something went wrong."); setLoading(false); return }
 
-    // Existing account — just sign them in with their real password
     if (data.existing) {
-      setError("You already have an account. Sign in with your existing word.")
+      setError("You already have an account — sign in with your existing word below.")
       setLoading(false)
       return
     }
 
-    const result = await signIn("credentials", { email, password, redirect: false })
-    if (result?.error) { setError("Could not sign in. Try again."); setLoading(false); return }
-
-    // Fire TikTok Purchase event
     if (typeof window !== "undefined" && (window as any).ttq) {
       ;(window as any).ttq.track("Purchase", { contents: [{ content_id: "yes-no", content_type: "product", content_name: "Yes or No Oracle" }], value: 5, currency: "USD" })
     }
 
+    const result = await signIn("credentials", { email, password, redirect: false })
+    if (result?.error) { setError("Could not sign in. Try again."); setLoading(false); return }
     router.push("/dashboard")
   }
 
@@ -65,37 +74,54 @@ function WelcomeForm() {
             Your reading is ready.
           </div>
           <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 16, color: "#8878a8", textAlign: "center", lineHeight: 1.7, marginBottom: 32 }}>
-            Set a word to access it now and return whenever you wish.
+            Set a word to access it and return whenever you wish.
           </p>
 
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <div>
-              <label style={{ display: "block", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#7a8ba8", marginBottom: 8 }}>YOUR EMAIL</label>
-              <input value={email} readOnly style={{ ...inp, color: "#6a5a8a" }} />
-            </div>
-            <div>
-              <label style={{ display: "block", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#7a8ba8", marginBottom: 8 }}>CHOOSE A WORD</label>
-              <input
-                type="password" required value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="6 characters or more"
-                style={inp}
-                onFocus={e => (e.target.style.borderColor = "rgba(165,180,252,0.5)")}
-                onBlur={e => (e.target.style.borderColor = "rgba(42,26,85,0.8)")}
-              />
-            </div>
+          {resolving ? (
+            <div style={{ textAlign: "center", fontFamily: "'EB Garamond', serif", fontSize: 16, color: "#6a5a8a", fontStyle: "italic" }}>Finding your reading…</div>
+          ) : (
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <div>
+                <label style={{ display: "block", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#7a8ba8", marginBottom: 8 }}>YOUR EMAIL</label>
+                <input
+                  type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  style={inp}
+                  onFocus={e => (e.target.style.borderColor = "rgba(165,180,252,0.5)")}
+                  onBlur={e => (e.target.style.borderColor = "rgba(42,26,85,0.8)")}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#7a8ba8", marginBottom: 8 }}>CHOOSE A WORD</label>
+                <input
+                  type="password" required value={password} onChange={e => setPassword(e.target.value)}
+                  placeholder="6 characters or more"
+                  style={inp}
+                  onFocus={e => (e.target.style.borderColor = "rgba(165,180,252,0.5)")}
+                  onBlur={e => (e.target.style.borderColor = "rgba(42,26,85,0.8)")}
+                />
+              </div>
 
-            {error && <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#be123c", textAlign: "center", fontStyle: "italic" }}>{error}</div>}
+              {error && <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#be123c", textAlign: "center", fontStyle: "italic" }}>{error}</div>}
 
-            <button type="submit" disabled={loading} style={{
-              width: "100%", padding: "16px", borderRadius: 6,
-              border: "1px solid rgba(201,168,76,0.5)",
-              background: "linear-gradient(135deg, rgba(201,168,76,0.12), rgba(79,70,229,0.12))",
-              color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.25em",
-              cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1,
-            }}>
-              {loading ? "ENTERING…" : "ENTER THE BOX ✦"}
-            </button>
-          </form>
+              <button type="submit" disabled={loading} style={{
+                width: "100%", padding: "16px", borderRadius: 6,
+                border: "1px solid rgba(201,168,76,0.5)",
+                background: "linear-gradient(135deg, rgba(201,168,76,0.12), rgba(79,70,229,0.12))",
+                color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.25em",
+                cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1,
+              }}>
+                {loading ? "ENTERING…" : "ENTER THE BOX ✦"}
+              </button>
+
+              <div style={{ textAlign: "center", fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#6a5a8a" }}>
+                Already have an account?{" "}
+                <Link href={`/login${email ? `?email=${encodeURIComponent(email)}` : ""}`} style={{ color: "#a5b4fc", textDecoration: "none" }}>
+                  Sign in here
+                </Link>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     </div>
