@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
+import { getStripe, EXCHANGES } from "@/lib/stripe"
 
 export async function POST(req: Request) {
-  const { email, password, firstName } = await req.json()
+  const { email, password, firstName, stripeSessionId } = await req.json()
   if (!email || !password || password.length < 6) {
     return Response.json({ error: "Invalid input." }, { status: 400 })
   }
@@ -28,5 +29,37 @@ export async function POST(req: Request) {
     })
   }
 
-  return Response.json({ ok: true })
+  // If we have the Stripe session ID, ensure the reading session exists
+  let readingType: string | null = null
+  if (stripeSessionId) {
+    try {
+      const stripe = getStripe()
+      const checkout = await stripe.checkout.sessions.retrieve(stripeSessionId)
+      const ref = checkout.client_reference_id // "guest--{type}"
+      const type = ref?.split("--")[1]
+      if (type) {
+        readingType = type
+        const existing = await prisma.readingSession.findFirst({
+          where: { userId: user.id, type, status: "active" },
+        })
+        if (!existing) {
+          const purchase = await prisma.purchase.findFirst({
+            where: { userId: user.id, status: "paid" },
+            orderBy: { createdAt: "desc" },
+          })
+          await prisma.readingSession.create({
+            data: {
+              userId: user.id,
+              purchaseId: purchase?.id ?? null,
+              type,
+              status: "active",
+              exchangesTotal: EXCHANGES[type] ?? 1,
+            },
+          })
+        }
+      }
+    } catch {}
+  }
+
+  return Response.json({ ok: true, readingType })
 }

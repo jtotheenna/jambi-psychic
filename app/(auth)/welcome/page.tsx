@@ -31,10 +31,11 @@ function WelcomeForm() {
     setLoading(true)
     setError("")
 
+    const stripeSessionId = params.get("session")
     const res = await fetch("/api/auth/activate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, firstName }),
+      body: JSON.stringify({ email, password, firstName, stripeSessionId }),
     })
     const data = await res.json()
     if (!res.ok) { setError(data.error ?? "Something went wrong."); setLoading(false); return }
@@ -58,9 +59,11 @@ function WelcomeForm() {
       ;(window as any).ttq.track("Purchase", { contents: [{ content_id: "yes-no", content_type: "product", content_name: "Yes or No Oracle" }], value: 5, currency: "USD" })
     }
 
-    // Small delay so NextAuth session cookie is fully set, then hard navigate
     await new Promise(r => setTimeout(r, 500))
-    window.location.href = "/api/auth/active-reading?redirect=1"
+    const type = data.readingType
+    if (type && type !== "tarot") window.location.href = `/${type}`
+    else if (type === "tarot") window.location.href = "/api/auth/active-reading?redirect=1"
+    else window.location.href = "/api/auth/active-reading?redirect=1"
   }
 
   const inp: React.CSSProperties = {
