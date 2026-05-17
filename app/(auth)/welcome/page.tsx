@@ -35,6 +35,12 @@ function WelcomeForm() {
 
     const result = await signIn("credentials", { email, password, redirect: false })
     if (result?.error) { setError("Could not sign in. Try again."); setLoading(false); return }
+
+    // Fire TikTok Purchase event
+    if (typeof window !== "undefined" && (window as any).ttq) {
+      (window as any).ttq.track("Purchase", { value: 5, currency: "USD" })
+    }
+
     router.push("/dashboard")
   }
 
