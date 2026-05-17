@@ -187,6 +187,13 @@ export default function LandingPage({ guestLinks = {} }: { guestLinks?: Record<s
     fetch("/api/pageview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: name }) }).catch(() => {})
   }
 
+  function trackCTA() {
+    if (typeof window === "undefined" || !(window as any).ttq) return
+    const contents = [{ content_id: "yes-no", content_type: "product", content_name: "Yes or No Oracle" }]
+    ;(window as any).ttq.track("AddToCart", { contents, value: 5, currency: "USD" })
+    ;(window as any).ttq.track("InitiateCheckout", { contents, value: 5, currency: "USD" })
+  }
+
   function playSample() {
     if (sampleSpeaking) return
     trackEvent("/hear-sample")
@@ -253,7 +260,7 @@ export default function LandingPage({ guestLinks = {} }: { guestLinks?: Record<s
         {/* Primary CTA */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: 24 }}>
           {guestLinks["yes-no"] ? (
-            <a href={guestLinks["yes-no"]} onClick={() => { if (typeof window !== "undefined" && (window as any).ttq) { ;(window as any).ttq.track("AddToCart", { contents: [{ content_id: "yes-no", content_type: "product", content_name: "Yes or No Oracle" }], value: 5, currency: "USD" }); (window as any).ttq.track("InitiateCheckout", { contents: [{ content_id: "yes-no", content_type: "product", content_name: "Yes or No Oracle" }], value: 5, currency: "USD" }) } }} style={{ padding: "18px 0", borderRadius: 8, border: "1px solid rgba(201,168,76,0.7)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.25em", textDecoration: "none", display: "block", width: "100%", maxWidth: 340, boxShadow: "0 0 60px rgba(201,168,76,0.12), 0 4px 24px rgba(0,0,0,0.5)" }}>
+            <a href={guestLinks["yes-no"]} onClick={trackCTA} style={{ padding: "18px 0", borderRadius: 8, border: "1px solid rgba(201,168,76,0.7)", background: "linear-gradient(135deg, rgba(201,168,76,0.18), rgba(79,70,229,0.18))", color: "#f0cc6e", fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: "0.25em", textDecoration: "none", display: "block", width: "100%", maxWidth: 340, boxShadow: "0 0 60px rgba(201,168,76,0.12), 0 4px 24px rgba(0,0,0,0.5)" }}>
               ASK A $5 QUESTION ✦
             </a>
           ) : (
