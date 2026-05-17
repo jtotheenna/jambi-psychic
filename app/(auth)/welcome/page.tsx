@@ -38,7 +38,7 @@ function WelcomeForm() {
 
     // Fire TikTok Purchase event
     if (typeof window !== "undefined" && (window as any).ttq) {
-      (window as any).ttq.track("CompletePayment", { value: 5, currency: "USD", content_type: "product", content_id: "reading" })
+      ;(window as any).ttq.track("Purchase", { contents: [{ content_id: "yes-no", content_type: "product", content_name: "Yes or No Oracle" }], value: 5, currency: "USD" })
     }
 
     router.push("/dashboard")
