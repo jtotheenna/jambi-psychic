@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 
 export async function POST(req: Request) {
-  const { email, password } = await req.json()
+  const { email, password, firstName } = await req.json()
   if (!email || !password || password.length < 6) {
     return Response.json({ error: "Invalid input." }, { status: 400 })
   }
@@ -16,7 +16,10 @@ export async function POST(req: Request) {
   }
 
   const hash = await bcrypt.hash(password, 10)
-  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: hash } })
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: hash, name: firstName?.trim() || user.name || null },
+  })
 
   return Response.json({ ok: true })
 }

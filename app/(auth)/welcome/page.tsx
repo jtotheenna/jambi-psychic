@@ -9,6 +9,7 @@ function WelcomeForm() {
   const params = useSearchParams()
   const router = useRouter()
   const [email, setEmail] = useState(params.get("email") ?? "")
+  const [firstName, setFirstName] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
@@ -33,7 +34,7 @@ function WelcomeForm() {
     const res = await fetch("/api/auth/activate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, firstName }),
     })
     const data = await res.json()
     if (!res.ok) { setError(data.error ?? "Something went wrong."); setLoading(false); return }
@@ -71,16 +72,27 @@ function WelcomeForm() {
 
         <div style={{ padding: "40px 36px", borderRadius: 12, border: "1px solid rgba(42,26,85,0.8)", background: "linear-gradient(135deg, #0d0823 0%, #04020e 100%)" }}>
           <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 22, color: "#ddd8f0", textAlign: "center", fontStyle: "italic", lineHeight: 1.6, marginBottom: 8 }}>
-            Your reading is ready.
+            Payment received.
           </div>
           <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 16, color: "#8878a8", textAlign: "center", lineHeight: 1.7, marginBottom: 32 }}>
-            Set a word to access it and return whenever you wish.
+            Create your account to begin your reading with Galileo.
           </p>
 
           {resolving ? (
             <div style={{ textAlign: "center", fontFamily: "'EB Garamond', serif", fontSize: 16, color: "#6a5a8a", fontStyle: "italic" }}>Finding your reading…</div>
           ) : (
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <div>
+                <label style={{ display: "block", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#7a8ba8", marginBottom: 8 }}>YOUR FIRST NAME</label>
+                <input
+                  type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
+                  placeholder="First name"
+                  autoComplete="given-name"
+                  style={inp}
+                  onFocus={e => (e.target.style.borderColor = "rgba(165,180,252,0.5)")}
+                  onBlur={e => (e.target.style.borderColor = "rgba(42,26,85,0.8)")}
+                />
+              </div>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", color: "#7a8ba8", marginBottom: 8 }}>YOUR EMAIL</label>
                 <input
@@ -111,15 +123,23 @@ function WelcomeForm() {
                 color: "#c9a84c", fontFamily: "'Cinzel', serif", fontSize: 12, letterSpacing: "0.25em",
                 cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1,
               }}>
-                {loading ? "ENTERING…" : "ENTER THE BOX ✦"}
+                {loading ? "ENTERING…" : "CREATE MY ACCOUNT ✦"}
               </button>
 
-              <div style={{ textAlign: "center", fontFamily: "'EB Garamond', serif", fontSize: 15, color: "#6a5a8a" }}>
-                Already have an account?{" "}
-                <Link href={`/login${email ? `?email=${encodeURIComponent(email)}` : ""}`} style={{ color: "#a5b4fc", textDecoration: "none" }}>
-                  Sign in here
-                </Link>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ flex: 1, height: 1, background: "rgba(42,26,85,0.5)" }} />
+                <span style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#4a3870", fontStyle: "italic" }}>already have an account?</span>
+                <div style={{ flex: 1, height: 1, background: "rgba(42,26,85,0.5)" }} />
               </div>
+
+              <Link href={`/login${email ? `?email=${encodeURIComponent(email)}` : ""}`} style={{
+                width: "100%", padding: "14px", borderRadius: 6, textAlign: "center",
+                border: "1px solid rgba(165,180,252,0.3)", background: "rgba(79,70,229,0.08)",
+                color: "#a5b4fc", fontFamily: "'Cinzel', serif", fontSize: 11, letterSpacing: "0.2em",
+                textDecoration: "none", display: "block",
+              }}>
+                SIGN IN INSTEAD ✦
+              </Link>
             </form>
           )}
         </div>
