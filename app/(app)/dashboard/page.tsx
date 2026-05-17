@@ -23,6 +23,11 @@ export default async function DashboardPage() {
   const activeMoon       = active("moon")
   const activeCartomancy = active("cartomancy")
   const activeLove       = active("love")
+  const activeYesNo      = active("yes-no")
+  const activeAura       = active("aura")
+  const activeDream      = active("dream")
+  const activeGuide      = active("guide")
+  const activeAstrology  = active("astrology")
   const pastAstrology    = user.sessions.filter(s => s.type === "astrology" && s.status === "complete")
   const completedSessions = user.sessions.filter(s => s.status === "complete")
 
@@ -132,7 +137,10 @@ export default async function DashboardPage() {
           {card("◎", "YES OR NO ORACLE", "rgba(165,180,252,0.3)", "rgba(165,180,252,0.2)",
             "One question. One clear answer. Yes, no, perhaps, not yet.",
             "$5 · SHORT SPOKEN READING",
-            payBtn("yes-no", "rgba(165,180,252,0.3)", "rgba(165,180,252,0.4)", <a href="/yes-no" style={linkStyle("rgba(165,180,252,0.3)", "rgba(165,180,252,0.4)")}>BEGIN ✦</a>)
+            activeYesNo
+              ? <a href="/yes-no" style={linkStyle("rgba(165,180,252,0.3)", "rgba(165,180,252,0.4)")}>CONTINUE ✦</a>
+              : payBtn("yes-no", "rgba(165,180,252,0.3)", "rgba(165,180,252,0.4)", <a href="/yes-no" style={linkStyle("rgba(165,180,252,0.3)", "rgba(165,180,252,0.4)")}>BEGIN ✦</a>),
+            activeYesNo
           )}
         </div>
       </div>
@@ -159,7 +167,9 @@ export default async function DashboardPage() {
                   $10 · ONE-TIME FULL CHART · SPOKEN ALOUD{pastAstrology.length > 0 ? ` · ${pastAstrology.length} ALREADY READ` : ""}
                 </p>
               </div>
-              {payBtn("astrology", "rgba(251,191,36,0.3)", "rgba(251,191,36,0.4)", <a href="/astrology" style={linkStyle("rgba(251,191,36,0.3)", "rgba(251,191,36,0.4)")}>BEGIN ✦</a>)}
+              {activeAstrology
+                ? <a href="/astrology" style={linkStyle("rgba(251,191,36,0.3)", "rgba(251,191,36,0.4)")}>CONTINUE ✦</a>
+                : payBtn("astrology", "rgba(251,191,36,0.3)", "rgba(251,191,36,0.4)", <a href="/astrology" style={linkStyle("rgba(251,191,36,0.3)", "rgba(251,191,36,0.4)")}>BEGIN ✦</a>)}
             </div>
           </div>
         </div>
@@ -181,7 +191,10 @@ export default async function DashboardPage() {
           {card("🌈", "AURA PHOTO READING", "rgba(129,140,248,0.3)", "rgba(129,140,248,0.2)",
             "Upload a photo. Galileo reads the actual colors detected in your field — spoken aloud.",
             "$7 · FULL AURA READING · SPOKEN ALOUD",
-            payBtn("aura", "rgba(129,140,248,0.3)", "rgba(129,140,248,0.4)", <a href="/aura" style={linkStyle("rgba(129,140,248,0.3)", "rgba(129,140,248,0.4)")}>BEGIN ✦</a>)
+            activeAura
+              ? <a href="/aura" style={linkStyle("rgba(129,140,248,0.3)", "rgba(129,140,248,0.4)")}>CONTINUE ✦</a>
+              : payBtn("aura", "rgba(129,140,248,0.3)", "rgba(129,140,248,0.4)", <a href="/aura" style={linkStyle("rgba(129,140,248,0.3)", "rgba(129,140,248,0.4)")}>BEGIN ✦</a>),
+            activeAura
           )}
         </div>
       </div>
@@ -194,13 +207,19 @@ export default async function DashboardPage() {
           {card("☁", "DREAM INTERPRETATION", "rgba(165,180,252,0.3)", "rgba(165,180,252,0.2)",
             "Describe your dream. Galileo reads the symbols, the emotion, and what lies beneath it.",
             "$7 · ONE COMPLETE READING · SPOKEN ALOUD",
-            payBtn("dream", "rgba(165,180,252,0.3)", "rgba(165,180,252,0.4)", <a href="/dream" style={linkStyle("rgba(165,180,252,0.3)", "rgba(165,180,252,0.4)")}>BEGIN ✦</a>)
+            activeDream
+              ? <a href="/dream" style={linkStyle("rgba(165,180,252,0.3)", "rgba(165,180,252,0.4)")}>CONTINUE ✦</a>
+              : payBtn("dream", "rgba(165,180,252,0.3)", "rgba(165,180,252,0.4)", <a href="/dream" style={linkStyle("rgba(165,180,252,0.3)", "rgba(165,180,252,0.4)")}>BEGIN ✦</a>),
+            activeDream
           )}
 
           {card("🕯", "GUIDE MESSAGE", "rgba(167,139,250,0.3)", "rgba(167,139,250,0.2)",
             "No question needed. Receive a message for your current moment.",
             "$5 · SHORT ORACLE READING · SPOKEN ALOUD",
-            payBtn("guide", "rgba(167,139,250,0.3)", "rgba(167,139,250,0.4)", <a href="/guide" style={linkStyle("rgba(167,139,250,0.3)", "rgba(167,139,250,0.4)")}>BEGIN ✦</a>)
+            activeGuide
+              ? <a href="/guide" style={linkStyle("rgba(167,139,250,0.3)", "rgba(167,139,250,0.4)")}>CONTINUE ✦</a>
+              : payBtn("guide", "rgba(167,139,250,0.3)", "rgba(167,139,250,0.4)", <a href="/guide" style={linkStyle("rgba(167,139,250,0.3)", "rgba(167,139,250,0.4)")}>BEGIN ✦</a>),
+            activeGuide
           )}
         </div>
       </div>
