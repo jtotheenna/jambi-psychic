@@ -18,7 +18,7 @@ function WelcomeForm() {
   useEffect(() => {
     // Fire Purchase event immediately on landing — this page is only reached after real Stripe payment
     if (typeof window !== "undefined" && (window as any).ttq) {
-      ;(window as any).ttq.track("CompletePayment", { contents: [{ content_id: "reading", content_type: "product", content_name: "Oracle Reading" }], value: 5, currency: "USD" })
+      ;(window as any).ttq.track("Purchase", { contents: [{ content_id: "reading", content_type: "product", content_name: "Oracle Reading" }], value: 5, currency: "USD" })
     }
 
     const session = params.get("session")
@@ -52,7 +52,7 @@ function WelcomeForm() {
     }
 
     if (typeof window !== "undefined" && (window as any).ttq) {
-      ;(window as any).ttq.track("CompletePayment", { contents: [{ content_id: "yes-no", content_type: "product", content_name: "Yes or No Oracle" }], value: 5, currency: "USD" })
+      ;(window as any).ttq.track("Purchase", { contents: [{ content_id: "yes-no", content_type: "product", content_name: "Yes or No Oracle" }], value: 5, currency: "USD" })
     }
 
     const result = await signIn("credentials", {
@@ -61,7 +61,7 @@ function WelcomeForm() {
     if (result?.error) { setError("Could not sign in. Try again."); setLoading(false); return }
 
     if (typeof window !== "undefined" && (window as any).ttq) {
-      ;(window as any).ttq.track("CompletePayment", { contents: [{ content_id: "yes-no", content_type: "product", content_name: "Yes or No Oracle" }], value: 5, currency: "USD" })
+      ;(window as any).ttq.track("Purchase", { contents: [{ content_id: "yes-no", content_type: "product", content_name: "Yes or No Oracle" }], value: 5, currency: "USD" })
     }
 
     await new Promise(r => setTimeout(r, 500))
