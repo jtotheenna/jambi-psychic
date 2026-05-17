@@ -16,6 +16,11 @@ function WelcomeForm() {
   const [resolving, setResolving] = useState(false)
 
   useEffect(() => {
+    // Fire Purchase event immediately on landing — this page is only reached after real Stripe payment
+    if (typeof window !== "undefined" && (window as any).ttq) {
+      ;(window as any).ttq.track("Purchase", { contents: [{ content_id: "reading", content_type: "product", content_name: "Oracle Reading" }], value: 5, currency: "USD" })
+    }
+
     const session = params.get("session")
     if (!session || email) return
     setResolving(true)
