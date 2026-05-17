@@ -49,10 +49,17 @@ function WelcomeForm() {
       ;(window as any).ttq.track("Purchase", { contents: [{ content_id: "yes-no", content_type: "product", content_name: "Yes or No Oracle" }], value: 5, currency: "USD" })
     }
 
-    const result = await signIn("credentials", { email, password, redirect: false })
+    const result = await signIn("credentials", {
+      email, password, redirect: false,
+    })
     if (result?.error) { setError("Could not sign in. Try again."); setLoading(false); return }
 
-    // Full page navigation so session cookie is included in the redirect lookup
+    if (typeof window !== "undefined" && (window as any).ttq) {
+      ;(window as any).ttq.track("Purchase", { contents: [{ content_id: "yes-no", content_type: "product", content_name: "Yes or No Oracle" }], value: 5, currency: "USD" })
+    }
+
+    // Small delay so NextAuth session cookie is fully set, then hard navigate
+    await new Promise(r => setTimeout(r, 500))
     window.location.href = "/api/auth/active-reading?redirect=1"
   }
 
