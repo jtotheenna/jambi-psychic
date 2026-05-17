@@ -246,7 +246,7 @@ export default async function DashboardPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {completedSessions.slice(0, 8).map(s => {
               const date = new Date(s.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-              const href = s.type === "tarot" ? `/reading/${s.id}` : `/${s.type}`
+              const href = `/share/${s.id}`
               return (
                 <Link key={s.id} href={href} style={{ padding: "14px 18px", borderRadius: 8, border: "1px solid rgba(42,26,85,0.4)", background: "rgba(10,5,32,0.4)", textDecoration: "none", display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
                   <div>
