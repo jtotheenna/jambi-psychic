@@ -64,6 +64,33 @@ export async function POST(req: NextRequest) {
         exchangesTotal: EXCHANGES[type] ?? 1,
       },
     })
+
+    // Fire TikTok Events API server-side Purchase event
+    if (process.env.TIKTOK_ACCESS_TOKEN) {
+      try {
+        await fetch("https://business-api.tiktok.com/open_api/v1.3/event/track/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Access-Token": process.env.TIKTOK_ACCESS_TOKEN },
+          body: JSON.stringify({
+            pixel_code: "D84L2BRC77U9FQKB7N2G",
+            event: "Purchase",
+            event_id: purchase.id,
+            timestamp: Math.floor(Date.now() / 1000).toString(),
+            context: {
+              ip: req.headers.get("x-forwarded-for") ?? "127.0.0.1",
+              user_agent: req.headers.get("user-agent") ?? "",
+            },
+            properties: {
+              value: amountCents / 100,
+              currency: "USD",
+              content_id: type,
+              content_type: "product",
+              content_name: `${type} reading`,
+            },
+          }),
+        })
+      } catch {}
+    }
   }
 
   // ── Custom PaymentIntent (legacy tarot flow) ─────────────────────────────────
