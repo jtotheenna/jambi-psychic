@@ -52,16 +52,8 @@ function WelcomeForm() {
     const result = await signIn("credentials", { email, password, redirect: false })
     if (result?.error) { setError("Could not sign in. Try again."); setLoading(false); return }
 
-    // Find their active reading and go straight to it
-    const sessionRes = await fetch("/api/auth/active-reading")
-    const sessionData = await sessionRes.json()
-    if (sessionData.type && sessionData.type !== "tarot") {
-      router.push(`/${sessionData.type}`)
-    } else if (sessionData.sessionId) {
-      router.push(`/reading/${sessionData.sessionId}`)
-    } else {
-      router.push("/dashboard")
-    }
+    // Full page navigation so session cookie is included in the redirect lookup
+    window.location.href = "/api/auth/active-reading?redirect=1"
   }
 
   const inp: React.CSSProperties = {
