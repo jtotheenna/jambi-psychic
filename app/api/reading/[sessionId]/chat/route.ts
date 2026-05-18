@@ -60,8 +60,9 @@ async function pickSpread(question: string) {
       system: `You are an expert tarot reader choosing the RIGHT spread for a question.
 
 RULES:
-- Simple/direct questions ("does he like me", "will I get the job", "quick answer") → 1-3 cards
-- Everyday questions with some context needed → 3-5 cards
+- MINIMUM 3 cards always — this is a paid tarot reading, never give less than 3
+- Simple/direct love or life questions → 3-4 cards (The Heart's Truth or The Crossroads)
+- Everyday questions with context → 4-5 cards
 - Decisions with multiple paths → 5 cards (The Crossroads)
 - Love/relationship questions → 4 cards (The Heart's Truth) unless complex
 - Questions about deep patterns, recurring issues, complex life situations → 6-8 cards
