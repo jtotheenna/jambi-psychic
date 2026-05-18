@@ -61,12 +61,21 @@ async function pickSpread(question: string) {
 
 RULES:
 - MINIMUM 3 cards always — this is a paid tarot reading, never give less than 3
-- Simple/direct love or life questions → 3-4 cards (The Heart's Truth or The Crossroads)
-- Everyday questions with context → 4-5 cards
-- Decisions with multiple paths → 5 cards (The Crossroads)
-- Love/relationship questions → 4 cards (The Heart's Truth) unless complex
-- Questions about deep patterns, recurring issues, complex life situations → 6-8 cards
-- Only use 10-card Celtic Cross for truly complex, layered situations that need the full picture
+- Love/relationship questions → The Heart's Truth (4) or The Relationship (5)
+- Two-person dynamic questions → The Relationship (5)
+- Decision between two options → The Fork in the Road (6)
+- General decisions → The Crossroads (5)
+- Career/work/money → The Career Path (5)
+- Letting go/grief/moving on → The Letting Go (5)
+- Family patterns/cycles → The Ancestral Thread (5)
+- Exhaustion/burnout → The Body and Soul (6)
+- New beginning/fresh start → The New Beginning (5)
+- Head vs heart conflict → The Body of the Question (5)
+- Hidden truth/blind spot → The Hidden Truth (4)
+- Healing/inner child → The Inner Child (5)
+- Transition/change → The Threshold (3)
+- Deep complex situations → The Shadow and Light (6) or The Seven Stars (7)
+- Full life overview → The Celtic Cross (10) only for truly layered situations
 - Never default to Celtic Cross just because it's the biggest — match depth to the question
 
 Reply with ONLY the exact spread name from the list.`,
