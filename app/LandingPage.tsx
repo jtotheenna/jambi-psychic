@@ -140,14 +140,15 @@ function ReadingCard({ icon, name, price, color, glow, border, tagline, desc, hr
       <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 16, color: "#b0a8d0", fontStyle: "italic", marginBottom: 8, lineHeight: 1.5 }}>{tagline}</p>
       <p style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: "#7a8ba8", lineHeight: 1.7, marginBottom: 18 }}>{desc}</p>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-        {guestHref && (
+        {guestHref ? (
           <a href={guestHref} style={{ display: "inline-block", padding: "10px 24px", borderRadius: 6, border: `1px solid ${border}`, background: glow.replace(/[\d.]+\)$/, "0.15)"), color, fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", textDecoration: "none", fontWeight: 600 }}>
-            GET READING ✦
+            BEGIN THIS READING ✦
           </a>
+        ) : (
+          <Link href={href} style={{ display: "inline-block", padding: "10px 24px", borderRadius: 6, border: `1px solid ${border}`, background: glow.replace(/[\d.]+\)$/, "0.15)"), color, fontFamily: "'Cinzel', serif", fontSize: 9, letterSpacing: "0.2em", textDecoration: "none", fontWeight: 600 }}>
+            BEGIN THIS READING ✦
+          </Link>
         )}
-        <Link href={href} style={{ display: "inline-block", padding: "9px 18px", borderRadius: 6, border: "1px solid rgba(42,26,85,0.6)", background: "transparent", color: "#6a5a8a", fontFamily: "'Cinzel', serif", fontSize: 8, letterSpacing: "0.15em", textDecoration: "none" }}>
-          {guestHref ? "SIGN IN FIRST" : `CHOOSE ${name.toUpperCase()} ✦`}
-        </Link>
       </div>
     </div>
   )
